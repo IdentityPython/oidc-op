@@ -60,7 +60,7 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
         'oidcmsg==0.3.1',
-        "oidcendpoint==0.4.0",
+        "oidcendpoint>=0.4.0",
         "requests",
         "cherrypy",
         'cryptojwt'
