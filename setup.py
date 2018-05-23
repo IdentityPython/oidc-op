@@ -59,7 +59,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        'oidcmsg==0.3.1',
+        'oidcmsg>=0.3.1',
         "oidcendpoint>=0.4.0",
         "requests",
         "cherrypy",
