@@ -49,7 +49,7 @@ setup(
     author_email="roland@catalogix.se",
     license="Apache 2.0",
     url='https://github.com/IdentityPython/oidcop',
-    packages=["oidcop", "oidcop/cherrypy"],
+    packages=["oidcop", "oidcop/cherryp"],
     package_dir={"": "src"},
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -59,8 +59,8 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        'oidcmsg>=0.3.1',
-        "oidcendpoint>=0.4.0",
+        'oidcmsg>=0.3.4',
+        "oidcendpoint>=0.4.4",
         "requests",
         "cherrypy",
         'cryptojwt'
