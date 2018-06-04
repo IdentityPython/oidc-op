@@ -4,7 +4,7 @@ import cherrypy
 from cryptojwt import as_bytes
 from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oauth2 import ResponseMessage
-from oidcendpoint.sdb import AuthnEvent
+from oidcendpoint.authn_event import AuthnEvent, create_authn_event
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +14,8 @@ class OpenIDProvider(object):
         self.config = config
         self.endpoint_context = endpoint_context
 
-    def do_response(self, endpoint, req_args, **args):
-        info = endpoint.do_response(request=req_args, **args)
+    def do_response(self, endpoint, req_args, error='', **args):
+        info = endpoint.do_response(request=req_args, error=error, **args)
 
         for key, value in info['http_headers']:
             cherrypy.response.headers[key] = value
@@ -62,7 +62,12 @@ class OpenIDProvider(object):
         if isinstance(req_args, ResponseMessage) and 'error' in req_args:
             return as_bytes(req_args.to_json())
 
-        args = endpoint.process_request(req_args)
+        if cherrypy.request.cookie:
+            args = endpoint.process_request(req_args,
+                                            cookie=cherrypy.request.cookie)
+        else:
+            args = endpoint.process_request(req_args)
+
         if 'http_response' in args:
             return as_bytes(args['http_response'])
 
@@ -87,11 +92,10 @@ class OpenIDProvider(object):
         auth_args = authn_method.unpack_token(kwargs['token'])
         request = AuthorizationRequest().from_urlencoded(auth_args['query'])
 
-        # uid, salt, valid=3600, authn_info=None, time_stamp=0, authn_time=None,
-        # valid_until=None
-        authn_event = AuthnEvent(username, 'salt',
-                                 authn_info=auth_args['authn_class_ref'],
-                                 authn_time=auth_args['iat'])
+        authn_event = create_authn_event(
+            uid=username, salt='salt',
+            authn_info=auth_args['authn_class_ref'],
+            authn_time=auth_args['iat'])
 
         endpoint = self.endpoint_context.endpoint['authorization']
         args = endpoint.authz_part2(user=username, request=request,

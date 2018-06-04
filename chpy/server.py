@@ -8,7 +8,8 @@ import cherrypy
 
 from oidcmsg.key_jar import init_key_jar
 from oidcendpoint.endpoint_context import EndpointContext
-from oidcop.cherrypy import OpenIDProvider
+from oidcop.cherryp import OpenIDProvider
+from oidcop.cookie import CookieDealer
 
 logger = logging.getLogger("")
 LOGFILE_NAME = 'op.log'
@@ -81,8 +82,12 @@ if __name__ == '__main__':
 
     _kj = init_key_jar(iss=_server_info_config['issuer'], **_jwks_config)
 
+    cookie_dealer = CookieDealer(None, name='oidcop',
+                                 domain=_server_info_config['issuer'], path='',
+                                 ttl=14400)
     endpoint_context = EndpointContext(config.CONFIG['server_info'], keyjar=_kj,
-                                       cwd=folder)
+                                       cwd=folder, cookie_dealer=cookie_dealer)
+    cookie_dealer.endpoint_context = endpoint_context
 
     for endp in endpoint_context.endpoint.values():
         p = urlparse(endp.endpoint_path)
