@@ -114,5 +114,11 @@ CONFIG = {
         'key': 'certs/key.pem',
         'cert_chain': '',
         'port': 8100,
-    }
+    },
+    'cookie': {
+        'name': 'oidc_op',
+        'domain': "localhost",
+        'path': '/',
+        'ttl': 14400
+        }
 }
