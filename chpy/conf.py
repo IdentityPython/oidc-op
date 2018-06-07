@@ -117,8 +117,8 @@ CONFIG = {
     },
     'cookie': {
         'name': 'oidc_op',
-        'domain': "localhost",
+        'domain': "127.0.0.1",
         'path': '/',
-        'ttl': 14400
-        }
+        'max_age': 3600
+    }
 }

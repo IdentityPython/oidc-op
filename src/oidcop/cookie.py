@@ -7,6 +7,7 @@ import time
 
 from http.cookies import SimpleCookie
 
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from cryptojwt import as_bytes
@@ -95,7 +96,7 @@ def _make_hashed_key(parts, hashfunc='sha256'):
 
 
 def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
-                enc_key=None):
+                enc_key=None, max_age=0):
     """
     Create and return a cookie
 
@@ -125,7 +126,7 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
     :type timestamp: text
     :param enc_key: The key to use for cookie encryption.
     :type enc_key: byte string
-    :return: A tuple to be added to headers
+    :return: A SimpleCookie instance
     """
     cookie = SimpleCookie()
     if not timestamp:
@@ -164,11 +165,14 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
         cookie[name]["path"] = path
     if domain:
         cookie[name]["domain"] = domain
-    if expire:
-        cookie[name]["expires"] = _expiration(expire,
-                                              "%a, %d-%b-%Y %H:%M:%S GMT")
 
-    return tuple(cookie.output().split(": ", 1))
+    if expire:
+        cookie[name]["expires"] = expire
+    elif max_age:
+        cookie[name]["max-age"] = max_age
+
+    #return tuple(cookie.output().split(": ", 1))
+    return cookie
 
 
 def parse_cookie(name, seed, kaka, enc_key=None):
@@ -220,7 +224,7 @@ def parse_cookie(name, seed, kaka, enc_key=None):
         aad = timestamp.encode('utf-8')
         try:
             cleartext = aesgcm.decrypt(iv, ct, aad)
-        except JWEException:
+        except (JWEException, InvalidTag):
             raise InvalidCookieSign()
         return cleartext.decode('utf-8'), timestamp
     return None
@@ -256,7 +260,7 @@ class CookieDealer(object):
 
     endpoint_context = property(_get_server_info, _set_server_info)
 
-    def __init__(self, endpoint_context, name, domain, path, ttl=5):
+    def __init__(self, endpoint_context, name, domain, path, ttl=5, max_age=0):
         self.endpoint_context = None
         self.init_endpoint_context(endpoint_context)
         self.name = name
@@ -264,6 +268,7 @@ class CookieDealer(object):
         self.path = path
         # minutes before the interaction should be completed
         self.ttl = ttl  # N minutes
+        self.max_age = max_age
 
     def init_endpoint_context(self, endpoint_context):
         """
@@ -281,9 +286,17 @@ class CookieDealer(object):
             msg = "CookieDealer.srv.symkey can not be an empty value"
             raise ImproperlyConfigured(msg)
 
-        # if there is no 'sed' attribute defined create one
+        # if there is no 'seed' attribute defined create one
         if not getattr(endpoint_context, 'seed', None):
-            setattr(endpoint_context, 'seed', rndstr().encode("utf-8"))
+            # Need to be able to restart the OP and still use the same seed
+            if os.path.isfile('seed.txt'):
+                _seed = open('seed.txt').read()
+            else:
+                _seed = rndstr(48).encode("utf-8")
+                with open('seed.txt', "w") as f:
+                    f.write(_seed)
+
+            setattr(endpoint_context, 'seed', _seed)
 
     def delete_cookie(self, cookie_name=None):
         """
@@ -341,7 +354,9 @@ class CookieDealer(object):
         cookie = make_cookie(
             cookie_name, cookie_payload, self.endpoint_context.seed,
             expire=ttl, domain=cookie_domain, path=cookie_path,
-            timestamp=timestamp, enc_key=self.endpoint_context.symkey)
+            timestamp=timestamp, enc_key=self.endpoint_context.symkey,
+            max_age=self.max_age)
+
         return cookie
 
     def get_cookie_value(self, cookie=None, cookie_name=None):

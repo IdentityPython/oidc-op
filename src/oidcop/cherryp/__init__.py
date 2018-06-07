@@ -2,11 +2,25 @@ import logging
 
 import cherrypy
 from cryptojwt import as_bytes
+from oidcendpoint.authn_event import create_authn_event
 from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oauth2 import ResponseMessage
-from oidcendpoint.authn_event import AuthnEvent, create_authn_event
 
 logger = logging.getLogger(__name__)
+
+
+def add_cookie(cookie_spec):
+    for key, _morsel in cookie_spec.items():
+        cherrypy.response.cookie[key] = getattr(_morsel, 'value', '')
+        for attr in ['domain', 'path', 'expires', 'comment', 'max-age',
+                     'secure', 'httponly', 'version']:
+            try:
+                _v = _morsel[attr]
+            except KeyError:
+                pass
+            else:
+                if _v:
+                    cherrypy.response.cookie[key][attr] = _v
 
 
 class OpenIDProvider(object):
@@ -19,6 +33,9 @@ class OpenIDProvider(object):
 
         for key, value in info['http_headers']:
             cherrypy.response.headers[key] = value
+
+        if 'cookie' in info:
+            add_cookie(info['cookie'])
 
         try:
             _response_placement = info['response_placement']
