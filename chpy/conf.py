@@ -27,12 +27,12 @@ CAPABILITIES = {
     "claims_parameter_supported": True,
     "request_parameter_supported": True,
     "request_uri_parameter_supported": True,
-}
+    }
 
 KEY_DEF = [
     {"type": "RSA", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]}
-]
+    ]
 
 CONFIG = {
     'server_info': {
@@ -48,42 +48,42 @@ CONFIG = {
             'public_path': 'static/jwks.json',
             'key_defs': KEY_DEF,
             'private_path': 'private/jwks.json'
-        },
+            },
         'endpoint': {
             'webfinger': {
                 'path': '.well-known/webfinger',
                 'class': Discovery,
                 'kwargs': {'client_authn_method': None}
-            },
+                },
             'provider_info': {
                 'path': '.well-known/openid-configuration',
                 'class': ProviderConfiguration,
                 'kwargs': {'client_authn_method': None}
-            },
+                },
             'registration': {
                 'path': 'registration',
                 'class': Registration,
                 'kwargs': {'client_authn_method': None}
-            },
+                },
             'authorization': {
                 'path': 'authorization',
                 'class': Authorization,
                 'kwargs': {'client_authn_method': None}
-            },
+                },
             'token': {
                 'path': 'token',
                 'class': AccessToken,
                 'kwargs': {}
-            },
+                },
             'userinfo': {
                 'path': 'userinfo',
                 'class': UserInfo,
-            }
-        },
+                }
+            },
         'userinfo': {
             'class': user_info.UserInfo,
             'kwargs': {'db_file': 'users.json'}
-        },
+            },
         'authentication': [
             {
                 'acr': INTERNETPROTOCOLPASSWORD,
@@ -95,30 +95,33 @@ CONFIG = {
                         'class': JSONDictDB,
                         'kwargs':
                             {'json_path': 'passwd.json'}
-                    },
+                        },
                     'page_header': "Testing log in",
                     'submit_btn': "Get me in!",
                     'user_label': "Nickname",
                     'passwd_label': "Secret sauce"
-                }
-            },
+                    }
+                },
             {
                 'acr': 'anon',
                 'name': 'NoAuthn',
                 'kwargs': {'user': 'diana'}
+                }
+            ],
+        'cookie_dealer': {
+            'symkey': 'ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch',
+            'cookie': {
+                'name': 'oidc_op',
+                'domain': "127.0.0.1",
+                'path': '/',
+                'max_age': 3600
+                }
             }
-        ]
-    },
+        },
     'webserver': {
         'cert': 'certs/cert.pem',
         'key': 'certs/key.pem',
         'cert_chain': '',
         'port': 8100,
-    },
-    'cookie': {
-        'name': 'oidc_op',
-        'domain': "127.0.0.1",
-        'path': '/',
-        'max_age': 3600
+        }
     }
-}

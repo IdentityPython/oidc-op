@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
     _kj = init_key_jar(iss=_server_info_config['issuer'], **_jwks_config)
 
-    cookie_dealer = CookieDealer(None, **config.CONFIG['cookie'])
+    cookie_dealer = CookieDealer(**_server_info_config['cookie_dealer'])
 
     endpoint_context = EndpointContext(config.CONFIG['server_info'], keyjar=_kj,
                                        cwd=folder, cookie_dealer=cookie_dealer)
