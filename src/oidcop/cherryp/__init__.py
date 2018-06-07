@@ -1,4 +1,7 @@
+import json
 import logging
+import sys
+import traceback
 
 import cherrypy
 from cryptojwt import as_bytes
@@ -42,12 +45,21 @@ class OpenIDProvider(object):
         except KeyError:
             _response_placement = endpoint.response_placement
 
-        if _response_placement == 'body':
-            logger.info('Response: {}'.format(info['response']))
-            return as_bytes(info['response'])
-        elif _response_placement == 'url':
-            logger.info('Redirect to: {}'.format(info['response']))
-            raise cherrypy.HTTPRedirect(info['response'])
+        if error:
+            if _response_placement == 'body':
+                logger.info('Error Response: {}'.format(info['response']))
+                cherrypy.response.status = 400
+                return as_bytes(info['response'])
+            elif _response_placement == 'url':
+                logger.info('Redirect to: {}'.format(info['response']))
+                raise cherrypy.HTTPRedirect(info['response'])
+        else:
+            if _response_placement == 'body':
+                logger.info('Response: {}'.format(info['response']))
+                return as_bytes(info['response'])
+            elif _response_placement == 'url':
+                logger.info('Redirect to: {}'.format(info['response']))
+                raise cherrypy.HTTPRedirect(info['response'])
 
     @cherrypy.expose
     def service_endpoint(self, name, **kwargs):
@@ -79,11 +91,18 @@ class OpenIDProvider(object):
         if isinstance(req_args, ResponseMessage) and 'error' in req_args:
             return as_bytes(req_args.to_json())
 
-        if cherrypy.request.cookie:
-            args = endpoint.process_request(req_args,
-                                            cookie=cherrypy.request.cookie)
-        else:
-            args = endpoint.process_request(req_args)
+        try:
+            if cherrypy.request.cookie:
+                args = endpoint.process_request(req_args,
+                                                cookie=cherrypy.request.cookie)
+            else:
+                args = endpoint.process_request(req_args)
+        except Exception:
+            message = traceback.format_exception(*sys.exc_info())
+            cherrypy.response.headers.append(('Content-Type', 'text/html'))
+            return as_bytes(json.dumps({'error': 'server_error',
+                                        'error_description': message},
+                                       sort_keys=True, indent=4))
 
         if 'http_response' in args:
             return as_bytes(args['http_response'])
