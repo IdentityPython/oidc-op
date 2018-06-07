@@ -58,11 +58,11 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        'oidcmsg>=0.3.4',
-        "oidcendpoint>=0.4.4",
+        'cryptojwt>=0.3.1'
+        'oidcmsg>=0.3.5',
+        "oidcendpoint>=0.4.6",
         "requests",
         "cherrypy",
-        'cryptojwt'
     ],
     tests_require=[
         "pytest"
