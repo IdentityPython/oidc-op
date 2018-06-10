@@ -34,9 +34,13 @@ KEY_DEF = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]}
     ]
 
+PORT = 8040
+
+DOMAIN = '127.0.0.1'
+
 CONFIG = {
     'server_info': {
-        "issuer": "https://127.0.0.1:8100/",
+        "issuer": "https://{}:{}/".format(DOMAIN, PORT),
         "password": "mycket hemligt",
         "token_expires_in": 600,
         "grant_expires_in": 300,
@@ -122,6 +126,6 @@ CONFIG = {
         'cert': 'certs/cert.pem',
         'key': 'certs/key.pem',
         'cert_chain': '',
-        'port': 8100,
+        'port': PORT,
         }
     }
