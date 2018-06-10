@@ -99,7 +99,7 @@ class OpenIDProvider(object):
                 args = endpoint.process_request(req_args)
         except Exception:
             message = traceback.format_exception(*sys.exc_info())
-            cherrypy.response.headers.append(('Content-Type', 'text/html'))
+            cherrypy.response.headers['Content-Type'] = 'text/html'
             return as_bytes(json.dumps({'error': 'server_error',
                                         'error_description': message},
                                        sort_keys=True, indent=4))
@@ -123,7 +123,7 @@ class OpenIDProvider(object):
 
         username = authn_method.verify(**kwargs)
         if not username:
-            cherrypy.HTTPError(403, message='Authentication failed')
+            raise cherrypy.HTTPError(403, message='Authentication failed')
 
         auth_args = authn_method.unpack_token(kwargs['token'])
         request = AuthorizationRequest().from_urlencoded(auth_args['query'])
@@ -136,6 +136,9 @@ class OpenIDProvider(object):
         endpoint = self.endpoint_context.endpoint['authorization']
         args = endpoint.authz_part2(user=username, request=request,
                                     authn_event=authn_event)
+
+        if isinstance(args, ResponseMessage):
+            raise cherrypy.HTTPError(400, message=args.to_json())
 
         return self.do_response(endpoint, request, **args)
 
