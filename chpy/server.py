@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 import cherrypy
 
-from oidcmsg.key_jar import init_key_jar
+from cryptojwt.key_jar import init_key_jar
 from oidcendpoint.endpoint_context import EndpointContext
 from oidcop.cherryp import OpenIDProvider
 from oidcop.cookie import CookieDealer
@@ -80,7 +80,7 @@ if __name__ == '__main__':
     _server_info_config = config.CONFIG['server_info']
     _jwks_config = _server_info_config['jwks']
 
-    _kj = init_key_jar(iss=_server_info_config['issuer'], **_jwks_config)
+    _kj = init_key_jar(owner=_server_info_config['issuer'], **_jwks_config)
 
     cookie_dealer = CookieDealer(**_server_info_config['cookie_dealer'])
 
