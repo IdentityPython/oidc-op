@@ -99,10 +99,11 @@ class OpenIDProvider(object):
                 args = endpoint.process_request(req_args)
         except Exception:
             message = traceback.format_exception(*sys.exc_info())
+            logger.exception(message)
             cherrypy.response.headers['Content-Type'] = 'text/html'
-            return as_bytes(json.dumps({'error': 'server_error',
-                                        'error_description': message},
-                                       sort_keys=True, indent=4))
+            return as_bytes(json.dumps(
+                {'error': 'server_error',
+                 'error_description': '\n'.join(message)}))
 
         if 'http_response' in args:
             return as_bytes(args['http_response'])

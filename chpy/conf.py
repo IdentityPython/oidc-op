@@ -3,6 +3,7 @@ from oidcendpoint.oidc.authorization import Authorization
 from oidcendpoint.oidc.discovery import Discovery
 from oidcendpoint.oidc.provider_config import ProviderConfiguration
 from oidcendpoint.oidc.registration import Registration
+from oidcendpoint.oidc.session import Session
 from oidcendpoint.oidc.token import AccessToken
 from oidcendpoint.oidc.userinfo import UserInfo
 from oidcendpoint.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
@@ -27,14 +28,18 @@ CAPABILITIES = {
     "claims_parameter_supported": True,
     "request_parameter_supported": True,
     "request_uri_parameter_supported": True,
+    "id_token_signing_alg_values_supported": ['ES256'],
+    "userinfo_signing_alg_values_supported": ['ES384']
     }
 
+# Make sure capabilities match key set !!!
 KEY_DEF = [
     {"type": "RSA", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["sig"]}
+    {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    {"type": "EC", "crv": "P-384", "use": ["sig"]}
     ]
 
-PORT = 8040
+PORT = 8100
 
 DOMAIN = '127.0.0.1'
 
@@ -82,6 +87,10 @@ CONFIG = {
             'userinfo': {
                 'path': 'userinfo',
                 'class': UserInfo,
+                },
+            'end_session':{
+                'path': 'end_session',
+                'class': Session
                 }
             },
         'userinfo': {

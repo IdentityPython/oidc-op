@@ -24,12 +24,12 @@ __author__ = 'Roland Hedberg'
 
 logger = logging.getLogger(__name__)
 
-
 CORS_HEADERS = [
     ("Access-Control-Allow-Origin", "*"),
     ("Access-Control-Allow-Methods", "GET"),
     ("Access-Control-Allow-Headers", "Authorization")
-]
+    ]
+
 
 # 'Stolen' from Werkzeug
 def safe_str_cmp(a, b):
@@ -40,6 +40,7 @@ def safe_str_cmp(a, b):
     for c, d in zip(a, b):
         r |= ord(c) ^ ord(d)
     return r == 0
+
 
 def _expiration(timeout, time_format=None):
     """
@@ -103,7 +104,7 @@ def _make_hashed_key(parts, hashfunc='sha256'):
     return h.digest()
 
 
-def make_cookie(name, load, seed, domain="", path="", timestamp="",
+def make_cookie(name, load, seed, domain=None, path=None, timestamp="",
                 enc_key=None, max_age=0):
     """
     Create and return a cookie
@@ -169,10 +170,12 @@ def make_cookie(name, load, seed, domain="", path="", timestamp="",
             cookie_signature(seed, load, timestamp).encode('utf-8')]
 
     cookie[name] = (b"|".join(cookie_payload)).decode('utf-8')
-    if path:
+    if path is not None:
         cookie[name]["path"] = path
-    if domain:
+    if domain is not None:
         cookie[name]["domain"] = domain
+
+    cookie[name]['httponly'] = True
 
     if max_age:
         cookie[name]["expires"] = in_a_while(seconds=max_age)
@@ -257,10 +260,11 @@ class CookieDealer(object):
     Functionality that an entity that deals with cookies need to have
     access to.
     """
+
     def __init__(self, symkey='', seed_file='seed.txt', cookie=None):
         self.symkey = as_bytes(symkey)
 
-        for attr, default in {'path':'', 'domain':'', 'max_age':0}.items():
+        for attr, default in {'path': '', 'domain': '', 'max_age': 0}.items():
             if attr not in cookie:
                 cookie[attr] = default
 
@@ -274,7 +278,7 @@ class CookieDealer(object):
             with open('seed.txt', "w") as f:
                 f.write(_seed)
 
-        self.seed= as_bytes(_seed)
+        self.seed = as_bytes(_seed)
 
     def delete_cookie(self, cookie_name=None):
         """
@@ -286,7 +290,7 @@ class CookieDealer(object):
         """
         if cookie_name is None:
             cookie_name = self.cookie['name']
-            
+
         return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1,
                                   kill=True)
 
@@ -308,17 +312,16 @@ class CookieDealer(object):
         if cookie_name is None:
             cookie_name = self.cookie['name']
 
-        try:
-            srvdomain = self.cookie['domain']
-            cookie_domain = "" if not srvdomain else srvdomain
-        except AttributeError:
-            cookie_domain = ""
+        c_args = {}
 
-        try:
-            srvpath = self.cookie['path']
-            cookie_path = "" if not srvpath else srvpath
-        except AttributeError:
-            cookie_path = ""
+        srvdomain = self.cookie['domain']
+        if srvdomain and srvdomain not in ['localhost', '127.0.0.1',
+                                           '0.0.0.0']:
+            c_args['domain'] = srvdomain
+
+        srvpath = self.cookie['path']
+        if srvpath:
+            c_args['path'] = srvpath
 
         # now
         timestamp = str(int(time.time()))
@@ -331,8 +334,8 @@ class CookieDealer(object):
 
         cookie = make_cookie(
             cookie_name, cookie_payload, self.seed,
-            domain=cookie_domain, path=cookie_path, timestamp=timestamp,
-            enc_key=self.symkey, max_age=ttl)
+            timestamp=timestamp, enc_key=self.symkey, max_age=ttl,
+            **c_args)
 
         return cookie
 
