@@ -111,13 +111,13 @@ class OpenIDProvider(object):
                                                 cookie=cherrypy.request.cookie)
             else:
                 args = endpoint.process_request(req_args)
-        except Exception:
+        except Exception as err:
             message = traceback.format_exception(*sys.exc_info())
             logger.exception(message)
             cherrypy.response.headers['Content-Type'] = 'text/html'
-            return as_bytes(json.dumps(
-                {'error': 'server_error',
-                 'error_description': '\n'.join(message)}))
+            err_msg = ResponseMessage(error='invalid_request',
+                                      error_description=str(err))
+            raise cherrypy.HTTPError(400, err_msg.to_json())
 
         if 'http_response' in args:
             return as_bytes(args['http_response'])
