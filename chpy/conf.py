@@ -27,25 +27,24 @@ CAPABILITIES = {
     "claim_types_supported": ["normal", "aggregated", "distributed"],
     "claims_parameter_supported": True,
     "request_parameter_supported": True,
-    "request_uri_parameter_supported": True,
-    "id_token_signing_alg_values_supported": ['ES256'],
-    "userinfo_signing_alg_values_supported": ['ES384']
+    "request_uri_parameter_supported": True
     }
 
 # Make sure capabilities match key set !!!
 KEY_DEF = [
     {"type": "RSA", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["sig"]},
-    {"type": "EC", "crv": "P-384", "use": ["sig"]}
+    {"type": "EC", "crv": "P-256", "use": ["sig"]}
     ]
 
 PORT = 8100
 
 DOMAIN = '127.0.0.1'
 
+BASEURL = "https://{}:{}/".format(DOMAIN, PORT)
+
 CONFIG = {
     'server_info': {
-        "issuer": "https://{}:{}/".format(DOMAIN, PORT),
+        "issuer": BASEURL,
         "password": "mycket hemligt",
         "token_expires_in": 600,
         "grant_expires_in": 300,
@@ -88,9 +87,12 @@ CONFIG = {
                 'path': 'userinfo',
                 'class': UserInfo,
                 },
-            'end_session':{
+            'end_session': {
                 'path': 'end_session',
-                'class': Session
+                'class': Session,
+                'provider_info': {
+                    'check_session_iframe': "{}check_session".format(BASEURL)
+                    }
                 }
             },
         'userinfo': {
@@ -129,7 +131,9 @@ CONFIG = {
                 'path': '/',
                 'max_age': 3600
                 }
-            }
+            },
+        'post_logout_page': "https://{}:{}/post_logout.html".format(DOMAIN,
+                                                                    PORT)
         },
     'webserver': {
         'cert': 'certs/cert.pem',

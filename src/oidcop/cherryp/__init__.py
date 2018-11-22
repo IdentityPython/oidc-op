@@ -83,9 +83,23 @@ class OpenIDProvider(object):
             if not _request:
                 _request = kwargs
 
-            req_args = endpoint.parse_request(_request, **pr_args)
+            try:
+                req_args = endpoint.parse_request(_request, **pr_args)
+            except Exception as err:
+                message = traceback.format_exception(*sys.exc_info())
+                logger.exception(message)
+                err_msg = ResponseMessage(error='invalid_request',
+                                          error_description=str(err))
+                raise cherrypy.HTTPError(400, err_msg.to_json())
         else:
-            req_args = endpoint.parse_request(kwargs, **pr_args)
+            try:
+                req_args = endpoint.parse_request(kwargs, **pr_args)
+            except Exception as err:
+                message = traceback.format_exception(*sys.exc_info())
+                logger.exception(message)
+                err_msg = ResponseMessage(error= 'invalid_request',
+                                          error_description=str(err))
+                raise cherrypy.HTTPError(400, err_msg.to_json())
         logger.info('request: {}'.format(req_args))
 
         if isinstance(req_args, ResponseMessage) and 'error' in req_args:
