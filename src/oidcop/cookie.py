@@ -4,21 +4,18 @@ import hmac
 import logging
 import os
 import time
-
 from http.cookies import SimpleCookie
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-
-from cryptojwt.utils import as_bytes
-from cryptojwt.utils import as_unicode
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jwe.utils import split_ctx_and_tag
+from cryptojwt.utils import as_bytes
+from cryptojwt.utils import as_unicode
 from oidcendpoint.exception import InvalidCookieSign
-from oidcmsg.time_util import in_a_while
-
-from oidcservice import rndstr
 from oidcmsg import time_util
+from oidcmsg.time_util import in_a_while
+from oidcservice import rndstr
 
 __author__ = 'Roland Hedberg'
 
@@ -28,7 +25,7 @@ CORS_HEADERS = [
     ("Access-Control-Allow-Origin", "*"),
     ("Access-Control-Allow-Methods", "GET"),
     ("Access-Control-Allow-Headers", "Authorization")
-    ]
+]
 
 
 # 'Stolen' from Werkzeug
@@ -104,12 +101,10 @@ def _make_hashed_key(parts, hashfunc='sha256'):
     return h.digest()
 
 
-def make_cookie(name, load, seed, domain=None, path=None, timestamp="",
-                enc_key=None, max_age=0):
+def make_cookie_content(name, load, seed, domain=None, path=None, timestamp="",
+                        enc_key=None, max_age=0):
     """
-    Create and return a cookie
-
-    The cookie is secured against tampering.
+    Create and return a cookies content
 
     If you only provide a `seed`, a HMAC gets added to the cookies value
     and this is checked, when the cookie is parsed again.
@@ -137,7 +132,6 @@ def make_cookie(name, load, seed, domain=None, path=None, timestamp="",
     :type max_age: int
     :return: A SimpleCookie instance
     """
-    cookie = SimpleCookie()
     if not timestamp:
         timestamp = str(int(time.time()))
 
@@ -169,16 +163,32 @@ def make_cookie(name, load, seed, domain=None, path=None, timestamp="",
             bytes_load, bytes_timestamp,
             cookie_signature(seed, load, timestamp).encode('utf-8')]
 
-    cookie[name] = (b"|".join(cookie_payload)).decode('utf-8')
+    content = {name: {"value": (b"|".join(cookie_payload)).decode('utf-8')}}
     if path is not None:
-        cookie[name]["path"] = path
+        content[name]["path"] = path
     if domain is not None:
-        cookie[name]["domain"] = domain
+        content[name]["domain"] = domain
 
-    cookie[name]['httponly'] = True
+    content[name]['httponly'] = True
 
     if max_age:
-        cookie[name]["expires"] = in_a_while(seconds=max_age)
+        content[name]["expires"] = in_a_while(seconds=max_age)
+
+    return content
+
+
+def make_cookie(name, payload, seed, domain=None, path=None, timestamp="",
+                enc_key=None, max_age=0):
+    content = make_cookie_content(name, payload, seed, domain=domain, path=path,
+                                  timestamp=timestamp, enc_key=enc_key,
+                                  max_age=max_age)
+    cookie = SimpleCookie()
+    for name, args in content.items():
+        cookie[name] = args['value']
+        for key, value in args.items():
+            if key == 'value':
+                continue
+            cookie[name][key] = value
 
     return cookie
 
@@ -264,9 +274,11 @@ class CookieDealer(object):
     def __init__(self, symkey='', seed_file='seed.txt', cookie=None):
         self.symkey = as_bytes(symkey)
 
-        for attr, default in {'path': '', 'domain': '', 'max_age': 0}.items():
-            if attr not in cookie:
-                cookie[attr] = default
+        if not cookie:
+            cookie = {}
+            for attr, default in {'path': '', 'domain': '', 'max_age': 0}.items():
+                if attr not in cookie:
+                    cookie[attr] = default
 
         self.cookie = cookie
 
@@ -291,8 +303,7 @@ class CookieDealer(object):
         if cookie_name is None:
             cookie_name = self.cookie['name']
 
-        return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1,
-                                  kill=True)
+        return self.create_cookie("", "", cookie_name=cookie_name, kill=True)
 
     def create_cookie(self, value, typ, cookie_name=None, ttl=-1, kill=False):
         """
@@ -363,3 +374,40 @@ class CookieDealer(object):
                 if timestamp == _ts:
                     return value, _ts, typ
         return None
+
+    def append_cookie(self, cookie, name, payload, typ, domain=None, path=None,
+                      timestamp="", enc_key=None, max_age=0):
+        """
+        Adds a cookie to a SimpleCookie instance
+
+        :param cookie:
+        :param name:
+        :param payload:
+        :param typ:
+        :param domain:
+        :param path:
+        :param timestamp:
+        :param enc_key:
+        :param max_age:
+        :return:
+        """
+        timestamp = str(int(time.time()))
+
+        # create cookie payload
+        try:
+            _payload = "::".join([payload, timestamp, typ])
+        except TypeError:
+            _payload = "::".join([payload[0], timestamp, typ])
+
+        content = make_cookie_content(name, _payload, self.seed, domain=domain,
+                                      path=path, timestamp=timestamp,
+                                      enc_key=enc_key, max_age=max_age)
+
+        for name, args in content.items():
+            cookie[name] = args['value']
+            for key, value in args.items():
+                if key == 'value':
+                    continue
+                cookie[name][key] = value
+
+        return cookie
