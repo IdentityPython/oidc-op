@@ -8,6 +8,8 @@ from oidcendpoint.oidc.session import Session
 from oidcendpoint.oidc.token import AccessToken
 from oidcendpoint.oidc.userinfo import UserInfo
 from oidcendpoint.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcendpoint.user_authn.user import NoAuthn
+from oidcendpoint.user_authn.user import UserPassJinja2
 
 from oidcop.util import JSONDictDB
 
@@ -88,7 +90,10 @@ CONFIG = {
             'registration': {
                 'path': 'registration',
                 'class': Registration,
-                'kwargs': {'client_authn_method': None}
+                'kwargs': {
+                    'client_authn_method': None,
+                    'client_secret_expiration_time': 5*86400
+                }
             },
             'authorization': {
                 'path': 'authorization',
@@ -121,7 +126,7 @@ CONFIG = {
         'authentication': [
             {
                 'acr': INTERNETPROTOCOLPASSWORD,
-                'name': 'UserPassJinja2',
+                'class': UserPassJinja2,
                 'kwargs': {
                     'template': 'user_pass.jinja2',
                     'sym_key': '24AA/LR6HighEnergy',
@@ -138,7 +143,7 @@ CONFIG = {
             },
             {
                 'acr': 'anon',
-                'name': 'NoAuthn',
+                'class': NoAuthn,
                 'kwargs': {'user': 'diana'}
             }
         ],
