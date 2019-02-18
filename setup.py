@@ -58,9 +58,9 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        'cryptojwt>=0.6.5'
+        'cryptojwt>=0.6.5',
         'oidcmsg>=0.6.2',
-        "oidcendpoint>=0.5.1",
+        "oidcendpoint>=0.5.2",
         "requests",
         "cherrypy",
     ],
