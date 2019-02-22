@@ -271,16 +271,13 @@ class CookieDealer(object):
     access to.
     """
 
-    def __init__(self, symkey='', seed_file='seed.txt', cookie=None):
+    def __init__(self, symkey='', seed_file='seed.txt', default_values=None):
         self.symkey = as_bytes(symkey)
 
-        if not cookie:
-            cookie = {}
-            for attr, default in {'path': '', 'domain': '', 'max_age': 0}.items():
-                if attr not in cookie:
-                    cookie[attr] = default
+        if not default_values:
+            default_values = {'path': '', 'domain': '', 'max_age': 0}
 
-        self.cookie = cookie
+        self.default_value = default_values
 
         # Need to be able to restart the OP and still use the same seed
         if os.path.isfile(seed_file):
@@ -301,7 +298,7 @@ class CookieDealer(object):
         :return: A tuple to be added to headers
         """
         if cookie_name is None:
-            cookie_name = self.cookie['name']
+            cookie_name = self.default_value['name']
 
         return self.create_cookie("", "", cookie_name=cookie_name, kill=True)
 
@@ -318,19 +315,19 @@ class CookieDealer(object):
         if kill:
             ttl = -1
         elif ttl < 0:
-            ttl = self.cookie['max_age']
+            ttl = self.default_value['max_age']
 
         if cookie_name is None:
-            cookie_name = self.cookie['name']
+            cookie_name = self.default_value['name']
 
         c_args = {}
 
-        srvdomain = self.cookie['domain']
+        srvdomain = self.default_value['domain']
         if srvdomain and srvdomain not in ['localhost', '127.0.0.1',
                                            '0.0.0.0']:
             c_args['domain'] = srvdomain
 
-        srvpath = self.cookie['path']
+        srvpath = self.default_value['path']
         if srvpath:
             c_args['path'] = srvpath
 
@@ -359,7 +356,7 @@ class CookieDealer(object):
         :return: tuple (value, timestamp, type)
         """
         if cookie_name is None:
-            cookie_name = self.cookie['name']
+            cookie_name = self.default_value['name']
 
         if cookie is None or cookie_name is None:
             return None
