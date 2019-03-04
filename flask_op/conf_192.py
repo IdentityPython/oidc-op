@@ -44,7 +44,7 @@ KEY_DEF = [
 ]
 
 PORT = 5000
-DOMAIN = '192.168.1.109'
+DOMAIN = '192.168.1.54'
 SERVER_NAME = '{}:{}'.format(DOMAIN, str(PORT))
 BASE_URL = 'https://{}'.format(SERVER_NAME)
 
@@ -138,8 +138,10 @@ CONFIG = {
                         'page_header': "Testing log in",
                         'submit_btn': "Get me in!",
                         'user_label': "Nickname",
-                        'passwd_label': "Secret sauce"
-                    }
+                        'passwd_label': "Secret sauce",
+                        'verify_endpoint': '/verify/user'
+                    },
+                    'sub_path': 'user_pass_jinja'
                 },
             'anon':
                 {

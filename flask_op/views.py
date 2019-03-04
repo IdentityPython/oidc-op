@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 oidc_op_views = Blueprint('oidc_rp', __name__, url_prefix='')
 
 
-def add_cookie(resp, cookie_spec):
+def _add_cookie(resp, cookie_spec):
     for key, _morsel in cookie_spec.items():
         kwargs = {'value': _morsel.value}
         for param in ['expires', 'path', 'comment', 'domain', 'max-age',
@@ -33,6 +33,12 @@ def add_cookie(resp, cookie_spec):
             if _morsel[param]:
                 kwargs[param] = _morsel[param]
         resp.set_cookie(key, **kwargs)
+
+
+def add_cookie(resp, cookie_spec):
+    if isinstance(cookie_spec, list):
+        for _spec in cookie_spec:
+            _add_cookie(resp, _spec)
 
 
 @oidc_op_views.route('/static/<path:path>')
@@ -49,6 +55,11 @@ def keys(jwks):
 @oidc_op_views.route('/')
 def index():
     return render_template('index.html')
+
+
+def add_headers_and_cookie(resp, info):
+
+    return resp
 
 
 def do_response(endpoint, req_args, error='', **args):
@@ -69,14 +80,14 @@ def do_response(endpoint, req_args, error='', **args):
             resp = make_response(info['response'], 400)
         else:  # _response_placement == 'url':
             logger.info('Redirect to: {}'.format(info['response']))
-            return redirect(info['response'])
+            resp = redirect(info['response'])
     else:
         if _response_placement == 'body':
             logger.info('Response: {}'.format(info['response']))
             resp = make_response(info['response'], 200)
         else:  # _response_placement == 'url':
             logger.info('Redirect to: {}'.format(info['response']))
-            return redirect(info['response'])
+            resp = redirect(info['response'])
 
     for key, value in info['http_headers']:
         resp.headers[key] = value
@@ -97,7 +108,7 @@ def authn_verify(method):
     :return: HTTP redirect
     """
     path = '/verify/{}'.format(method)
-    authn_method = current_app.endpoint_context.path_to_authn_method(path)
+    authn_method = current_app.endpoint_context.authn_broker.pick_by_path(path)
 
     kwargs = dict([(k, v) for k, v in request.form.items()])
     username = authn_method.verify(**kwargs)
