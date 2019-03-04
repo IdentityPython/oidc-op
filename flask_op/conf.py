@@ -6,11 +6,11 @@ from oidcendpoint.oidc.registration import Registration
 from oidcendpoint.oidc.session import Session
 from oidcendpoint.oidc.token import AccessToken
 from oidcendpoint.oidc.userinfo import UserInfo
-from oidcendpoint.user_authn.authn_context import INTERNETPROTOCOLPASSWORD, UNSPECIFIED
+from oidcendpoint.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcendpoint.user_authn.authn_context import UNSPECIFIED
 from oidcendpoint.user_authn.user import NoAuthn
 from oidcendpoint.user_authn.user import UserPassJinja2
-
-from oidcop.util import JSONDictDB
+from oidcendpoint.util import JSONDictDB
 
 SESSION_COOKIE_NAME = 'flop'
 

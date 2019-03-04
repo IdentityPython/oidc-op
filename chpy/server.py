@@ -5,11 +5,11 @@ import sys
 from urllib.parse import urlparse
 
 import cherrypy
-
 from cryptojwt.key_jar import init_key_jar
+from oidcendpoint.cookie import CookieDealer
 from oidcendpoint.endpoint_context import EndpointContext
-from oidcop.cherryp import OpenIDProvider
-from oidcop.cookie import CookieDealer
+
+from .provider import OpenIDProvider
 
 logger = logging.getLogger("")
 LOGFILE_NAME = 'op.log'

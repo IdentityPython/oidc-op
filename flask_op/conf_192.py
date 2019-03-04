@@ -1,5 +1,4 @@
 from oidcendpoint import user_info
-
 from oidcendpoint.oidc.authorization import Authorization
 from oidcendpoint.oidc.discovery import Discovery
 from oidcendpoint.oidc.provider_config import ProviderConfiguration
@@ -11,8 +10,7 @@ from oidcendpoint.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcendpoint.user_authn.authn_context import UNSPECIFIED
 from oidcendpoint.user_authn.user import NoAuthn
 from oidcendpoint.user_authn.user import UserPassJinja2
-
-from oidcop.util import JSONDictDB
+from oidcendpoint.util import JSONDictDB
 
 SESSION_COOKIE_NAME = 'flop'
 

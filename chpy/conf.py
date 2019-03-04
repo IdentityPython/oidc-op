@@ -7,9 +7,9 @@ from oidcendpoint.oidc.session import Session
 from oidcendpoint.oidc.token import AccessToken
 from oidcendpoint.oidc.userinfo import UserInfo
 from oidcendpoint.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcendpoint.user_authn.user import UserPassJinja2, NoAuthn
-
-from oidcop.util import JSONDictDB
+from oidcendpoint.user_authn.user import NoAuthn
+from oidcendpoint.user_authn.user import UserPassJinja2
+from oidcendpoint.util import JSONDictDB
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"], ["token"], ["id_token"], ["code", "token"], ["code", "id_token"],
