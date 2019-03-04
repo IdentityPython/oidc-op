@@ -1,4 +1,5 @@
 from oidcendpoint import user_info
+
 from oidcendpoint.oidc.authorization import Authorization
 from oidcendpoint.oidc.discovery import Discovery
 from oidcendpoint.oidc.provider_config import ProviderConfiguration
@@ -6,7 +7,8 @@ from oidcendpoint.oidc.registration import Registration
 from oidcendpoint.oidc.session import Session
 from oidcendpoint.oidc.token import AccessToken
 from oidcendpoint.oidc.userinfo import UserInfo
-from oidcendpoint.user_authn.authn_context import INTERNETPROTOCOLPASSWORD, UNSPECIFIED
+from oidcendpoint.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcendpoint.user_authn.authn_context import UNSPECIFIED
 from oidcendpoint.user_authn.user import NoAuthn
 from oidcendpoint.user_authn.user import UserPassJinja2
 
@@ -44,17 +46,15 @@ KEY_DEF = [
 ]
 
 PORT = 5000
-DOMAIN = '127.0.0.1'
+DOMAIN = '192.168.1.109'
 SERVER_NAME = '{}:{}'.format(DOMAIN, str(PORT))
 BASE_URL = 'https://{}'.format(SERVER_NAME)
 
-# If we support session management
-CAPABILITIES["check_session_iframe"] = "{}/check_session_iframe".format(BASE_URL)
-
 PATH = {
     'userinfo:kwargs:db_file': '{}/users.json',
-    'authentication:0:kwargs:db:kwargs:json_path': '{}/passwd.json'
+    'authentication:user:kwargs:db:kwargs:json_path': '{}/passwd.json'
 }
+
 
 CONFIG = {
     'provider': {
@@ -93,7 +93,7 @@ CONFIG = {
                 'class': Registration,
                 'kwargs': {
                     'client_authn_method': None,
-                    'client_secret_expiration_time': 5 * 86400
+                    'client_secret_expiration_time': 5*86400
                 }
             },
             'authorization': {

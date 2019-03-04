@@ -1,11 +1,10 @@
 import os
 from urllib.parse import urlparse
-from flask.app import Flask
 
 from cryptojwt.key_jar import init_key_jar
+from flask.app import Flask
+from oidcendpoint.cookie import CookieDealer
 from oidcendpoint.endpoint_context import EndpointContext
-
-from oidcop.cookie import CookieDealer
 
 folder = os.path.dirname(os.path.realpath(__file__))
 
@@ -51,10 +50,10 @@ def init_oidc_op_endpoints(app):
     return endpoint_context
 
 
-def oidc_provider_init_app(name=None, **kwargs):
+def oidc_provider_init_app(config_file, name=None, **kwargs):
     name = name or __name__
     app = Flask(name, static_url_path='', **kwargs)
-    app.config.from_pyfile(os.path.join(folder,'conf.py'))
+    app.config.from_pyfile(os.path.join(folder, config_file))
 
     try:
         from .views import oidc_op_views

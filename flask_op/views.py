@@ -96,9 +96,8 @@ def authn_verify(method):
     :param kwargs: response arguments
     :return: HTTP redirect
     """
-    url_endpoint = '/verify/{}'.format(method)
-    authn_method = current_app.endpoint_context.endpoint_to_authn_method[
-        url_endpoint]
+    path = '/verify/{}'.format(method)
+    authn_method = current_app.endpoint_context.path_to_authn_method(path)
 
     kwargs = dict([(k, v) for k, v in request.form.items()])
     username = authn_method.verify(**kwargs)
@@ -192,6 +191,7 @@ def service_endpoint(endpoint):
 
     try:
         if request.cookies:
+            logger.debug(request.cookies)
             kwargs = {'cookie': request.cookies}
         else:
             kwargs = {}
@@ -246,11 +246,9 @@ def rp_logout():
     _iframes = _endp.do_verified_logout(alla=alla, **_info)
 
     if _iframes:
-        page = _endp.endpoint_context.template_handler.render(
+        return _endp.endpoint_context.template_handler.render(
             'frontchannel_logout.html',
             frames=" ".join(_iframes), size=len(_iframes),
-            timeout=5000, postLogoutRedirectUri=_info['redirect_uri']
-        )
-        return page
+            timeout=5000, postLogoutRedirectUri=_info['redirect_uri'])
     else:
         return redirect(_info['redirect_uri'])
