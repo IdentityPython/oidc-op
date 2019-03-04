@@ -7,6 +7,7 @@ from oidcendpoint.oidc.session import Session
 from oidcendpoint.oidc.token import AccessToken
 from oidcendpoint.oidc.userinfo import UserInfo
 from oidcendpoint.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcendpoint.user_authn.user import UserPassJinja2, NoAuthn
 
 from oidcop.util import JSONDictDB
 
@@ -102,7 +103,7 @@ CONFIG = {
         'authentication': [
             {
                 'acr': INTERNETPROTOCOLPASSWORD,
-                'name': 'UserPassJinja2',
+                'class': UserPassJinja2,
                 'kwargs': {
                     'template': 'user_pass.jinja2',
                     'sym_key': '24AA/LR6HighEnergy',
@@ -119,7 +120,7 @@ CONFIG = {
                 },
             {
                 'acr': 'anon',
-                'name': 'NoAuthn',
+                'class': NoAuthn,
                 'kwargs': {'user': 'diana'}
                 }
             ],
