@@ -25,12 +25,19 @@ def init_oidc_op_endpoints(app):
                 pos = pos[p]
         pos[part[-1]] = val.format(folder)
 
-    _kj = init_key_jar(**_server_info_config['jwks'])
+    _args = {k:v for k,v in _server_info_config['jwks'].items() if k !=
+             'uri_path'}
+    _kj = init_key_jar(**_args)
 
     iss = _server_info_config['issuer']
 
     # make sure I have a set of keys under my 'real' name
     _kj.import_jwks_as_json(_kj.export_jwks_as_json(True, ''), iss)
+
+    try:
+        _kj.verify_ssl = _config['server_info']['verify_ssl']
+    except KeyError:
+        pass
 
     cookie_dealer = CookieDealer(**_server_info_config['cookie_dealer'])
 
