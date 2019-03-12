@@ -73,7 +73,7 @@ CONFIG = {
         "jwks": {
             'private_path': 'own/jwks.json',
             'key_defs': KEY_DEF,
-            'public_path': 'static/jwks.json'
+            'uri_path': 'static/jwks.json'
         },
         'endpoint': {
             'webfinger': {

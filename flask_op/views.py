@@ -58,7 +58,6 @@ def index():
 
 
 def add_headers_and_cookie(resp, info):
-
     return resp
 
 
@@ -188,13 +187,27 @@ def service_endpoint(endpoint):
         pr_args = {'auth': authn}
 
     if request.method == 'GET':
-        req_args = endpoint.parse_request(request.args.to_dict(), **pr_args)
+        try:
+            req_args = endpoint.parse_request(request.args.to_dict(), **pr_args)
+        except Exception as err:
+            logger.error(err)
+            return make_response(json.dumps({
+                'error': 'invalid_request',
+                'error_description': str(err)
+                }), 400)
     else:
         if request.data:
             req_args = request.data
         else:
             req_args = dict([(k, v) for k, v in request.form.items()])
-        req_args = endpoint.parse_request(req_args, **pr_args)
+        try:
+            req_args = endpoint.parse_request(req_args, **pr_args)
+        except Exception as err:
+            logger.error(err)
+            return make_response(json.dumps({
+                'error': 'invalid_request',
+                'error_description': str(err)
+                }), 400)
 
     logger.info('request: {}'.format(req_args))
     if isinstance(req_args, ResponseMessage) and 'error' in req_args:
@@ -212,13 +225,13 @@ def service_endpoint(endpoint):
                                             **kwargs)
         else:
             args = endpoint.process_request(req_args, **kwargs)
-    except Exception:
+    except Exception as err:
         message = traceback.format_exception(*sys.exc_info())
-        # cherrypy.response.headers['Content-Type'] = 'text/html'
+        logger.error(message)
         return make_response(json.dumps({
-            'error': 'server_error',
-            'error_description': message
-        }, sort_keys=True, indent=4), 400)
+                                            'error': 'invalid_request',
+                                            'error_description': str(err)
+                                        }), 400)
 
     logger.info('Response args: {}'.format(args))
 
@@ -239,7 +252,7 @@ def verify_logout():
     page = current_app.endpoint_context.template_handler.render(
         'logout.html', op=part.hostname, do_logout='rp_logout',
         sjwt=request.args['sjwt']
-    )
+        )
     return page
 
 
