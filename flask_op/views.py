@@ -14,6 +14,7 @@ from flask import request
 from flask.helpers import make_response
 from flask.helpers import send_from_directory
 from oidcendpoint.authn_event import create_authn_event
+from oidcendpoint.exception import FailedAuthentication
 from oidcendpoint.oidc.token import AccessToken
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import AccessTokenRequest
@@ -87,8 +88,7 @@ def do_response(endpoint, req_args, error='', **args):
     return resp
 
 
-@oidc_op_views.route('/verify/<method>', methods=['POST'])
-def authn_verify(method):
+def verify(authn_method):
     """
     Authentication verification
 
@@ -96,8 +96,6 @@ def authn_verify(method):
     :param kwargs: response arguments
     :return: HTTP redirect
     """
-    path = '/verify/{}'.format(method)
-    authn_method = current_app.endpoint_context.path_to_authn_method(path)
 
     kwargs = dict([(k, v) for k, v in request.form.items()])
     username = authn_method.verify(**kwargs)
@@ -120,6 +118,24 @@ def authn_verify(method):
         return make_response(args.to_json(), 400)
 
     return do_response(endpoint, request, **args)
+
+
+@oidc_op_views.route('/verify/user', methods=['GET','POST'])
+def verify_user():
+    authn_method, acr = current_app.endpoint_context.authn_broker.get_method_by_id('user')
+    try:
+        return verify(authn_method)
+    except FailedAuthentication as exc:
+        return render_template("error.html", title=str(exc))
+
+
+@oidc_op_views.route('/verify/user_pass_jinja', methods=['GET','POST'])
+def verify_user_pass_jinja():
+    authn_method, acr = current_app.endpoint_context.authn_broker.get_method_by_id('user')
+    try:
+        return verify(authn_method)
+    except FailedAuthentication as exc:
+        return render_template("error.html", title=str(exc))
 
 
 @oidc_op_views.route('/.well-known/<service>')
@@ -222,13 +238,17 @@ def handle_bad_request(e):
     return 'bad request!', 400
 
 
+@oidc_op_views.route('/check_session_iframe', methods=['GET'])
+def check_session_iframe():
+    doc = open('templates/check_session_iframe.html')
+    return doc
+
+
 @oidc_op_views.route('/verify_logout', methods=['GET', 'POST'])
 def verify_logout():
     part = urlparse(current_app.endpoint_context.issuer)
-    page = current_app.endpoint_context.template_handler.render(
-        'logout.html', op=part.hostname, do_logout='rp_logout',
-        sjwt=request.args['sjwt']
-    )
+    page = render_template( 'logout.html', op=part.hostname,
+                            do_logout='rp_logout', sjwt=request.args['sjwt'])
     return page
 
 
@@ -246,9 +266,9 @@ def rp_logout():
     _iframes = _endp.do_verified_logout(alla=alla, **_info)
 
     if _iframes:
-        return _endp.endpoint_context.template_handler.render(
-            'frontchannel_logout.html',
-            frames=" ".join(_iframes), size=len(_iframes),
-            timeout=5000, postLogoutRedirectUri=_info['redirect_uri'])
+        return render_template('frontchannel_logout.html',
+                               frames=" ".join(_iframes), size=len(_iframes),
+                               timeout=5000,
+                               postLogoutRedirectUri=_info['redirect_uri'])
     else:
         return redirect(_info['redirect_uri'])

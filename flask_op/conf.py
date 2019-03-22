@@ -75,7 +75,7 @@ CONFIG = {
         "jwks": {
             'private_path': 'own/jwks.json',
             'key_defs': KEY_DEF,
-            'public_path': 'static/jwks.json'
+            'url_path': 'static/jwks.json'
         },
         'endpoint': {
             'webfinger': {
@@ -129,6 +129,7 @@ CONFIG = {
                 {
                     'acr': INTERNETPROTOCOLPASSWORD,
                     'class': UserPassJinja2,
+                    'verify_endpoint': 'verify/user',
                     'kwargs': {
                         'template': 'user_pass.jinja2',
                         'sym_key': '24AA/LR6HighEnergy',

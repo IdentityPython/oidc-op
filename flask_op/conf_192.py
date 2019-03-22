@@ -13,6 +13,10 @@ from oidcendpoint.user_authn.user import UserPassJinja2
 from oidcendpoint.util import JSONDictDB
 
 SESSION_COOKIE_NAME = 'flop'
+PORT = 5000
+DOMAIN = '192.168.1.109'
+SERVER_NAME = '{}:{}'.format(DOMAIN, str(PORT))
+BASE_URL = 'https://{}'.format(SERVER_NAME)
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"], ["token"], ["id_token"], ["code", "token"], ["code", "id_token"],
@@ -35,18 +39,14 @@ CAPABILITIES = {
     "frontchannel_logout_supported": True,
     "frontchannel_logout_session_supported": True,
     "backchannel_logout_supported": True,
-    "backchannel_logout_session_supported": True
+    "backchannel_logout_session_supported": True,
+    'check_session_iframe': "{}/check_session_iframe".format(BASE_URL)
 }
 
 KEY_DEF = [
     {"type": "RSA", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]}
 ]
-
-PORT = 5000
-DOMAIN = '192.168.1.109'
-SERVER_NAME = '{}:{}'.format(DOMAIN, str(PORT))
-BASE_URL = 'https://{}'.format(SERVER_NAME)
 
 PATH = {
     'userinfo:kwargs:db_file': '{}/users.json',
@@ -73,7 +73,7 @@ CONFIG = {
         "jwks": {
             'private_path': 'own/jwks.json',
             'key_defs': KEY_DEF,
-            'public_path': 'static/jwks.json'
+            'uri_path': 'static/jwks.json'
         },
         'endpoint': {
             'webfinger': {
@@ -114,7 +114,7 @@ CONFIG = {
                 'kwargs': {
                     'logout_uri': "{}/verify_logout".format(BASE_URL),
                     'post_logout_uri': "{}/post_logout".format(BASE_URL),
-                    'signing_alg': "ES256"
+                    'signing_alg': "ES256",
                 }
             }
         },
@@ -127,6 +127,7 @@ CONFIG = {
                 {
                     'acr': INTERNETPROTOCOLPASSWORD,
                     'class': UserPassJinja2,
+                    'verify_endpoint': 'verify/user',
                     'kwargs': {
                         'template': 'user_pass.jinja2',
                         'sym_key': '24AA/LR6HighEnergy',
