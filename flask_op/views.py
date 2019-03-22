@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 oidc_op_views = Blueprint('oidc_rp', __name__, url_prefix='')
 
 
-def add_cookie(resp, cookie_spec):
+def _add_cookie(resp, cookie_spec):
     for key, _morsel in cookie_spec.items():
         kwargs = {'value': _morsel.value}
         for param in ['expires', 'path', 'comment', 'domain', 'max-age',
@@ -34,6 +34,12 @@ def add_cookie(resp, cookie_spec):
             if _morsel[param]:
                 kwargs[param] = _morsel[param]
         resp.set_cookie(key, **kwargs)
+
+
+def add_cookie(resp, cookie_spec):
+    if isinstance(cookie_spec, list):
+        for _spec in cookie_spec:
+            _add_cookie(resp, _spec)
 
 
 @oidc_op_views.route('/static/<path:path>')
@@ -50,6 +56,10 @@ def keys(jwks):
 @oidc_op_views.route('/')
 def index():
     return render_template('index.html')
+
+
+def add_headers_and_cookie(resp, info):
+    return resp
 
 
 def do_response(endpoint, req_args, error='', **args):
@@ -70,14 +80,14 @@ def do_response(endpoint, req_args, error='', **args):
             resp = make_response(info['response'], 400)
         else:  # _response_placement == 'url':
             logger.info('Redirect to: {}'.format(info['response']))
-            return redirect(info['response'])
+            resp = redirect(info['response'])
     else:
         if _response_placement == 'body':
             logger.info('Response: {}'.format(info['response']))
             resp = make_response(info['response'], 200)
         else:  # _response_placement == 'url':
             logger.info('Redirect to: {}'.format(info['response']))
-            return redirect(info['response'])
+            resp = redirect(info['response'])
 
     for key, value in info['http_headers']:
         resp.headers[key] = value
@@ -193,13 +203,27 @@ def service_endpoint(endpoint):
         pr_args = {'auth': authn}
 
     if request.method == 'GET':
-        req_args = endpoint.parse_request(request.args.to_dict(), **pr_args)
+        try:
+            req_args = endpoint.parse_request(request.args.to_dict(), **pr_args)
+        except Exception as err:
+            logger.error(err)
+            return make_response(json.dumps({
+                'error': 'invalid_request',
+                'error_description': str(err)
+                }), 400)
     else:
         if request.data:
             req_args = request.data
         else:
             req_args = dict([(k, v) for k, v in request.form.items()])
-        req_args = endpoint.parse_request(req_args, **pr_args)
+        try:
+            req_args = endpoint.parse_request(req_args, **pr_args)
+        except Exception as err:
+            logger.error(err)
+            return make_response(json.dumps({
+                'error': 'invalid_request',
+                'error_description': str(err)
+                }), 400)
 
     logger.info('request: {}'.format(req_args))
     if isinstance(req_args, ResponseMessage) and 'error' in req_args:
@@ -217,13 +241,13 @@ def service_endpoint(endpoint):
                                             **kwargs)
         else:
             args = endpoint.process_request(req_args, **kwargs)
-    except Exception:
+    except Exception as err:
         message = traceback.format_exception(*sys.exc_info())
-        # cherrypy.response.headers['Content-Type'] = 'text/html'
+        logger.error(message)
         return make_response(json.dumps({
-            'error': 'server_error',
-            'error_description': message
-        }, sort_keys=True, indent=4), 400)
+                                            'error': 'invalid_request',
+                                            'error_description': str(err)
+                                        }), 400)
 
     logger.info('Response args: {}'.format(args))
 
