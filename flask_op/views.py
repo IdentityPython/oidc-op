@@ -6,6 +6,7 @@ import traceback
 from urllib.parse import urlparse
 
 import werkzeug
+from cryptojwt import as_unicode
 from flask import Blueprint
 from flask import current_app
 from flask import redirect
@@ -20,7 +21,7 @@ from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
 
 oidc_op_views = Blueprint('oidc_rp', __name__, url_prefix='')
 
@@ -64,29 +65,29 @@ def add_headers_and_cookie(resp, info):
 
 def do_response(endpoint, req_args, error='', **args):
     info = endpoint.do_response(request=req_args, error=error, **args)
-
-    logger.debug('do_response: {}'.format(info))
+    _log = current_app.srv_config.logger
+    _log.debug('do_response: {}'.format(info))
 
     try:
         _response_placement = info['response_placement']
     except KeyError:
         _response_placement = endpoint.response_placement
 
-    logger.debug('response_placement: {}'.format(_response_placement))
+    _log.debug('response_placement: {}'.format(_response_placement))
 
     if error:
         if _response_placement == 'body':
-            logger.info('Error Response: {}'.format(info['response']))
+            _log.info('Error Response: {}'.format(info['response']))
             resp = make_response(info['response'], 400)
         else:  # _response_placement == 'url':
-            logger.info('Redirect to: {}'.format(info['response']))
+            _log.info('Redirect to: {}'.format(info['response']))
             resp = redirect(info['response'])
     else:
         if _response_placement == 'body':
-            logger.info('Response: {}'.format(info['response']))
+            _log.info('Response: {}'.format(info['response']))
             resp = make_response(info['response'], 200)
         else:  # _response_placement == 'url':
-            logger.info('Redirect to: {}'.format(info['response']))
+            _log.info('Redirect to: {}'.format(info['response']))
             resp = redirect(info['response'])
 
     for key, value in info['http_headers']:
@@ -193,7 +194,8 @@ def session_endpoint():
 
 
 def service_endpoint(endpoint):
-    logger.info('At the "{}" endpoint'.format(endpoint.endpoint_name))
+    _log = current_app.srv_config.logger
+    _log.info('At the "{}" endpoint'.format(endpoint.endpoint_name))
 
     try:
         authn = request.headers['Authorization']
@@ -206,7 +208,7 @@ def service_endpoint(endpoint):
         try:
             req_args = endpoint.parse_request(request.args.to_dict(), **pr_args)
         except Exception as err:
-            logger.error(err)
+            _log.error(err)
             return make_response(json.dumps({
                 'error': 'invalid_request',
                 'error_description': str(err)
@@ -219,19 +221,19 @@ def service_endpoint(endpoint):
         try:
             req_args = endpoint.parse_request(req_args, **pr_args)
         except Exception as err:
-            logger.error(err)
+            _log.error(err)
             return make_response(json.dumps({
                 'error': 'invalid_request',
                 'error_description': str(err)
                 }), 400)
 
-    logger.info('request: {}'.format(req_args))
+    _log.info('request: {}'.format(req_args))
     if isinstance(req_args, ResponseMessage) and 'error' in req_args:
         return make_response(req_args.to_json(), 400)
 
     try:
         if request.cookies:
-            logger.debug(request.cookies)
+            _log.debug(request.cookies)
             kwargs = {'cookie': request.cookies}
         else:
             kwargs = {}
@@ -243,14 +245,16 @@ def service_endpoint(endpoint):
             args = endpoint.process_request(req_args, **kwargs)
     except Exception as err:
         message = traceback.format_exception(*sys.exc_info())
-        logger.error(message)
+        _log.error(message)
         return make_response(json.dumps({
                                             'error': 'invalid_request',
                                             'error_description': str(err)
                                         }), 400)
 
-    logger.info('Response args: {}'.format(args))
+    _log.info('Response args: {}'.format(args))
 
+    if 'redirect_location' in args:
+        return redirect(args['redirect_location'])
     if 'http_response' in args:
         return make_response(args['http_response'], 200)
 
@@ -262,9 +266,27 @@ def handle_bad_request(e):
     return 'bad request!', 400
 
 
-@oidc_op_views.route('/check_session_iframe', methods=['GET'])
+@oidc_op_views.route('/check_session_iframe', methods=['GET', 'POST'])
 def check_session_iframe():
-    doc = open('templates/check_session_iframe.html')
+    if request.method == 'GET':
+        req_args = request.args.to_dict()
+    else:
+        if request.data:
+            req_args = json.loads(as_unicode(request.data))
+        else:
+            req_args = dict([(k, v) for k, v in request.form.items()])
+
+    if req_args:
+        # will contain client_id and origin
+        if req_args['origin'] != current_app.endpoint_context.issuer:
+            return 'error'
+        if req_args['client_id'] != current_app.endpoint_context.cdb:
+            return 'error'
+        return 'OK'
+
+    current_app.srv_config.logger.debug(
+        'check_session_iframe: {}'.format(req_args))
+    doc = open('templates/check_session_iframe.html').read()
     return doc
 
 
@@ -290,9 +312,13 @@ def rp_logout():
     _iframes = _endp.do_verified_logout(alla=alla, **_info)
 
     if _iframes:
-        return render_template('frontchannel_logout.html',
+        res = render_template('frontchannel_logout.html',
                                frames=" ".join(_iframes), size=len(_iframes),
                                timeout=5000,
                                postLogoutRedirectUri=_info['redirect_uri'])
     else:
-        return redirect(_info['redirect_uri'])
+        res = redirect(_info['redirect_uri'])
+
+    _kakor = _endp.kill_cookies()
+    _add_cookie(res, _kakor)
+    return res
