@@ -26,7 +26,6 @@ class Configuration:
         # OIDC provider configuration
         self.op = conf.get('op')
         self.webserver = conf.get('webserver')
-        self
         # self.oidc_clients = conf.get('oidc_clients', {})
 
         # session key

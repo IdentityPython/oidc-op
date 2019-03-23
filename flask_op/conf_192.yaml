@@ -18,9 +18,9 @@ logging:
 
 session_cookie_name: flop
 port: &port 5000
-domain: &domain 127.0.0.1
-server_name: 127.0.0.1:5000
-base_url: &base_url https://127.0.0.1:5000
+domain: &domain 192.168.1.109
+server_name: 192.168.1.109:5000
+base_url: &base_url https://192.168.1.109:5000
     
 key_def: &key_def
   -
@@ -82,7 +82,7 @@ op:
       frontchannel_logout_session_supported: True
       backchannel_logout_supported: True
       backchannel_logout_session_supported: True
-      check_session_iframe: https://127.0.0.1:5000/check_session_iframe
+      check_session_iframe: https://192.168.1.109:5000/check_session_iframe
     template_dir: templates
     id_token:
       class: oidcendpoint.id_token.IDToken
@@ -106,7 +106,7 @@ op:
           class: oidcendpoint.oidc.registration.Registration
           kwargs:
             client_authn_method: null
-            client_secret_expiration_time: 5 * 86400
+            client_secret_expiration_time: 432000
       authorization:
           path: authorization
           class: oidcendpoint.oidc.authorization.Authorization
@@ -128,7 +128,7 @@ op:
           path: session
           class: oidcendpoint.oidc.session.Session
           kwargs:
-              logout_uri_path: verify_logout
+              logout_verify_url: verify_logout
               post_logout_uri_path: post_logout
               signing_alg: "ES256"
     userinfo:
