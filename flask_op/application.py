@@ -38,10 +38,10 @@ def init_oidc_op_endpoints(app):
     except KeyError:
         pass
 
-    cookie_dealer = CookieDealer(**_server_info_config['cookie_dealer'])
+    # cookie_dealer = CookieDealer(**_server_info_config['cookie_dealer']['kwargs'])
 
     endpoint_context = EndpointContext(_server_info_config, keyjar=_kj,
-                                       cwd=folder, cookie_dealer=cookie_dealer)
+                                       cwd=folder)
 
     for endp in endpoint_context.endpoint.values():
         p = urlparse(endp.endpoint_path)
@@ -51,7 +51,7 @@ def init_oidc_op_endpoints(app):
         else:
             endp.vpath = _vpath
 
-    cookie_dealer.endpoint_context = endpoint_context
+    # cookie_dealer.endpoint_context = endpoint_context
 
     return endpoint_context
 

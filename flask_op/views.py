@@ -133,7 +133,7 @@ def verify(authn_method):
 
 @oidc_op_views.route('/verify/user', methods=['GET','POST'])
 def verify_user():
-    authn_method, acr = current_app.endpoint_context.authn_broker.get_method_by_id('user')
+    authn_method = current_app.endpoint_context.authn_broker.get_method_by_id('user')
     try:
         return verify(authn_method)
     except FailedAuthentication as exc:
@@ -142,7 +142,7 @@ def verify_user():
 
 @oidc_op_views.route('/verify/user_pass_jinja', methods=['GET','POST'])
 def verify_user_pass_jinja():
-    authn_method, acr = current_app.endpoint_context.authn_broker.get_method_by_id('user')
+    authn_method = current_app.endpoint_context.authn_broker.get_method_by_id('user')
     try:
         return verify(authn_method)
     except FailedAuthentication as exc:

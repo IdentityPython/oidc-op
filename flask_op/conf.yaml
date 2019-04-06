@@ -86,6 +86,12 @@ op:
     template_dir: templates
     id_token:
       class: oidcendpoint.id_token.IDToken
+      kwargs:
+        default_claims:
+          email:
+            essential: True
+          email_verified:
+            essential: True
     jwks:
       private_path: own/jwks.json
       key_defs: *key_def

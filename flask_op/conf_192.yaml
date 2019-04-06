@@ -157,11 +157,19 @@ op:
         kwargs:
           user: diana
     cookie_dealer:
-      default_values:
-          name: oidc_op
-          domain: *domain
-          path: /
-          max_age: 3600
+      class: oidcendpoint.cookie.CookieDealer
+      kwargs:
+        default_values:
+            name: oidc_op
+            domain: *domain
+            path: /
+            max_age: 3600
+    login_hint2acrs:
+      class: oidcendpoint.login_hint.LoginHint2Acrs
+      kwargs:
+        scheme_map:
+          email:
+            - oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
 
 webserver:
   cert: '{}/certs/cert.pem'
