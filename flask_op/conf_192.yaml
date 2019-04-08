@@ -33,7 +33,6 @@ key_def: &key_def
     use: 
       - sig
 
-cookie_jwk: 'private/cookie.json'
 session_jwk: 'private/session.json'
 
 op:
@@ -159,6 +158,8 @@ op:
     cookie_dealer:
       class: oidcendpoint.cookie.CookieDealer
       kwargs:
+        sign_jwk: 'private/cookie_sign_jwk.json'
+        # enc_jwk: 'private/cookie_enc_jwk.json'
         default_values:
             name: oidc_op
             domain: *domain

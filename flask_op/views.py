@@ -322,3 +322,8 @@ def rp_logout():
     _kakor = _endp.kill_cookies()
     _add_cookie(res, _kakor)
     return res
+
+@oidc_op_views.route('/post_logout', methods=['GET'])
+def post_logout():
+    page = render_template('post_logout.html')
+    return page

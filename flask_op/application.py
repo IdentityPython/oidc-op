@@ -3,27 +3,16 @@ from urllib.parse import urlparse
 
 from cryptojwt.key_jar import init_key_jar
 from flask.app import Flask
-from oidcendpoint.cookie import CookieDealer
 from oidcendpoint.endpoint_context import EndpointContext
 
 folder = os.path.dirname(os.path.realpath(__file__))
 
 
+
 def init_oidc_op_endpoints(app):
     _config = app.srv_config.op
-    # _provider_config = _config['provider']
     _server_info_config = _config['server_info']
 
-    # for path,val in app.srv_config.get('PATH').items():
-    #     pos = _server_info_config
-    #     part = path.split(':')
-    #     for p in part[:-1]:
-    #         try:
-    #             pos = pos[p]
-    #         except TypeError:
-    #             p = int(p)
-    #             pos = pos[p]
-    #     pos[part[-1]] = val.format(folder)
 
     _kj_args = {k:v for k,v in _server_info_config['jwks'].items() if k != 'uri_path'}
     _kj = init_key_jar(**_kj_args)
@@ -38,8 +27,6 @@ def init_oidc_op_endpoints(app):
     except KeyError:
         pass
 
-    # cookie_dealer = CookieDealer(**_server_info_config['cookie_dealer']['kwargs'])
-
     endpoint_context = EndpointContext(_server_info_config, keyjar=_kj,
                                        cwd=folder)
 
@@ -50,8 +37,6 @@ def init_oidc_op_endpoints(app):
             endp.vpath = _vpath[1:]
         else:
             endp.vpath = _vpath
-
-    # cookie_dealer.endpoint_context = endpoint_context
 
     return endpoint_context
 
