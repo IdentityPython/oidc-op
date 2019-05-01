@@ -44,28 +44,8 @@ class Configuration:
             self.logger.debug("Generating random session signer")
             self.session_key = SYMKey(key=rnd_token(32)).k
 
-        # cookie key
-        self.cookie_jwk = conf.get('cookie_jwk')
-        if self.cookie_jwk is not None:
-            self.logger.debug("Reading cookie signer from %s", self.cookie_jwk)
-            try:
-                with open(self.cookie_jwk) as jwk_file:
-                    jwk_dict = json.loads(jwk_file.read())
-                    self.cookie_key = key_from_jwk_dict(jwk_dict).k
-            except Exception:
-                self.logger.critical("Failed reading cookie signer from %s",
-                                     self.cookie_jwk)
-                sys.exit(-1)
-        else:
-            self.logger.debug("Generating random cookie signer")
-            self.cookie_key = SYMKey(key=rnd_token(32)).k
-
-        # set OP cookie_dealer symkey to session key
+        # set OP session key
         if self.op is not None:
-            if self.op['server_info']['cookie_dealer'].get('symkey') is None:
-                key = self.cookie_key
-                self.op['server_info']['cookie_dealer']['symkey'] = key
-                self.logger.debug("Set cookie symkey to %s", key)
             if self.op['server_info'].get('password') is None:
                 key = self.session_key
                 self.op['server_info']['password'] = key
