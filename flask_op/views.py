@@ -293,7 +293,7 @@ def check_session_iframe():
 @oidc_op_views.route('/verify_logout', methods=['GET', 'POST'])
 def verify_logout():
     part = urlparse(current_app.endpoint_context.issuer)
-    page = render_template( 'logout.html', op=part.hostname,
+    page = render_template('logout.html', op=part.hostname,
                             do_logout='rp_logout', sjwt=request.args['sjwt'])
     return page
 

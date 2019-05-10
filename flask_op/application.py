@@ -8,7 +8,6 @@ from oidcendpoint.endpoint_context import EndpointContext
 folder = os.path.dirname(os.path.realpath(__file__))
 
 
-
 def init_oidc_op_endpoints(app):
     _config = app.srv_config.op
     _server_info_config = _config['server_info']

@@ -33,7 +33,6 @@ key_def: &key_def
     use: 
       - sig
 
-cookie_jwk: 'private/cookie.json'
 session_jwk: 'private/session.json'
 
 op:
@@ -92,6 +91,38 @@ op:
             essential: True
           email_verified:
             essential: True
+    token_handler_args:
+      jwks_def:
+        private_path: 'private/token_jwks.json'
+        read_only: False
+        key_defs:
+          -
+            type: oct
+            bytes: 24
+            use:
+              - enc
+            kid: code
+          -
+            type: oct
+            bytes: 24
+            use:
+              - enc
+            kid: refresh
+      code:
+        lifetime: 600
+      token:
+        class: 'oidcendpoint.jwt_token.JWTToken'
+        lifetime: 3600
+        add_claims:
+          - email
+          - email_verified
+          - phone_number
+          - phone_number_verified
+        add_claim_by_scope: True
+        aud:
+          - https://example.org/appl
+      refresh:
+        lifetime: 86400
     jwks:
       private_path: own/jwks.json
       key_defs: *key_def
@@ -112,7 +143,7 @@ op:
           class: oidcendpoint.oidc.registration.Registration
           kwargs:
             client_authn_method: null
-            client_secret_expiration_time: 5 * 86400
+            client_secret_expiration_time: 432000
       authorization:
           path: authorization
           class: oidcendpoint.oidc.authorization.Authorization
@@ -134,7 +165,7 @@ op:
           path: session
           class: oidcendpoint.oidc.session.Session
           kwargs:
-              logout_uri_path: verify_logout
+              logout_verify_url: verify_logout
               post_logout_uri_path: post_logout
               signing_alg: "ES256"
     userinfo:
@@ -148,7 +179,6 @@ op:
         verify_endpoint: 'verify/user'
         kwargs:
           template: user_pass.jinja2
-          sym_key: 24AA/LR6HighEnergy
           db:
             class: oidcendpoint.util.JSONDictDB
             kwargs:
@@ -163,11 +193,22 @@ op:
         kwargs:
           user: diana
     cookie_dealer:
-      default_values:
-          name: oidc_op
-          domain: *domain
-          path: /
-          max_age: 3600
+      class: oidcendpoint.cookie.CookieDealer
+      kwargs:
+        sign_jwk: 'private/cookie_sign_jwk.json'
+        sign_alg: 'SHA256'
+        # enc_jwk: 'private/cookie_enc_jwk.json'
+        default_values:
+            name: oidc_op
+            domain: *domain
+            path: /
+            max_age: 3600
+    login_hint2acrs:
+      class: oidcendpoint.login_hint.LoginHint2Acrs
+      kwargs:
+        scheme_map:
+          email:
+            - oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
 
 webserver:
   cert: '{}/certs/cert.pem'
