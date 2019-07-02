@@ -38,10 +38,6 @@ session_jwk: 'private/session.json'
 op:
   server_info:
     issuer: *base_url
-    password_jwk: 'private/password.json'
-    token_expires_in: 600
-    grant_expires_in: 300
-    refresh_token_expires_in: 86400
     verify_ssl: False
     capabilities:
       response_types_supported:
@@ -53,11 +49,6 @@ op:
         - "id_token token"
         - "code id_token token"
         - none
-      token_endpoint_auth_methods_supported:
-        - client_secret_post
-        - client_secret_basic
-        - client_secret_jwt
-        - private_key_jwt
       response_modes_supported:
         - query
         - fragment
@@ -111,7 +102,7 @@ op:
       code:
         lifetime: 600
       token:
-        class: 'oidcendpoint.jwt_token.JWTToken'
+        class: oidcendpoint.jwt_token.JWTToken
         lifetime: 3600
         add_claims:
           - email

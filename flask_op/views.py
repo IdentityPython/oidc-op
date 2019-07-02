@@ -21,7 +21,7 @@ from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 
-#logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 oidc_op_views = Blueprint('oidc_rp', __name__, url_prefix='')
 
