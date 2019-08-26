@@ -10,5 +10,5 @@ def load_json(file_name):
 
 def load_yaml_config(file):
     with open(file) as fp:
-        c = yaml.load(fp)
+        c = yaml.load(fp, Loader=yaml.FullLoader)
     return c
