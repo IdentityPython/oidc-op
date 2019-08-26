@@ -131,18 +131,20 @@ def verify(authn_method):
     return do_response(endpoint, request, **args)
 
 
-@oidc_op_views.route('/verify/user', methods=['GET','POST'])
+@oidc_op_views.route('/verify/user', methods=['GET', 'POST'])
 def verify_user():
-    authn_method = current_app.endpoint_context.authn_broker.get_method_by_id('user')
+    authn_method = current_app.endpoint_context.authn_broker.get_method_by_id(
+        'user')
     try:
         return verify(authn_method)
     except FailedAuthentication as exc:
         return render_template("error.html", title=str(exc))
 
 
-@oidc_op_views.route('/verify/user_pass_jinja', methods=['GET','POST'])
+@oidc_op_views.route('/verify/user_pass_jinja', methods=['GET', 'POST'])
 def verify_user_pass_jinja():
-    authn_method = current_app.endpoint_context.authn_broker.get_method_by_id('user')
+    authn_method = current_app.endpoint_context.authn_broker.get_method_by_id(
+        'user')
     try:
         return verify(authn_method)
     except FailedAuthentication as exc:
@@ -247,9 +249,9 @@ def service_endpoint(endpoint):
         message = traceback.format_exception(*sys.exc_info())
         _log.error(message)
         return make_response(json.dumps({
-                                            'error': 'invalid_request',
-                                            'error_description': str(err)
-                                        }), 400)
+            'error': 'invalid_request',
+            'error_description': str(err)
+            }), 400)
 
     _log.info('Response args: {}'.format(args))
 
@@ -294,7 +296,7 @@ def check_session_iframe():
 def verify_logout():
     part = urlparse(current_app.endpoint_context.issuer)
     page = render_template('logout.html', op=part.hostname,
-                            do_logout='rp_logout', sjwt=request.args['sjwt'])
+                           do_logout='rp_logout', sjwt=request.args['sjwt'])
     return page
 
 
@@ -313,15 +315,16 @@ def rp_logout():
 
     if _iframes:
         res = render_template('frontchannel_logout.html',
-                               frames=" ".join(_iframes), size=len(_iframes),
-                               timeout=5000,
-                               postLogoutRedirectUri=_info['redirect_uri'])
+                              frames=" ".join(_iframes), size=len(_iframes),
+                              timeout=5000,
+                              postLogoutRedirectUri=_info['redirect_uri'])
     else:
         res = redirect(_info['redirect_uri'])
+        _kakor = _endp.kill_cookies()
+        _add_cookie(res, _kakor)
 
-    _kakor = _endp.kill_cookies()
-    _add_cookie(res, _kakor)
     return res
+
 
 @oidc_op_views.route('/post_logout', methods=['GET'])
 def post_logout():
