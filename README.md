@@ -30,3 +30,5 @@ python -c 'import json; from cryptojwt.jwk.rsa import new_rsa_key; print(json.du
 
 python -m flask_op.server private/conf.yaml
 ````
+
+Then open your browser to `https://127.0.0.1:5000/.well-known/openid-configuration`, or other resources configured into `conf.yaml` to get OP informations.
