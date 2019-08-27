@@ -38,10 +38,6 @@ session_jwk: 'private/session.json'
 op:
   server_info:
     issuer: *base_url
-    password_jwk: 'private/password.json'
-    token_expires_in: 600
-    grant_expires_in: 300
-    refresh_token_expires_in: 86400
     verify_ssl: False
     capabilities:
       response_types_supported:
@@ -141,7 +137,6 @@ op:
         verify_endpoint: 'verify/user'
         kwargs:
           template: user_pass.jinja2
-          sym_key: 24AA/LR6HighEnergy
           db:
             class: oidcendpoint.util.JSONDictDB
             kwargs:
@@ -159,6 +154,7 @@ op:
       class: oidcendpoint.cookie.CookieDealer
       kwargs:
         sign_jwk: 'private/cookie_sign_jwk.json'
+        sign_alg: 'SHA256'
         # enc_jwk: 'private/cookie_enc_jwk.json'
         default_values:
             name: oidc_op
