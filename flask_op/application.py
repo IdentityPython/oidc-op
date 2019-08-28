@@ -12,7 +12,6 @@ def init_oidc_op_endpoints(app):
     _config = app.srv_config.op
     _server_info_config = _config['server_info']
 
-
     _kj_args = {k:v for k,v in _server_info_config['jwks'].items() if k != 'uri_path'}
     _kj = init_key_jar(**_kj_args)
 

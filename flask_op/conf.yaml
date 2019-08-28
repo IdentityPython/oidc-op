@@ -3,6 +3,7 @@ logging:
   root:
     handlers:
       - default
+      - console
     level: DEBUG
   loggers:
     bobcat_idp:
@@ -11,6 +12,10 @@ logging:
     default:
       class: logging.FileHandler
       filename: 'debug.log'
+      formatter: default
+    console:
+      class: logging.StreamHandler
+      'stream': 'ext://sys.stdout'
       formatter: default
   formatters:
     default:
@@ -21,16 +26,16 @@ port: &port 5000
 domain: &domain 127.0.0.1
 server_name: 127.0.0.1:5000
 base_url: &base_url https://127.0.0.1:5000
-    
+
 key_def: &key_def
   -
     type: RSA
-    use: 
+    use:
       - sig
   -
     type: EC
     crv: "P-256"
-    use: 
+    use:
       - sig
 
 session_jwk: 'private/session.json'
@@ -208,4 +213,3 @@ webserver:
   port: *port
   domain: *domain
   debug: true
-

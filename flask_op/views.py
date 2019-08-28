@@ -217,7 +217,9 @@ def service_endpoint(endpoint):
                 }), 400)
     else:
         if request.data:
-            req_args = request.data
+            req_args = request.data \
+                       if isinstance(request.data, str) else \
+                       request.data.decode()
         else:
             req_args = dict([(k, v) for k, v in request.form.items()])
         try:
