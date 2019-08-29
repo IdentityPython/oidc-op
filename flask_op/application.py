@@ -19,7 +19,6 @@ def init_oidc_op_endpoints(app):
 
     # make sure I have a set of keys under my 'real' name
     _kj.import_jwks_as_json(_kj.export_jwks_as_json(True, ''), iss)
-
     try:
         _kj.verify_ssl = _config['server_info']['verify_ssl']
     except KeyError:

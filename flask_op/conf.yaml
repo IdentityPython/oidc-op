@@ -38,6 +38,12 @@ key_def: &key_def
     use:
       - sig
 
+OIDC_KEYS: &oidc_keys
+    'private_path': "private/jwks.json"
+    'key_defs': *key_def
+    'public_path': 'static/jwks.json'
+    'uri_path': 'static/jwks.json'
+
 session_jwk: 'private/session.json'
 
 op:
@@ -120,9 +126,7 @@ op:
       refresh:
         lifetime: 86400
     jwks:
-      private_path: own/jwks.json
-      key_defs: *key_def
-      uri_path: static/jwks.json
+      *oidc_keys
     endpoint:
       webfinger:
         path: '.well-known/webfinger'
@@ -178,7 +182,7 @@ op:
           db:
             class: oidcendpoint.util.JSONDictDB
             kwargs:
-              json_path: passwd.json
+              json_path: private/passwd.json
           page_header: "Testing log in"
           submit_btn: "Get me in!"
           user_label: "Nickname"
