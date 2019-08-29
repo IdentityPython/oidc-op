@@ -1,7 +1,7 @@
 # oidc-op
 A couple of examples of a OIDC OPs with CherryPy and Flask.
 
-This is **NOT** something you should even imaging running as a service.
+This is **NOT** something you should even image running as a service.
 
 
 ### Introduction
@@ -13,10 +13,11 @@ If you are just going to build a standard OP you only have to write the
 configuration file. If you want to add or replace functionality this document
 should be able to tell you how.
 
-Setting up an OP means making a number if decisions. Like, should the OP support
-Web Finger (https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery),
-dynamic discovery (https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig)
-and dynamic client registration (https://openid.net/specs/openid-connect-registration-1_0.html).
+Setting up an OP means making a number if decisions. Like, should the OP support:
+
+- [Web Finger](https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery)
+- [dynamic discovery](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig)
+- [dynamic client registration](https://openid.net/specs/openid-connect-registration-1_0.html)
 
 All these are services you can access at endpoints. The total set of endpoints
 that this package supports are
@@ -34,11 +35,11 @@ that this package supports are
 ### Configuration directives
 
 
-##### issuer
+_issuer_
 
 The issuer ID of the OP, unique value.
 
-##### capabilities
+_capabilities_
 
 This covers most of the basic functionality of the OP. The key words are the
 same as defined in
@@ -73,6 +74,7 @@ An example:
         - normal
         - aggregated
         - distributed
+
       claims_parameter_supported: True
       request_parameter_supported: True
       request_uri_parameter_supported: True
@@ -83,7 +85,7 @@ An example:
       check_session_iframe: https://127.0.0.1:5000/check_session_iframe
 
 
-##### id_token
+_id_token_
 
 Defines which class that handles creating an ID Token and possibly also
 arguments used when initiating that class.
@@ -124,11 +126,11 @@ python3 -m flask_rp.wsgi flask_rp/conf.yaml
 pip install git+https://github.com/rohe/oidc-op.git
 pip install flask
 
-# get usage examples
+# get the usage examples
 git clone https://github.com/rohe/oidc-op.git
 ````
 
-##### Configure flask op
+##### Configure flask OP
 
 ````
 cd oidc-op/
@@ -141,11 +143,11 @@ cp flask_op/passwd.json private/
 cp flask_op/conf.yaml private/
 ````
 
-##### Jwks files
+##### JWK Set (JWKS) files
 see: https://cryptojwt.readthedocs.io/en/latest/keyhandling.html
 
 You can use `cryptojwt.key_jar.init_key_jar` to create JWKS file.
-An easy way can be to configure the auto creation of jwks files directly in your conf.yaml file:
+An easy way can be to configure the auto creation of JWKS files directly in your conf.yaml file:
 
 ````
 # in conf.yaml
@@ -158,9 +160,9 @@ OIDC_KEYS:
     'read_only': False
 ````
 
-`read_only: False` create on each execution the path with the jwks files. Change it to `True` once you have produced ones.
+`read_only: False` create on each execution the path with the JWKS files. Change it to `True` once you have produced ones.
 
-In the JWTConnect-Python-CryptoJWT distribution there is a script you can use to construct a JWK.
+In the JWTConnect-Python-CryptoJWT distribution there is also a script you can use to construct a JWK.
 
 You can for instance do:
 ````
@@ -183,7 +185,7 @@ SHA-256: pvPmdk34YjNwSZ_ICccGJwlWitJzy-uGnR5AU9wTNgw
 python -m flask_op.server private/conf.yaml
 ````
 
-Then open your browser to `https://127.0.0.1:5000/.well-known/openid-configuration`, or other resources configured into `conf.yaml`, to get OP informations.
+Then open your browser to `https://127.0.0.1:5000/.well-known/openid-configuration` to get the OpenID Provider Configuration resource.
 
 ### Authentication examples
 
