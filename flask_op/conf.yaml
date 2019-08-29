@@ -42,6 +42,8 @@ OIDC_KEYS: &oidc_keys
     'private_path': "private/jwks.json"
     'key_defs': *key_def
     'public_path': 'static/jwks.json'
+
+    # otherwise OP metadata will have jwks_uri: https://127.0.0.1:5000/None!
     'uri_path': 'static/jwks.json'
 
 session_jwk: 'private/session.json'
@@ -95,7 +97,7 @@ op:
             essential: True
     token_handler_args:
       jwks_def:
-        private_path: 'private/token_jwks.json'
+        private_path: 'private/token_jwk.json'
         read_only: False
         key_defs:
           -
