@@ -42,7 +42,7 @@ OIDC_KEYS: &oidc_keys
     'private_path': "private/jwks.json"
     'key_defs': *key_def
     'public_path': 'static/jwks.json'
-
+    'read_only': False
     # otherwise OP metadata will have jwks_uri: https://127.0.0.1:5000/None!
     'uri_path': 'static/jwks.json'
 

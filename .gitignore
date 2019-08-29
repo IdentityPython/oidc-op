@@ -1,5 +1,5 @@
 templates
-static
+static/
 private/
 conf.yaml
 flask_op/debug.log
