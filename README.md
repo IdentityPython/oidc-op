@@ -1,7 +1,6 @@
 # oidc-op
-A couple of examples of a OIDC OPs with CherryPy and Flask.
-
-This is **NOT** something you should even image running as a service.
+A couple of examples of a OIDC OPs with CherryPy and Flask,
+this is **NOT** something you should even image running in a production environment.
 
 
 ### Introduction
@@ -104,27 +103,16 @@ An example:
 
 ### Flask example setup
 
-
-##### Install flask-rp
-
-It uses `JWTConnect-Python-OidcRP` as Relaing Party for tests, see [related page](https://github.com/openid/JWTConnect-Python-OidcRP).
-You can run a working instance of `JWTConnect-Python-OidcRP.flask_rp` with:
-
+Create an environment and install Flask
 ````
-pip install git+https://github.com/openid/JWTConnect-Python-OidcRP.git
-
-# get entire project to have examples files
-git clone https://github.com/openid/JWTConnect-Python-OidcRP.git
-cd JWTConnect-Python-OidcRP
-
-# run it as it come
-python3 -m flask_rp.wsgi flask_rp/conf.yaml
+virtualenv -ppython3 env
+source env/bin/activate
+pip install flask
 ````
 
 ##### Install oidc-op
 ````
 pip install git+https://github.com/rohe/oidc-op.git
-pip install flask
 
 # get the usage examples
 git clone https://github.com/rohe/oidc-op.git
@@ -137,17 +125,23 @@ cd oidc-op/
 
 # configuration: create a private folder
 cp -R flask_op/private .
-cp flask_op/passwd.json private/
 
-# change passwd.json to private/passwd.json
+# copy required files
+cp flask_op/passwd.json private/
 cp flask_op/conf.yaml private/
+cp -R flask_op/templates .
+
+# create a JWK for cookie signing
+jwkgen --kty=SYM --kid cookie > private/cookie_sign_jwk.json
 ````
 
-##### JWK Set (JWKS) files
+##### About JWK Set (JWKS) files
 see: https://cryptojwt.readthedocs.io/en/latest/keyhandling.html
 
 You can use `cryptojwt.key_jar.init_key_jar` to create JWKS file.
-An easy way can be to configure the auto creation of JWKS files directly in your conf.yaml file:
+An easy way can be to configure the auto creation of JWKS files directly in your conf.yaml file.
+Using `read_only: False` in `OIDC_KEYS` it will create the path within the JWKS files.
+Change it to `True` if you don't want to overwrite them on each execution.
 
 ````
 # in conf.yaml
@@ -159,8 +153,6 @@ OIDC_KEYS:
     # this will create the jwks files if they absent
     'read_only': False
 ````
-
-`read_only: False` create on each execution the path with the JWKS files. Change it to `True` once you have produced ones.
 
 In the JWTConnect-Python-CryptoJWT distribution there is also a script you can use to construct a JWK.
 
@@ -186,6 +178,26 @@ python -m flask_op.server private/conf.yaml
 ````
 
 Then open your browser to `https://127.0.0.1:5000/.well-known/openid-configuration` to get the OpenID Provider Configuration resource.
+
+
+##### Install OidcRP and configure flask-rp
+
+It uses `JWTConnect-Python-OidcRP` as Relaing Party for tests, see [related page](https://github.com/openid/JWTConnect-Python-OidcRP).
+You can run a working instance of `JWTConnect-Python-OidcRP.flask_rp` with:
+
+````
+pip install git+https://github.com/openid/JWTConnect-Python-OidcRP.git
+
+# get entire project to have examples files
+git clone https://github.com/openid/JWTConnect-Python-OidcRP.git
+cd JWTConnect-Python-OidcRP
+
+# run it as it come
+python3 -m flask_rp.wsgi flask_rp/conf.yaml
+````
+
+Now you can connect to `https://127.0.0.1:8090/` to see the RP landing page and select your authentication endpoint.
+
 
 ### Authentication examples
 
