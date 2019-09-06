@@ -38,10 +38,18 @@ KEY_DEF = [
     ]
 
 PORT = 8100
-
 DOMAIN = '127.0.0.1'
 
 BASEURL = "https://{}:{}/".format(DOMAIN, PORT)
+PUBLIC_JWKS_PATH: 'https://127.0.0.1:8089/static/jwks.json'
+
+OIDC_KEYS = {
+    'private_path': "./jwks_dir/jwks.json",
+    'key_defs': KEY_DEF,
+    'public_path': './static/jwks.json',
+    'read_only': False
+    }
+
 
 CONFIG = {
     'server_info': {
@@ -53,11 +61,7 @@ CONFIG = {
         "verify_ssl": False,
         "capabilities": CAPABILITIES,
         'template_dir': 'templates',
-        "jwks": {
-            'public_path': 'static/jwks.json',
-            'key_defs': KEY_DEF,
-            'private_path': 'private/jwks.json'
-            },
+        "jwks": OIDC_KEYS,
         'endpoint': {
             'webfinger': {
                 'path': '.well-known/webfinger',

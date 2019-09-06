@@ -3,6 +3,7 @@ logging:
   root:
     handlers:
       - default
+      - console
     level: DEBUG
   loggers:
     bobcat_idp:
@@ -11,6 +12,10 @@ logging:
     default:
       class: logging.FileHandler
       filename: 'debug.log'
+      formatter: default
+    console:
+      class: logging.StreamHandler
+      'stream': 'ext://sys.stdout'
       formatter: default
   formatters:
     default:
@@ -21,17 +26,25 @@ port: &port 5000
 domain: &domain 127.0.0.1
 server_name: 127.0.0.1:5000
 base_url: &base_url https://127.0.0.1:5000
-    
+
 key_def: &key_def
   -
     type: RSA
-    use: 
+    use:
       - sig
   -
     type: EC
     crv: "P-256"
-    use: 
+    use:
       - sig
+
+OIDC_KEYS: &oidc_keys
+    'private_path': "private/jwks.json"
+    'key_defs': *key_def
+    'public_path': 'static/jwks.json'
+    'read_only': False
+    # otherwise OP metadata will have jwks_uri: https://127.0.0.1:5000/None!
+    'uri_path': 'static/jwks.json'
 
 session_jwk: 'private/session.json'
 
@@ -84,7 +97,7 @@ op:
             essential: True
     token_handler_args:
       jwks_def:
-        private_path: 'private/token_jwks.json'
+        private_path: 'private/token_jwk.json'
         read_only: False
         key_defs:
           -
@@ -115,9 +128,7 @@ op:
       refresh:
         lifetime: 86400
     jwks:
-      private_path: own/jwks.json
-      key_defs: *key_def
-      uri_path: static/jwks.json
+      *oidc_keys
     endpoint:
       webfinger:
         path: '.well-known/webfinger'
@@ -173,16 +184,16 @@ op:
           db:
             class: oidcendpoint.util.JSONDictDB
             kwargs:
-              json_path: passwd.json
+              json_path: private/passwd.json
           page_header: "Testing log in"
           submit_btn: "Get me in!"
           user_label: "Nickname"
           passwd_label: "Secret sauce"
-      anon:
-        acr: oidcendpoint.user_authn.authn_context.UNSPECIFIED
-        class: oidcendpoint.user_authn.user.NoAuthn
-        kwargs:
-          user: diana
+      #anon:
+        #acr: oidcendpoint.user_authn.authn_context.UNSPECIFIED
+        #class: oidcendpoint.user_authn.user.NoAuthn
+        #kwargs:
+          #user: diana
     cookie_dealer:
       class: oidcendpoint.cookie.CookieDealer
       kwargs:
@@ -208,4 +219,3 @@ webserver:
   port: *port
   domain: *domain
   debug: true
-
