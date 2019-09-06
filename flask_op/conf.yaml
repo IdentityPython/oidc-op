@@ -178,8 +178,8 @@ op:
       user:
         acr: oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
         class: oidcendpoint.user_authn.user.UserPassJinja2
-        verify_endpoint: 'verify/user'
         kwargs:
+          verify_endpoint: 'verify/user'
           template: user_pass.jinja2
           db:
             class: oidcendpoint.util.JSONDictDB
