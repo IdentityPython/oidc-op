@@ -61,7 +61,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        "PyYaml",
+        "pyyaml",
         "cryptojwt>=0.7.9",
         'oidcmsg>=0.6.3',
         'oidcendpoint>=0.8.4'
