@@ -8,11 +8,9 @@ from oidcendpoint.endpoint_context import EndpointContext
 folder = os.path.dirname(os.path.realpath(__file__))
 
 
-
 def init_oidc_op_endpoints(app):
     _config = app.srv_config.op
     _server_info_config = _config['server_info']
-
 
     _kj_args = {k:v for k,v in _server_info_config['jwks'].items() if k != 'uri_path'}
     _kj = init_key_jar(**_kj_args)
@@ -21,7 +19,6 @@ def init_oidc_op_endpoints(app):
 
     # make sure I have a set of keys under my 'real' name
     _kj.import_jwks_as_json(_kj.export_jwks_as_json(True, ''), iss)
-
     try:
         _kj.verify_ssl = _config['server_info']['verify_ssl']
     except KeyError:

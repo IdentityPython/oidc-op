@@ -3,6 +3,7 @@ logging:
   root:
     handlers:
       - default
+      - console
     level: DEBUG
   loggers:
     bobcat_idp:
@@ -11,6 +12,10 @@ logging:
     default:
       class: logging.FileHandler
       filename: 'debug.log'
+      formatter: default
+    console:
+      class: logging.StreamHandler
+      'stream': 'ext://sys.stdout'
       formatter: default
   formatters:
     default:
@@ -21,28 +26,31 @@ port: &port 5000
 domain: &domain 127.0.0.1
 server_name: 127.0.0.1:5000
 base_url: &base_url https://127.0.0.1:5000
-    
+
 key_def: &key_def
   -
     type: RSA
-    use: 
+    use:
       - sig
   -
     type: EC
     crv: "P-256"
-    use: 
+    use:
       - sig
 
-cookie_jwk: 'private/cookie.json'
+OIDC_KEYS: &oidc_keys
+    'private_path': "private/jwks.json"
+    'key_defs': *key_def
+    'public_path': 'static/jwks.json'
+    'read_only': False
+    # otherwise OP metadata will have jwks_uri: https://127.0.0.1:5000/None!
+    'uri_path': 'static/jwks.json'
+
 session_jwk: 'private/session.json'
 
 op:
   server_info:
     issuer: *base_url
-    password_jwk: 'private/password.json'
-    token_expires_in: 600
-    grant_expires_in: 300
-    refresh_token_expires_in: 86400
     verify_ssl: False
     capabilities:
       response_types_supported:
@@ -54,11 +62,6 @@ op:
         - "id_token token"
         - "code id_token token"
         - none
-      token_endpoint_auth_methods_supported:
-        - client_secret_post
-        - client_secret_basic
-        - client_secret_jwt
-        - private_key_jwt
       response_modes_supported:
         - query
         - fragment
@@ -92,10 +95,40 @@ op:
             essential: True
           email_verified:
             essential: True
+    token_handler_args:
+      jwks_def:
+        private_path: 'private/token_jwk.json'
+        read_only: False
+        key_defs:
+          -
+            type: oct
+            bytes: 24
+            use:
+              - enc
+            kid: code
+          -
+            type: oct
+            bytes: 24
+            use:
+              - enc
+            kid: refresh
+      code:
+        lifetime: 600
+      token:
+        class: oidcendpoint.jwt_token.JWTToken
+        lifetime: 3600
+        add_claims:
+          - email
+          - email_verified
+          - phone_number
+          - phone_number_verified
+        add_claim_by_scope: True
+        aud:
+          - https://example.org/appl
+      refresh:
+        lifetime: 86400
     jwks:
-      private_path: own/jwks.json
-      key_defs: *key_def
-      uri_path: static/jwks.json
+      *oidc_keys
     endpoint:
       webfinger:
         path: '.well-known/webfinger'
@@ -112,7 +145,7 @@ op:
           class: oidcendpoint.oidc.registration.Registration
           kwargs:
             client_authn_method: null
-            client_secret_expiration_time: 5 * 86400
+            client_secret_expiration_time: 432000
       authorization:
           path: authorization
           class: oidcendpoint.oidc.authorization.Authorization
@@ -134,7 +167,7 @@ op:
           path: session
           class: oidcendpoint.oidc.session.Session
           kwargs:
-              logout_uri_path: verify_logout
+              logout_verify_url: verify_logout
               post_logout_uri_path: post_logout
               signing_alg: "ES256"
     userinfo:
@@ -145,29 +178,39 @@ op:
       user:
         acr: oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
         class: oidcendpoint.user_authn.user.UserPassJinja2
-        verify_endpoint: 'verify/user'
         kwargs:
+          verify_endpoint: 'verify/user'
           template: user_pass.jinja2
-          sym_key: 24AA/LR6HighEnergy
           db:
             class: oidcendpoint.util.JSONDictDB
             kwargs:
-              json_path: passwd.json
+              json_path: private/passwd.json
           page_header: "Testing log in"
           submit_btn: "Get me in!"
           user_label: "Nickname"
           passwd_label: "Secret sauce"
-      anon:
-        acr: oidcendpoint.user_authn.authn_context.UNSPECIFIED
-        class: oidcendpoint.user_authn.user.NoAuthn
-        kwargs:
-          user: diana
+      #anon:
+        #acr: oidcendpoint.user_authn.authn_context.UNSPECIFIED
+        #class: oidcendpoint.user_authn.user.NoAuthn
+        #kwargs:
+          #user: diana
     cookie_dealer:
-      default_values:
-          name: oidc_op
-          domain: *domain
-          path: /
-          max_age: 3600
+      class: oidcendpoint.cookie.CookieDealer
+      kwargs:
+        sign_jwk: 'private/cookie_sign_jwk.json'
+        sign_alg: 'SHA256'
+        # enc_jwk: 'private/cookie_enc_jwk.json'
+        default_values:
+            name: oidc_op
+            domain: *domain
+            path: /
+            max_age: 3600
+    login_hint2acrs:
+      class: oidcendpoint.login_hint.LoginHint2Acrs
+      kwargs:
+        scheme_map:
+          email:
+            - oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
 
 webserver:
   cert: '{}/certs/cert.pem'
@@ -176,4 +219,3 @@ webserver:
   port: *port
   domain: *domain
   debug: true
-
