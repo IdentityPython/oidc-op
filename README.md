@@ -1,6 +1,6 @@
 # oidc-op
-A couple of examples of a OIDC OPs with CherryPy and Flask,
-this is **NOT** something you should even image running in a production environment.
+Examples of a OIDC OPs with CherryPy, Flask and Django.
+**NOT** something you should even image running in a production environment.
 
 
 ### Introduction
