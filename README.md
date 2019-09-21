@@ -101,13 +101,12 @@ An example:
             essential: True
 
 
-### Flask example setup
+### OIDC Provider example setup
 
-Create an environment and install Flask
+Create an environment
 ````
 virtualenv -ppython3 env
 source env/bin/activate
-pip install flask
 ````
 
 ##### Install oidc-op
@@ -118,9 +117,22 @@ pip install git+https://github.com/rohe/oidc-op.git
 git clone https://github.com/rohe/oidc-op.git
 ````
 
-##### Configure flask OP
+##### Configure a Django OP
+````
+cd oidc-op/django_op
+pip install -r requirements.txt
+
+./manage.py migrate
+./manage.py createsuperuser
+./manage.py collectstatic
+
+gunicorn django_op.wsgi -b0.0.0.0:8000 --keyfile=./data/oidc_op/certs/key.pem --certfile=./data/oidc_op/certs/cert.pem --reload
+````
+
+##### Configure a Flask OP
 
 ````
+pip install flask
 cd oidc-op/
 
 # configuration: create a private folder
