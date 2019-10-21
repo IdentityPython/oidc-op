@@ -1,0 +1,4 @@
+Django>=2.2.4
+oidcop
+gunicorn
+pycountry
