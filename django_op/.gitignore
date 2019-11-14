@@ -1,0 +1,7 @@
+*/db.sqlite3
+example/db.sqlite3
+example/data/static/*
+!example/data/static/README.md
+__pycache__/*
+*.pyc
+

@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import os
@@ -117,7 +118,8 @@ def verify(authn_method):
     authz_request = AuthorizationRequest().from_urlencoded(auth_args['query'])
 
     authn_event = create_authn_event(
-        uid=username, salt='salt',
+        uid=username,
+        salt=base64.b64encode(os.urandom(16)).decode(),
         authn_info=auth_args['authn_class_ref'],
         authn_time=auth_args['iat'])
 

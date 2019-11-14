@@ -24,7 +24,7 @@ SECRET_KEY: 'secret_key'
 SESSION_COOKIE_NAME: 'rp_session'
 PREFERRED_URL_SCHEME: 'https'
 
-OIDC_KEYS:
+RP_KEYS:
     'private_path': './private/jwks.json'
     'key_defs': *keydef
     'public_path': './static/jwks.json'
@@ -67,11 +67,11 @@ services: &id002
 
 
 CLIENTS:
-  djop:
+  django_oidc_op:
     client_preferences: *id001
     issuer: https://127.0.0.1:8000/
     jwks_uri: https://127.0.0.1:8099/static/jwks.json
-    redirect_uris: ['https://127.0.0.1:8099/authz_cb/djop']
+    redirect_uris: ['https://127.0.0.1:8099/authz_cb/django_oidc_op']
     services: *id002
 
 # Whether an attempt to fetch the userinfo should be made
