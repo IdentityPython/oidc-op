@@ -20,4 +20,7 @@ app_name="unical_accounts"
 
 urlpatterns = [
 
+    # url(r'^login/$', Login, name='login'),
+    # path('logout', Logout, name='logout'),
+    
 ]

@@ -54,7 +54,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'django_op.urls'
+ROOT_URLCONF = 'example.urls'
 
 TEMPLATES = [
     {
@@ -72,7 +72,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'django_op.wsgi.application'
+WSGI_APPLICATION = 'example.wsgi.application'
 
 
 # Database
@@ -125,7 +125,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'data/static')
 
-OIDCENDPOINT_CONFIG = 'django_op/conf.yaml'
+OIDCENDPOINT_CONFIG = 'example/oidc_op.conf.yaml'
 
 # LOGGING
 LOGGING = {
