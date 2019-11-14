@@ -84,7 +84,9 @@ op:
     jwks:
       private_path: own/jwks.json
       key_defs: *key_def
+      public_path: static/jwks.json
       uri_path: static/jwks.json
+      read_only: False
     endpoint:
       webfinger:
         path: '.well-known/webfinger'

@@ -23,10 +23,12 @@
                 var stat = 'changed';
 
                 if (opbs) {
+                    console.log('[op_iframe] opbs: ' + opbs+ ' clientId: ' + clientId + ' origin: ' + origin + ' salt: ' + salt);
                     var shaObj = new jsSHA('SHA-256', 'TEXT');
                     shaObj.update(clientId + ' ' + origin + ' ' + opbs + (salt ? ' ' + salt : ''));
                     var expected = shaObj.getHash('HEX') + (salt ? ('.' + salt) : '');
 
+                    console.log('[op_iframe] actual: ' + actual + ' expected: ' + expected);
                     if (actual === expected) {
                         stat = 'unchanged';
                     }

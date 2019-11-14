@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 import logging
 import os
-import sys
 
 import argparse
 
 from oidcop.configure import Configuration
-from . application import oidc_provider_init_app
 
+try:
+    from .application import oidc_provider_init_app
+except ModuleNotFoundError:
+    from application import oidc_provider_init_app
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 

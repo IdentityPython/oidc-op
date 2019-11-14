@@ -119,14 +119,19 @@ git clone https://github.com/rohe/oidc-op.git
 
 ##### Configure a Django OP
 ````
-cd oidc-op/django_op
+cd oidc-op/django-oidc-op
+pip install -r requirements.txt
+
+cd example
 pip install -r requirements.txt
 
 ./manage.py migrate
 ./manage.py createsuperuser
 ./manage.py collectstatic
 
-gunicorn django_op.wsgi -b0.0.0.0:8000 --keyfile=./data/oidc_op/certs/key.pem --certfile=./data/oidc_op/certs/cert.pem --reload
+gunicorn example.wsgi -b0.0.0.0:8000 --keyfile=./data/oidc_op/certs/key.pem --certfile=./data/oidc_op/certs/cert.pem --reload
+
+
 ````
 
 ##### Configure a Flask OP
@@ -206,6 +211,9 @@ cd JWTConnect-Python-OidcRP
 
 # run it as it come
 python3 -m flask_rp.wsgi flask_rp/conf.yaml
+
+# if you use django_op
+RP_LOGFILE_NAME="./flrp.django.log" python3 -m flask_rp.wsgi django_op/example/data/oidc_rp/conf.django.yaml
 ````
 
 Now you can connect to `https://127.0.0.1:8090/` to see the RP landing page and select your authentication endpoint.
