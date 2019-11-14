@@ -21,16 +21,16 @@ port: &port 5000
 domain: &domain 192.168.1.109
 server_name: 192.168.1.109:5000
 base_url: &base_url https://192.168.1.109:5000
-    
+
 key_def: &key_def
   -
     type: RSA
-    use: 
+    use:
       - sig
   -
     type: EC
     crv: "P-256"
-    use: 
+    use:
       - sig
 
 session_jwk: 'private/session.json'
@@ -104,6 +104,12 @@ op:
           kwargs:
             client_authn_method: null
             client_secret_expiration_time: 432000
+      registration_api:
+          path: registration_api
+          class: oidcendpoint.oidc.read_registration.RegistrationRead
+          kwargs:
+            client_authn_method:
+              - bearer_header
       authorization:
           path: authorization
           class: oidcendpoint.oidc.authorization.Authorization

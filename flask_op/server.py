@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
+import argparse
 import logging
 import os
 
-import argparse
-
 from oidcop.configure import Configuration
-
 try:
     from .application import oidc_provider_init_app
 except ModuleNotFoundError:
