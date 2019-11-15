@@ -173,6 +173,12 @@ def registration():
         current_app.endpoint_context.endpoint['registration'])
 
 
+@oidc_op_views.route('/registration_api', methods=['GET'])
+def registration_api():
+    return service_endpoint(
+        current_app.endpoint_context.endpoint['registration_api'])
+
+
 @oidc_op_views.route('/authorization')
 def authorization():
     return service_endpoint(
