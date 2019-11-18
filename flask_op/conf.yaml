@@ -211,7 +211,16 @@ op:
         scheme_map:
           email:
             - oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
-
+    add_on:
+      pkce:
+        function: oidcendpoint.oidc.add_on.pkce.add_pkce_support
+        kwargs:
+          essential: True
+          code_challenge_method:
+            plain
+            S256
+            S384
+            S512
 webserver:
   cert: '{}/certs/cert.pem'
   key: '{}/certs/key.pem'
