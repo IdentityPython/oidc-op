@@ -160,7 +160,7 @@ def well_known(service):
     # if service == 'openid-federation':
     #     _endpoint = current_app.endpoint_context.endpoint['provider_info']
     elif service == 'webfinger':
-        _endpoint = current_app.endpoint_context.endpoint['webfinger']
+        _endpoint = current_app.endpoint_context.endpoint['discovery']
     else:
         return make_response('Not supported', 400)
 
@@ -176,7 +176,7 @@ def registration():
 @oidc_op_views.route('/registration_api', methods=['GET'])
 def registration_api():
     return service_endpoint(
-        current_app.endpoint_context.endpoint['registration_api'])
+        current_app.endpoint_context.endpoint['registration_read'])
 
 
 @oidc_op_views.route('/authorization')
