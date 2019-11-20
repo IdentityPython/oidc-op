@@ -200,7 +200,7 @@ def userinfo():
 @oidc_op_views.route('/session', methods=['GET'])
 def session_endpoint():
     return service_endpoint(
-        current_app.endpoint_context.endpoint['end_session'])
+        current_app.endpoint_context.endpoint['session'])
 
 
 def service_endpoint(endpoint):
@@ -312,7 +312,7 @@ def verify_logout():
 
 @oidc_op_views.route('/rp_logout', methods=['GET', 'POST'])
 def rp_logout():
-    _endp = current_app.endpoint_context.endpoint['end_session']
+    _endp = current_app.endpoint_context.endpoint['session']
     _info = _endp.unpack_signed_jwt(request.form['sjwt'])
     try:
         request.form['logout']
