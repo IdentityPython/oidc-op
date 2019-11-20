@@ -156,7 +156,7 @@ def verify_user_pass_jinja():
 @oidc_op_views.route('/.well-known/<service>')
 def well_known(service):
     if service == 'openid-configuration':
-        _endpoint = current_app.endpoint_context.endpoint['provider_info']
+        _endpoint = current_app.endpoint_context.endpoint['provider_config']
     # if service == 'openid-federation':
     #     _endpoint = current_app.endpoint_context.endpoint['provider_info']
     elif service == 'webfinger':

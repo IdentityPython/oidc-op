@@ -163,7 +163,8 @@ def well_known(request, service):
     /.well-known/<service>
     """
     if service == 'openid-configuration':
-        _endpoint = oidcendpoint_app.endpoint_context.endpoint['provider_info']
+        _endpoint = oidcendpoint_app.endpoint_context.endpoint['provider_config']
+    # TODO
     # if service == 'openid-federation':
     #     _endpoint = oidcendpoint_app.endpoint_context.endpoint['provider_info']
     elif service == 'webfinger':
@@ -179,6 +180,13 @@ def registration(request):
     logger.info('registration request')
     _endpoint = oidcendpoint_app.endpoint_context.endpoint['registration']
     return service_endpoint(request, _endpoint)
+
+
+@csrf_exempt
+def registration_api():
+    logger.info('registration API')
+    return service_endpoint(request,
+        oidcendpoint_app.endpoint_context.endpoint['registration_api'])
 
 
 def authorization(request):

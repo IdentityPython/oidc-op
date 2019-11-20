@@ -73,6 +73,12 @@ CLIENTS:
     jwks_uri: https://127.0.0.1:8099/static/jwks.json
     redirect_uris: ['https://127.0.0.1:8099/authz_cb/django_oidc_op']
     services: *id002
+    add_ons:
+      pkce:
+        function: oidcservice.oidc.add_on.pkce.add_pkce_support
+        kwargs:
+          code_challenge_length: 64
+          code_challenge_method: S256
 
 # Whether an attempt to fetch the userinfo should be made
 USERINFO: true
