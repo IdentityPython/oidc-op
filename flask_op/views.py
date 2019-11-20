@@ -156,11 +156,11 @@ def verify_user_pass_jinja():
 @oidc_op_views.route('/.well-known/<service>')
 def well_known(service):
     if service == 'openid-configuration':
-        _endpoint = current_app.endpoint_context.endpoint['provider_info']
+        _endpoint = current_app.endpoint_context.endpoint['provider_config']
     # if service == 'openid-federation':
     #     _endpoint = current_app.endpoint_context.endpoint['provider_info']
     elif service == 'webfinger':
-        _endpoint = current_app.endpoint_context.endpoint['webfinger']
+        _endpoint = current_app.endpoint_context.endpoint['discovery']
     else:
         return make_response('Not supported', 400)
 
@@ -176,7 +176,7 @@ def registration():
 @oidc_op_views.route('/registration_api', methods=['GET'])
 def registration_api():
     return service_endpoint(
-        current_app.endpoint_context.endpoint['registration_api'])
+        current_app.endpoint_context.endpoint['registration_read'])
 
 
 @oidc_op_views.route('/authorization')
@@ -200,7 +200,7 @@ def userinfo():
 @oidc_op_views.route('/session', methods=['GET'])
 def session_endpoint():
     return service_endpoint(
-        current_app.endpoint_context.endpoint['end_session'])
+        current_app.endpoint_context.endpoint['session'])
 
 
 def service_endpoint(endpoint):
@@ -312,7 +312,7 @@ def verify_logout():
 
 @oidc_op_views.route('/rp_logout', methods=['GET', 'POST'])
 def rp_logout():
-    _endp = current_app.endpoint_context.endpoint['end_session']
+    _endp = current_app.endpoint_context.endpoint['session']
     _info = _endp.unpack_signed_jwt(request.form['sjwt'])
     try:
         request.form['logout']
