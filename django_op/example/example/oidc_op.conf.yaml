@@ -136,6 +136,12 @@ op:
             # TODO: make a authn method for 'client_authn_method'
             client_authn_method: null
             client_secret_expiration_time: 432000
+      registration_api:
+          path: registration_api
+          class: oidcendpoint.oidc.read_registration.RegistrationRead
+          kwargs:
+            client_authn_method:
+              - bearer_header
       # introspection:
           # path: introspection
           # class: oidcendpoint.oauth2.introspection.Introspection
