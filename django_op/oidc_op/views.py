@@ -254,11 +254,11 @@ def userinfo(request):
 ########
 def session_endpoint(request):
     return service_endpoint(request,
-        oidcendpoint_app.endpoint_context.endpoint['end_session'])
+        oidcendpoint_app.endpoint_context.endpoint['session'])
 
 @csrf_exempt
 def rp_logout(request):
-    _endp = oidcendpoint_app.endpoint_context.endpoint['end_session']
+    _endp = oidcendpoint_app.endpoint_context.endpoint['session']
     _info = _endp.unpack_signed_jwt(request.POST['sjwt'])
     alla = request.POST.get('logout')
 

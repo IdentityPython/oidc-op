@@ -136,12 +136,14 @@ op:
             # TODO: make a authn method for 'client_authn_method'
             client_authn_method: null
             client_secret_expiration_time: 432000
-      registration_api:
-          path: registration_api
-          class: oidcendpoint.oidc.read_registration.RegistrationRead
-          kwargs:
-            client_authn_method:
-              - bearer_header
+
+      # ImportError: No module named 'oic' in oidcendpoint/oidc/read_registration.py", line 1
+      # registration_api:
+          # path: registration_api
+          # class: oidcendpoint.oidc.read_registration.RegistrationRead
+          # kwargs:
+            # client_authn_method:
+              # - bearer_header
       # introspection:
           # path: introspection
           # class: oidcendpoint.oauth2.introspection.Introspection
@@ -232,3 +234,13 @@ op:
         scheme_map:
           email:
             - oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
+
+    add_on:
+      pkce:
+        function: oidcendpoint.oidc.add_on.pkce.add_pkce_support
+        kwargs:
+          essential: True
+          code_challenge_method:
+            S256
+            S384
+            S512
