@@ -1,0 +1,260 @@
+logging:
+  version: 1
+  root:
+    handlers:
+      - default
+      - console
+    level: DEBUG
+  loggers:
+    bobcat_idp:
+      level: DEBUG
+  handlers:
+    default:
+      class: logging.FileHandler
+      filename: 'debug.log'
+      formatter: default
+    console:
+      class: logging.StreamHandler
+      'stream': 'ext://sys.stdout'
+      formatter: default
+  formatters:
+    default:
+      format: '%(asctime)s %(name)s %(levelname)s %(message)s'
+
+session_cookie_name: flop
+port: &port 5000
+domain: &domain 127.0.0.1
+server_name: 127.0.0.1:5000
+base_url: &base_url https://127.0.0.1:5000
+
+key_def: &key_def
+  -
+    type: RSA
+    use:
+      - sig
+  -
+    type: EC
+    crv: "P-256"
+    use:
+      - sig
+
+OIDC_KEYS: &oidc_keys
+    'private_path': "private/jwks.json"
+    'key_defs': *key_def
+    'public_path': 'static/jwks.json'
+    'read_only': False
+    # otherwise OP metadata will have jwks_uri: https://127.0.0.1:5000/None!
+    'uri_path': 'static/jwks.json'
+
+session_jwk: 'private/session.json'
+
+op:
+  server_info:
+    issuer: *base_url
+    verify_ssl: False
+    capabilities:
+      subject_types_supported:
+        - public
+        - pairwise
+      grant_types_supported:
+        - authorization_code
+        - implicit
+        - urn:ietf:params:oauth:grant-type:jwt-bearer
+        - refresh_token
+    template_dir: templates
+    id_token:
+      class: oidcendpoint.id_token.IDToken
+      kwargs:
+        default_claims:
+          email:
+            essential: True
+          email_verified:
+            essential: True
+    token_handler_args:
+      jwks_def:
+        private_path: 'private/token_jwk.json'
+        read_only: False
+        key_defs:
+          -
+            type: oct
+            bytes: 24
+            use:
+              - enc
+            kid: code
+          -
+            type: oct
+            bytes: 24
+            use:
+              - enc
+            kid: refresh
+      code:
+        lifetime: 600
+      token:
+        class: oidcendpoint.jwt_token.JWTToken
+        lifetime: 3600
+        add_claims:
+          - email
+          - email_verified
+          - phone_number
+          - phone_number_verified
+        add_claim_by_scope: True
+        aud:
+          - https://example.org/appl
+      refresh:
+        lifetime: 86400
+    jwks:
+      *oidc_keys
+    endpoint:
+      webfinger:
+        path: '.well-known/webfinger'
+        class: oidcendpoint.oidc.discovery.Discovery
+        kwargs:
+          client_authn_method: null
+      provider_info:
+        path: ".well-known/openid-configuration"
+        class: oidcendpoint.oidc.provider_config.ProviderConfiguration
+        kwargs:
+          client_authn_method: null
+      registration:
+          path: registration
+          class: oidcendpoint.oidc.registration.Registration
+          kwargs:
+            client_authn_method: null
+            client_secret_expiration_time: 432000
+      registration_api:
+          path: registration_api
+          class: oidcendpoint.oidc.read_registration.RegistrationRead
+          kwargs:
+            client_authn_method:
+              - bearer_header
+      introspection:
+          path: introspection
+          class: oidcendpoint.oauth2.introspection.Introspection
+          kwargs:
+            client_authn_method:
+              client_secret_post: ClientSecretPost
+            release:
+            - username
+      authorization:
+          path: authorization
+          class: oidcendpoint.oidc.authorization.Authorization
+          kwargs:
+            client_authn_method: null
+            claims_parameter_supported: True
+            request_parameter_supported: True
+            request_uri_parameter_supported: True
+            response_types_supported:
+              - code
+              - token
+              - id_token
+              - "code token"
+              - "code id_token"
+              - "id_token token"
+              - "code id_token token"
+              - none
+            response_modes_supported:
+              - query
+              - fragment
+              - form_post
+      token:
+          path: token
+          class: oidcendpoint.oidc.token.AccessToken
+          kwargs:
+            client_authn_method:
+              - client_secret_post
+              - client_secret_basic
+              - client_secret_jwt
+              - private_key_jwt
+      userinfo:
+          path: userinfo
+          class: oidcendpoint.oidc.userinfo.UserInfo
+          kwargs:
+            claim_types_supported:
+              - normal
+              - aggregated
+              - distributed
+      end_session:
+          path: session
+          class: oidcendpoint.oidc.session.Session
+          kwargs:
+              logout_verify_url: verify_logout
+              post_logout_uri_path: post_logout
+              signing_alg: "ES256"
+              frontchannel_logout_supported: True
+              frontchannel_logout_session_supported: True
+              backchannel_logout_supported: True
+              backchannel_logout_session_supported: True
+              check_session_iframe: https://127.0.0.1:5000/check_session_iframe
+    userinfo:
+      class: oidcendpoint.user_info.UserInfo
+      kwargs:
+        db_file: users.json
+    authentication:
+      user:
+        acr: oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
+        class: oidcendpoint.user_authn.user.UserPassJinja2
+        kwargs:
+          verify_endpoint: 'verify/user'
+          template: user_pass.jinja2
+          db:
+            class: oidcendpoint.util.JSONDictDB
+            kwargs:
+              json_path: private/passwd.json
+          page_header: "Testing log in"
+          submit_btn: "Get me in!"
+          user_label: "Nickname"
+          passwd_label: "Secret sauce"
+      #anon:
+        #acr: oidcendpoint.user_authn.authn_context.UNSPECIFIED
+        #class: oidcendpoint.user_authn.user.NoAuthn
+        #kwargs:
+          #user: diana
+    cookie_dealer:
+      class: oidcendpoint.cookie.CookieDealer
+      kwargs:
+        sign_jwk: 'private/cookie_sign_jwk.json'
+        sign_alg: 'SHA256'
+        # enc_jwk: 'private/cookie_enc_jwk.json'
+        default_values:
+            name: oidc_op
+            domain: *domain
+            path: /
+            max_age: 3600
+    login_hint2acrs:
+      class: oidcendpoint.login_hint.LoginHint2Acrs
+      kwargs:
+        scheme_map:
+          email:
+            - oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
+
+    # this adds PKCE support as mandatory - disable if needed
+    add_on:
+      pkce:
+        function: oidcendpoint.oidc.add_on.pkce.add_pkce_support
+        kwargs:
+          essential: True
+          code_challenge_method:
+            #plain
+            S256
+            S384
+            S512
+      claims:
+        function: oidcendpoint.oidc.add_on.custom_scopes.add_custom_scopes
+        kwargs:
+          research_and_scholarship:
+            - name
+            - given_name
+            - family_name
+            - email
+            - email_verified
+            - sub
+            - iss
+            - eduperson_scoped_affiliation
+
+webserver:
+  cert: '{}/certs/cert.pem'
+  key: '{}/certs/key.pem'
+  cert_chain: null
+  port: *port
+  domain: *domain
+  debug: true
