@@ -4,6 +4,7 @@ static/
 private/
 conf.yaml
 flask_op/debug.log
+flask_op/static/
 debug.log
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template

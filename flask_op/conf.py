@@ -19,23 +19,10 @@ RESPONSE_TYPES_SUPPORTED = [
     ["id_token", "token"], ["code", "token", "id_token"], ['none']]
 
 CAPABILITIES = {
-    "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
-    "token_endpoint_auth_methods_supported": [
-        "client_secret_post", "client_secret_basic",
-        "client_secret_jwt", "private_key_jwt"],
-    "response_modes_supported": ['query', 'fragment', 'form_post'],
     "subject_types_supported": ["public", "pairwise"],
     "grant_types_supported": [
         "authorization_code", "implicit",
         "urn:ietf:params:oauth:grant-type:jwt-bearer", "refresh_token"],
-    "claim_types_supported": ["normal", "aggregated", "distributed"],
-    "claims_parameter_supported": True,
-    "request_parameter_supported": True,
-    "request_uri_parameter_supported": True,
-    "frontchannel_logout_supported": True,
-    "frontchannel_logout_session_supported": True,
-    "backchannel_logout_supported": True,
-    "backchannel_logout_session_supported": True
 }
 
 KEY_DEF = [
@@ -99,16 +86,31 @@ CONFIG = {
             'authorization': {
                 'path': 'authorization',
                 'class': Authorization,
-                'kwargs': {'client_authn_method': None}
+                'kwargs': {
+                    'client_authn_method': None,
+                    "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
+                    "response_modes_supported": ['query', 'fragment', 'form_post'],
+                    "claims_parameter_supported": True,
+                    "request_parameter_supported": True,
+                    "request_uri_parameter_supported": True
+                }
             },
             'token': {
                 'path': 'token',
                 'class': AccessToken,
-                'kwargs': {}
+                'kwargs': {
+                    "client_authn_method": [
+                        "client_secret_post", "client_secret_basic",
+                        "client_secret_jwt", "private_key_jwt"],
+
+                }
             },
             'userinfo': {
                 'path': 'userinfo',
                 'class': UserInfo,
+                "kwargs": {
+                    "claim_types_supported": ["normal", "aggregated", "distributed"],
+                }
             },
             'end_session': {
                 'path': 'session',
@@ -116,7 +118,12 @@ CONFIG = {
                 'kwargs': {
                     'logout_uri': "{}/verify_logout".format(BASE_URL),
                     'post_logout_uri': "{}/post_logout".format(BASE_URL),
-                    'signing_alg': "ES256"
+                    'signing_alg': "ES256",
+                    "frontchannel_logout_supported": True,
+                    "frontchannel_logout_session_supported": True,
+                    "backchannel_logout_supported": True,
+                    "backchannel_logout_session_supported": True,
+                    "check_session_iframe": "{}/check_session_iframe".format(BASE_URL)
                 }
             }
         },
