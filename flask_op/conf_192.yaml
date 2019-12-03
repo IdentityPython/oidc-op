@@ -21,7 +21,6 @@ logging:
     default:
       format: '%(asctime)s %(name)s %(levelname)s %(message)s'
 
-session_cookie_name: flop
 port: &port 5000
 domain: &domain 192.168.1.109
 server_name: 192.168.1.109:5000
@@ -38,6 +37,18 @@ key_def: &key_def
     use:
       - sig
 
+# Should only be one signing key
+SESSION_KEY_DEF: &session_key_def
+  -
+    type: OCT
+    use:
+      - sig
+
+SESSION_KEYS:
+  'private_path': 'private/session.json'
+  'key_defs': *session_key_def
+  'read_only': False
+
 OIDC_KEYS: &oidc_keys
     'private_path': "private/jwks.json"
     'key_defs': *key_def
@@ -45,8 +56,6 @@ OIDC_KEYS: &oidc_keys
     'read_only': False
     # otherwise OP metadata will have jwks_uri: https://192.168.1.109:5000/None!
     'uri_path': 'static/jwks.json'
-
-session_jwk: 'private/session.json'
 
 op:
   server_info:
