@@ -1,12 +1,9 @@
 """Configuration management for IDP"""
 
-import json
 import os
-import sys
 from typing import Dict
 
-from cryptojwt.jwk.hmac import SYMKey
-from cryptojwt.jwx import key_from_jwk_dict
+from cryptojwt.key_jar import init_key_jar
 
 from oidcop.logging import configure_logging
 from oidcop.utils import load_yaml_config
@@ -26,23 +23,11 @@ class Configuration:
         # OIDC provider configuration
         self.op = conf.get('op')
         self.webserver = conf.get('webserver')
-        # self.oidc_clients = conf.get('oidc_clients', {})
 
         # session key
-        self.session_jwk = conf.get('session_jwk')
-        if self.session_jwk is not None:
-            self.logger.debug("Reading session signer from %s", self.session_jwk)
-            try:
-                with open(self.session_jwk) as jwk_file:
-                    jwk_dict = json.loads(jwk_file.read())
-                    self.session_key = key_from_jwk_dict(jwk_dict).k
-            except Exception:
-                self.logger.critical("Failed reading session signer from %s",
-                                     self.session_jwk)
-                sys.exit(-1)
-        else:
-            self.logger.debug("Generating random session signer")
-            self.session_key = SYMKey(key=rnd_token(32)).k
+        _kj_args = {k: v for k, v in conf.get('SESSION_KEYS').items() if k != 'uri_path'}
+        _kj = init_key_jar(**_kj_args)
+        self.session_key = _kj.get_signing_key()[0]
 
         # set OP session key
         if self.op is not None:
@@ -54,7 +39,6 @@ class Configuration:
         # templates and Jinja environment
         self.template_dir = os.path.abspath(conf.get('template_dir', 'templates'))
         self.jinja_env = conf.get('jinja_env', {})
-
 
     @classmethod
     def create_from_config_file(cls, filename: str):

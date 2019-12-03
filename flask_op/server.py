@@ -7,7 +7,7 @@ import os
 from oidcop.configure import Configuration
 try:
     from .application import oidc_provider_init_app
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     from application import oidc_provider_init_app
 
 dir_path = os.path.dirname(os.path.realpath(__file__))

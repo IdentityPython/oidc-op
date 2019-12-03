@@ -63,8 +63,8 @@ setup(
     install_requires=[
         "pyyaml",
         "cryptojwt>=0.7.10",
-        'oidcmsg>=0.6.3',
-        'oidcendpoint>=0.10.0'
+        'oidcmsg>=0.6.4',
+        'oidcendpoint>=0.11.0'
     ],
     zip_safe=False,
     cmdclass={'test': PyTest},
