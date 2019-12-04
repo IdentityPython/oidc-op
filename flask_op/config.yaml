@@ -71,7 +71,6 @@ op:
         - implicit
         - urn:ietf:params:oauth:grant-type:jwt-bearer
         - refresh_token
-    template_dir: templates
     id_token:
       class: oidcendpoint.id_token.IDToken
       kwargs:
@@ -114,6 +113,10 @@ op:
         lifetime: 86400
     jwks:
       *oidc_keys
+
+    template_dir: oidc_op/templates
+    #template_handler: package.template.Template
+
     endpoint:
       webfinger:
         path: '.well-known/webfinger'
@@ -237,7 +240,7 @@ op:
           email:
             - oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
 
-    # this adds PKCE support as mandatory - disable if needed
+    # this adds PKCE support as mandatory - disable it if needed (essential: False)
     add_on:
       pkce:
         function: oidcendpoint.oidc.add_on.pkce.add_pkce_support
@@ -248,6 +251,7 @@ op:
             S256
             S384
             S512
+      
       claims:
         function: oidcendpoint.oidc.add_on.custom_scopes.add_custom_scopes
         kwargs:
