@@ -234,7 +234,7 @@ op:
           email:
             - oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
 
-    # this adds PKCE support as mandatory - disable if needed
+    # this adds PKCE support as mandatory - disable it if needed (essential: False)
     add_on:
       pkce:
         function: oidcendpoint.oidc.add_on.pkce.add_pkce_support
@@ -245,6 +245,7 @@ op:
             S256
             S384
             S512
+
       claims:
         function: oidcendpoint.oidc.add_on.custom_scopes.add_custom_scopes
         kwargs:
@@ -257,6 +258,7 @@ op:
             - sub
             - iss
             - eduperson_scoped_affiliation
+
 
 webserver:
   cert: '{}/certs/cert.pem'
