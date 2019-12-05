@@ -37,18 +37,6 @@ key_def: &key_def
     use:
       - sig
 
-# Should only be one signing key
-SESSION_KEY_DEF: &session_key_def
-  -
-    type: OCT
-    use:
-      - sig
-
-SESSION_KEYS:
-  'private_path': 'private/session.json'
-  'key_defs': *session_key_def
-  'read_only': False
-
 OIDC_KEYS: &oidc_keys
     'private_path': "private/jwks.json"
     'key_defs': *key_def
@@ -61,6 +49,10 @@ op:
   server_info:
     issuer: *base_url
     verify_ssl: False
+    session_key:
+      filename: private/session_jwk.json
+      type: OCT
+      use: sig
     capabilities:
       subject_types_supported:
         - public
@@ -81,7 +73,7 @@ op:
             essential: True
     token_handler_args:
       jwks_def:
-        private_path: 'private/token_jwk.json'
+        private_path: 'private/token_jwks.json'
         read_only: False
         key_defs:
           -
@@ -208,7 +200,7 @@ op:
           db:
             class: oidcendpoint.util.JSONDictDB
             kwargs:
-              json_path: private/passwd.json
+              json_path: passwd.json
           page_header: "Testing log in"
           submit_btn: "Get me in!"
           user_label: "Nickname"
@@ -221,8 +213,14 @@ op:
     cookie_dealer:
       class: oidcendpoint.cookie.CookieDealer
       kwargs:
-        sign_jwk: 'private/cookie_sign_jwk.json'
-        sign_alg: 'SHA256'
+        sign_jwk:
+          filename: 'private/cookie_sign_jwk.json'
+          type: OCT
+          kid: cookie_sign_key_id
+        enc_jwk:
+          filename: 'private/cookie_enc_jwk.json'
+          type: OCT
+          kid: cookie_enc_key_id
         # enc_jwk: 'private/cookie_enc_jwk.json'
         default_values:
             name: oidc_op
