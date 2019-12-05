@@ -3,7 +3,7 @@
 import os
 from typing import Dict
 
-from cryptojwt.key_jar import init_key_jar
+from cryptojwt.key_bundle import init_key
 
 from oidcop.logging import configure_logging
 from oidcop.utils import load_yaml_config
@@ -24,17 +24,12 @@ class Configuration:
         self.op = conf.get('op')
         self.webserver = conf.get('webserver')
 
-        # session key
-        _kj_args = {k: v for k, v in conf.get('SESSION_KEYS').items() if k != 'uri_path'}
-        _kj = init_key_jar(**_kj_args)
-        self.session_key = _kj.get_signing_key()[0]
-
         # set OP session key
-        if self.op is not None:
-            if self.op['server_info'].get('password') is None:
-                key = self.session_key
-                self.op['server_info']['password'] = key
-                self.logger.debug("Set server password to %s", key)
+        _key_args = self.op['server_info'].get('session_key')
+        if _key_args is not None:
+            self.session_key = init_key(**_key_args)
+            # self.op['server_info']['password'] = self.session_key
+            self.logger.debug("Set server password to %s", self.session_key)
 
         # templates and Jinja environment
         self.template_dir = os.path.abspath(conf.get('template_dir', 'templates'))

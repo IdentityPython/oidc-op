@@ -64,7 +64,7 @@ setup(
         "pyyaml",
         "cryptojwt>=0.7.10",
         'oidcmsg>=0.6.4',
-        'oidcendpoint>=0.11.0'
+        'oidcendpoint>=0.11.1'
     ],
     zip_safe=False,
     cmdclass={'test': PyTest},
