@@ -2,27 +2,22 @@ logging:
   version: 1
   root:
     handlers:
-      - default
       - console
     level: DEBUG
   loggers:
     bobcat_idp:
       level: DEBUG
   handlers:
-    default:
-      class: logging.FileHandler
-      filename: 'debug.log'
-      formatter: default
     console:
       class: logging.StreamHandler
-      'stream': 'ext://sys.stdout'
+      stream: 'ext://sys.stdout'
       formatter: default
   formatters:
     default:
       format: '%(asctime)s %(name)s %(levelname)s %(message)s'
 
 port: &port 5000
-domain: &domain 127.0.0.1
+domain: &domain 0.0.0.0
 server_name: 127.0.0.1:5000
 base_url: &base_url https://127.0.0.1:5000
 
@@ -106,7 +101,7 @@ op:
     jwks:
       *oidc_keys
 
-    template_dir: oidc_op/templates
+    template_dir: templates
     #template_handler: package.template.Template
 
     endpoint:
@@ -243,13 +238,13 @@ op:
       pkce:
         function: oidcendpoint.oidc.add_on.pkce.add_pkce_support
         kwargs:
-          essential: True
+          essential: false
           code_challenge_method:
             #plain
             S256
             S384
             S512
-      
+
       claims:
         function: oidcendpoint.oidc.add_on.custom_scopes.add_custom_scopes
         kwargs:
@@ -267,6 +262,6 @@ webserver:
   cert: '{}/certs/cert.pem'
   key: '{}/certs/key.pem'
   cert_chain: null
-  port: *port
-  domain: *domain
+  port: 5000
+  domain: 0.0.0.0
   debug: true

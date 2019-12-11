@@ -19,15 +19,23 @@ def main(config_file, args):
     app = oidc_provider_init_app(config, 'oidc_op')
 
     web_conf = config.webserver
-    ssl_context = (web_conf['cert'].format(dir_path),
-                   web_conf['key'].format(dir_path))
 
     if args.display:
         print(json.dumps(app.endpoint_context.provider_info, indent=4, sort_keys=True))
         exit(0)
 
-    app.run(host=web_conf['domain'], port=web_conf['port'],
-            debug=web_conf['debug'], ssl_context=ssl_context)
+    if 'cert' in web_conf and 'key' in web_conf:
+        ssl_context = (web_conf['cert'].format(dir_path),
+                       web_conf['key'].format(dir_path))
+        app.run(host=web_conf['domain'],
+                port=web_conf['port'],
+                debug=web_conf['debug'],
+                ssl_context=ssl_context)
+    else:
+        app.run(host=web_conf['domain'],
+                port=web_conf['port'],
+                debug=web_conf['debug'])
+
 
 
 if __name__ == '__main__':
