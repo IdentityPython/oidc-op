@@ -16,6 +16,8 @@ from flask.helpers import make_response
 from flask.helpers import send_from_directory
 from oidcendpoint.authn_event import create_authn_event
 from oidcendpoint.exception import FailedAuthentication
+from oidcendpoint.exception import InvalidClient
+from oidcendpoint.exception import UnknownClient
 from oidcendpoint.oidc.token import AccessToken
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import AccessTokenRequest
@@ -216,6 +218,12 @@ def service_endpoint(endpoint):
     if request.method == 'GET':
         try:
             req_args = endpoint.parse_request(request.args.to_dict(), **pr_args)
+        except (InvalidClient, UnknownClient) as err:
+            _log.error(err)
+            return make_response(json.dumps({
+                'error': 'unauthorized_client',
+                'error_description': str(err)
+                }), 400)
         except Exception as err:
             _log.error(err)
             return make_response(json.dumps({
