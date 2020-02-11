@@ -4,13 +4,51 @@ import json
 import logging
 import os
 
+import OpenSSL
+import werkzeug
+
 from oidcop.configure import Configuration
+from oidcop.utils import create_context
+
 try:
     from .application import oidc_provider_init_app
 except (ModuleNotFoundError, ImportError):
     from application import oidc_provider_init_app
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
+
+logger = logging.getLogger(__name__)
+
+
+class PeerCertWSGIRequestHandler(werkzeug.serving.WSGIRequestHandler):
+    """
+    We subclass this class so that we can gain access to the connection
+    property. self.connection is the underlying client socket. When a TLS
+    connection is established, the underlying socket is an instance of
+    SSLSocket, which in turn exposes the getpeercert() method.
+
+    The output from that method is what we want to make available elsewhere
+    in the application.
+    """
+
+    def make_environ(self):
+        """
+        The superclass method develops the environ hash that eventually
+        forms part of the Flask request object.
+
+        We allow the superclass method to run first, then we insert the
+        peer certificate into the hash. That exposes it to us later in
+        the request variable that Flask provides
+        """
+        environ = super(PeerCertWSGIRequestHandler, self).make_environ()
+        x509_binary = self.connection.getpeercert(True)
+        if x509_binary:
+            x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1, x509_binary)
+            environ['peercert'] = x509
+        else:
+            logger.warning('No peer certificate')
+            environ['peercert'] = ''
+        return environ
 
 
 def main(config_file, args):
@@ -20,22 +58,18 @@ def main(config_file, args):
 
     web_conf = config.webserver
 
+    context = create_context(dir_path, web_conf)
+
     if args.display:
         print(json.dumps(app.endpoint_context.provider_info, indent=4, sort_keys=True))
         exit(0)
 
-    if 'cert' in web_conf and 'key' in web_conf:
-        ssl_context = (web_conf['cert'].format(dir_path),
-                       web_conf['key'].format(dir_path))
-        app.run(host=web_conf['domain'],
-                port=web_conf['port'],
-                debug=web_conf['debug'],
-                ssl_context=ssl_context)
-    else:
-        app.run(host=web_conf['domain'],
-                port=web_conf['port'],
-                debug=web_conf['debug'])
+    kwargs = {}
+    if context:
+        kwargs["ssl_context"] = context
+        kwargs["request_handler"] = PeerCertWSGIRequestHandler
 
+    app.run(host=web_conf['domain'], port=web_conf['port'], debug=web_conf['debug'], **kwargs)
 
 
 if __name__ == '__main__':

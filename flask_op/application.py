@@ -19,13 +19,11 @@ def init_oidc_op_endpoints(app):
 
     # make sure I have a set of keys under my 'real' name
     _kj.import_jwks_as_json(_kj.export_jwks_as_json(True, ''), iss)
-    try:
-        _kj.verify_ssl = _config['server_info']['verify_ssl']
-    except KeyError:
-        pass
 
-    endpoint_context = EndpointContext(_server_info_config, keyjar=_kj,
-                                       cwd=folder)
+    endpoint_context = EndpointContext(_server_info_config, keyjar=_kj, cwd=folder)
+
+    # sort of backward but work so...
+    _kj.httpc_params = endpoint_context.httpc_params
 
     for endp in endpoint_context.endpoint.values():
         p = urlparse(endp.endpoint_path)

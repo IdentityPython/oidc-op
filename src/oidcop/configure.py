@@ -19,10 +19,11 @@ class Configuration:
 
     def __init__(self, conf: Dict) -> None:
         self.logger = configure_logging(config=conf.get('logging')).getChild(__name__)
+        self.op = None
 
         # OIDC provider configuration
-        self.op = conf.get('op')
-        self.webserver = conf.get('webserver')
+        for section in ['op', 'webserver', 'http_params', 'jinja_env']:
+            setattr(self, section, conf.get(section, {}))
 
         # set OP session key
         _key_args = self.op['server_info'].get('session_key')
@@ -33,7 +34,6 @@ class Configuration:
 
         # templates and Jinja environment
         self.template_dir = os.path.abspath(conf.get('template_dir', 'templates'))
-        self.jinja_env = conf.get('jinja_env', {})
 
     @classmethod
     def create_from_config_file(cls, filename: str):

@@ -44,7 +44,8 @@ OIDC_KEYS: &oidc_keys
 op:
   server_info:
     issuer: *base_url
-    verify_ssl: False
+    http_params:
+      verify_ssl: False
     session_key:
       filename: private/session_jwk.json
       type: OCT
@@ -259,9 +260,10 @@ op:
             - eduperson_scoped_affiliation
 
 webserver:
-  cert: '{}/certs/cert.pem'
-  key: '{}/certs/key.pem'
-  cert_chain: null
+  cert: 'certs/89296913_127.0.0.1.cert'
+  key: 'certs/89296913_127.0.0.1.key'
+  ca_bundle: null
+  verify_user: false
   port: 5000
   domain: 0.0.0.0
   debug: true
