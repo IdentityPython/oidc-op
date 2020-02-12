@@ -67,7 +67,7 @@ def main(config_file, args):
     kwargs = {}
     if context:
         kwargs["ssl_context"] = context
-        kwargs["request_handler"] = PeerCertWSGIRequestHandler
+        # kwargs["request_handler"] = PeerCertWSGIRequestHandler
 
     app.run(host=web_conf['domain'], port=web_conf['port'], debug=web_conf['debug'], **kwargs)
 

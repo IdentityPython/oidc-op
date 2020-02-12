@@ -17,9 +17,9 @@ logging:
       format: '%(asctime)s %(name)s %(levelname)s %(message)s'
 
 port: &port 5000
-domain: &domain 0.0.0.0
-server_name: 127.0.0.1:5000
-base_url: &base_url https://127.0.0.1:5000
+domain: &domain 127.0.0.1
+server_name: '{domain}:{port}'
+base_url: &base_url 'https://{domain}:{port}'
 
 key_def: &key_def
   -
@@ -185,7 +185,7 @@ op:
               frontchannel_logout_session_supported: True
               backchannel_logout_supported: True
               backchannel_logout_session_supported: True
-              check_session_iframe: https://127.0.0.1:5000/check_session_iframe
+              check_session_iframe: 'check_session_iframe'
     userinfo:
       class: oidcendpoint.user_info.UserInfo
       kwargs:
@@ -260,10 +260,10 @@ op:
             - eduperson_scoped_affiliation
 
 webserver:
-  cert: 'certs/89296913_127.0.0.1.cert'
-  key: 'certs/89296913_127.0.0.1.key'
+  server_cert: 'certs/89296913_127.0.0.1.cert'
+  server_key: 'certs/89296913_127.0.0.1.key'
   ca_bundle: null
   verify_user: false
-  port: 5000
-  domain: 0.0.0.0
+  port: *port
+  domain: *domain
   debug: true

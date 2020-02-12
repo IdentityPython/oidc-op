@@ -35,6 +35,17 @@ class Configuration:
         # templates and Jinja environment
         self.template_dir = os.path.abspath(conf.get('template_dir', 'templates'))
 
+        # server info
+        self.domain = conf.get("domain")
+        self.port = conf.get("port")
+        for param in ["server_name", "base_url"]:
+            _pre = conf.get(param)
+            if _pre:
+                if '{domain}' in _pre:
+                    setattr(self, param, _pre.format(domain=self.domain, port=self.port))
+                else:
+                    setattr(self, param, _pre)
+
     @classmethod
     def create_from_config_file(cls, filename: str):
         """Load configuration as YAML"""

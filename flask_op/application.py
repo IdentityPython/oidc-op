@@ -12,11 +12,14 @@ def init_oidc_op_endpoints(app):
     _config = app.srv_config.op
     _server_info_config = _config['server_info']
 
+    iss = _server_info_config['issuer']
+    if '{domain}' in iss:
+        iss = iss.format(domain=app.srv_config.domain,
+                         port=app.srv_config.port)
+        _server_info_config['issuer'] = iss
+
     _kj_args = {k:v for k,v in _server_info_config['jwks'].items() if k != 'uri_path'}
     _kj = init_key_jar(**_kj_args)
-
-    iss = _server_info_config['issuer']
-
     # make sure I have a set of keys under my 'real' name
     _kj.import_jwks_as_json(_kj.export_jwks_as_json(True, ''), iss)
 
