@@ -62,8 +62,6 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
         "pyyaml",
-        "cryptojwt>=0.7.13",
-        'oidcmsg>=0.6.6',
         'oidcendpoint>=0.12.2'
     ],
     zip_safe=False,
