@@ -2,12 +2,17 @@ logging:
   version: 1
   root:
     handlers:
+      - default
       - console
     level: DEBUG
   loggers:
     bobcat_idp:
       level: DEBUG
   handlers:
+    default:
+      class: logging.FileHandler
+      filename: 'debug.log'
+      formatter: default
     console:
       class: logging.StreamHandler
       stream: 'ext://sys.stdout'
@@ -59,6 +64,7 @@ op:
         - implicit
         - urn:ietf:params:oauth:grant-type:jwt-bearer
         - refresh_token
+    template_dir: templates
     id_token:
       class: oidcendpoint.id_token.IDToken
       kwargs:
@@ -101,10 +107,6 @@ op:
         lifetime: 86400
     jwks:
       *oidc_keys
-
-    template_dir: templates
-    #template_handler: package.template.Template
-
     endpoint:
       webfinger:
         path: '.well-known/webfinger'

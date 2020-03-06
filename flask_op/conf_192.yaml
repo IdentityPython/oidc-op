@@ -15,16 +15,16 @@ logging:
       formatter: default
     console:
       class: logging.StreamHandler
-      'stream': 'ext://sys.stdout'
+      stream: 'ext://sys.stdout'
       formatter: default
   formatters:
     default:
       format: '%(asctime)s %(name)s %(levelname)s %(message)s'
 
 port: &port 5000
-domain: &domain 192.168.1.109
-server_name: 192.168.1.109:5000
-base_url: &base_url https://192.168.1.109:5000
+domain: &domain 192.168.1.158
+server_name: '{domain}:{port}'
+base_url: &base_url 'https://{domain}:{port}'
 
 key_def: &key_def
   -
@@ -38,17 +38,18 @@ key_def: &key_def
       - sig
 
 OIDC_KEYS: &oidc_keys
-    'private_path': "private/jwks.json"
-    'key_defs': *key_def
-    'public_path': 'static/jwks.json'
-    'read_only': False
-    # otherwise OP metadata will have jwks_uri: https://192.168.1.109:5000/None!
-    'uri_path': 'static/jwks.json'
+  'private_path': "private/jwks.json"
+  'key_defs': *key_def
+  'public_path': 'static/jwks.json'
+  'read_only': False
+  # otherwise OP metadata will have jwks_uri: https://127.0.0.1:5000/None!
+  'uri_path': 'static/jwks.json'
 
 op:
   server_info:
     issuer: *base_url
-    verify_ssl: False
+    http_params:
+      verify_ssl: False
     session_key:
       filename: private/session_jwk.json
       type: OCT
@@ -185,7 +186,7 @@ op:
               frontchannel_logout_session_supported: True
               backchannel_logout_supported: True
               backchannel_logout_session_supported: True
-              check_session_iframe: https://192.168.1.109:5000/check_session_iframe
+              check_session_iframe: 'check_session_iframe'
     userinfo:
       class: oidcendpoint.user_info.UserInfo
       kwargs:
@@ -259,11 +260,11 @@ op:
             - iss
             - eduperson_scoped_affiliation
 
-
 webserver:
-  cert: '{}/certs/cert.pem'
-  key: '{}/certs/key.pem'
-  cert_chain: null
+  server_cert: 'certs/89296913_127.0.0.1.cert'
+  server_key: 'certs/89296913_127.0.0.1.key'
+  ca_bundle: null
+  verify_user: false
   port: *port
-  domain: *domain
+  domain: 0.0.0.0
   debug: true
