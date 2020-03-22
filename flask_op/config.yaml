@@ -112,7 +112,7 @@ op:
         path: '.well-known/webfinger'
         class: oidcendpoint.oidc.discovery.Discovery
         kwargs:
-          client_authn_method: null
+          client_authn_method: []
       provider_info:
         path: ".well-known/openid-configuration"
         class: oidcendpoint.oidc.provider_config.ProviderConfiguration
@@ -135,7 +135,7 @@ op:
           class: oidcendpoint.oauth2.introspection.Introspection
           kwargs:
             client_authn_method:
-              client_secret_post: ClientSecretPost
+              - client_secret_post
             release:
             - username
       authorization:
