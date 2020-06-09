@@ -44,6 +44,7 @@ def create_context(dir_path, config, **kwargs):
             _cert_file = os.path.join(dir_path, _fname)
     else:
         return None
+
     _fname = lower_or_upper(config, "server_key")
     if _fname:
         if _fname.startswith("/"):
@@ -72,6 +73,8 @@ def create_context(dir_path, config, **kwargs):
     try:
         context.load_cert_chain(_cert_file, _key_file)
     except Exception as e:
+        print("cert_file:", _cert_file)
+        print("key_file:", _key_file)
         sys.exit("Error starting server. Missing cert or key. Details: {}".format(e))
 
     return context

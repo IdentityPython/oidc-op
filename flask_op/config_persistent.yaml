@@ -105,7 +105,7 @@ op:
           - https://example.org/appl
       refresh:
         lifetime: 86400
-    jwks:
+    keys:
       *oidc_keys
     endpoint:
       webfinger:
@@ -260,6 +260,29 @@ op:
             - sub
             - iss
             - eduperson_scoped_affiliation
+    db_conf:
+      abstract_storage_cls: abstorage.base.LabeledAbstractStorage
+      keyjar:
+        handler: abstorage.storages.abfile.AbstractFileSystem
+        fdir: storage/keyjar
+        key_conv: abstorage.converter.QPKey
+        value_conv: cryptojwt.serialize.item.KeyIssuer
+        label: 'x'
+      default:
+        handler: abstorage.storages.abfile.AbstractFileSystem
+        fdir: storage
+        key_conv: abstorage.converter.QPKey
+        value_conv: abstorage.converter.JSON
+      session:
+        handler: abstorage.storages.abfile.AbstractFileSystem
+        fdir: storage/session
+        key_conv: abstorage.converter.QPKey
+        value_conv: abstorage.converter.JSON
+      sso:
+        handler: abstorage.storages.abfile.AbstractFileSystem
+        fdir: storage/sso
+        key_conv: abstorage.converter.QPKey
+        value_conv: abstorage.converter.JSON
 
 webserver:
   server_cert: 'certs/89296913_127.0.0.1.cert'

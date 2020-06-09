@@ -20,35 +20,35 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger(__name__)
 
 
-class PeerCertWSGIRequestHandler(werkzeug.serving.WSGIRequestHandler):
-    """
-    We subclass this class so that we can gain access to the connection
-    property. self.connection is the underlying client socket. When a TLS
-    connection is established, the underlying socket is an instance of
-    SSLSocket, which in turn exposes the getpeercert() method.
-
-    The output from that method is what we want to make available elsewhere
-    in the application.
-    """
-
-    def make_environ(self):
-        """
-        The superclass method develops the environ hash that eventually
-        forms part of the Flask request object.
-
-        We allow the superclass method to run first, then we insert the
-        peer certificate into the hash. That exposes it to us later in
-        the request variable that Flask provides
-        """
-        environ = super(PeerCertWSGIRequestHandler, self).make_environ()
-        x509_binary = self.connection.getpeercert(True)
-        if x509_binary:
-            x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1, x509_binary)
-            environ['peercert'] = x509
-        else:
-            logger.warning('No peer certificate')
-            environ['peercert'] = ''
-        return environ
+# class PeerCertWSGIRequestHandler(werkzeug.serving.WSGIRequestHandler):
+#     """
+#     We subclass this class so that we can gain access to the connection
+#     property. self.connection is the underlying client socket. When a TLS
+#     connection is established, the underlying socket is an instance of
+#     SSLSocket, which in turn exposes the getpeercert() method.
+#
+#     The output from that method is what we want to make available elsewhere
+#     in the application.
+#     """
+#
+#     def make_environ(self):
+#         """
+#         The superclass method develops the environ hash that eventually
+#         forms part of the Flask request object.
+#
+#         We allow the superclass method to run first, then we insert the
+#         peer certificate into the hash. That exposes it to us later in
+#         the request variable that Flask provides
+#         """
+#         environ = super(PeerCertWSGIRequestHandler, self).make_environ()
+#         x509_binary = self.connection.getpeercert(True)
+#         if x509_binary:
+#             x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1, x509_binary)
+#             environ['peercert'] = x509
+#         else:
+#             logger.warning('No peer certificate')
+#             environ['peercert'] = ''
+#         return environ
 
 
 def main(config_file, args):

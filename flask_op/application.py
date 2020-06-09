@@ -18,15 +18,18 @@ def init_oidc_op_endpoints(app):
                          port=app.srv_config.port)
         _server_info_config['issuer'] = iss
 
-    _kj_args = {k:v for k,v in _server_info_config['jwks'].items() if k != 'uri_path'}
-    _kj = init_key_jar(**_kj_args)
-    # make sure I have a set of keys under my 'real' name
-    _kj.import_jwks_as_json(_kj.export_jwks_as_json(True, ''), iss)
+    # _kj_args = {k:v for k,v in _server_info_config['jwks'].items() if k != 'uri_path'}
+    #
+    # db_conf = _server_info_config.get('db_conf')
+    # if db_conf:
+    #     key_jar_conf = db_conf.get('keyjar')
+    #     _kj = init_key_jar(storage_conf=key_jar_conf, **_kj_args)
+    # else:
+    #     _kj = init_key_jar(**_kj_args)
+    # # make sure I have a set of keys under my 'real' name
+    # _kj.import_jwks_as_json(_kj.export_jwks_as_json(True, ''), iss)
 
-    endpoint_context = EndpointContext(_server_info_config, keyjar=_kj, cwd=folder)
-
-    # sort of backward but work so...
-    _kj.httpc_params = endpoint_context.httpc_params
+    endpoint_context = EndpointContext(_server_info_config, cwd=folder)
 
     for endp in endpoint_context.endpoint.values():
         p = urlparse(endp.endpoint_path)
