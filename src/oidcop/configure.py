@@ -22,7 +22,7 @@ class Configuration:
         self.op = None
 
         # OIDC provider configuration
-        for section in ['op', 'webserver', 'http_params', 'jinja_env']:
+        for section in ['op', 'webserver', 'httpc_params', 'jinja_env']:
             setattr(self, section, conf.get(section, {}))
 
         # set OP session key
