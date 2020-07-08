@@ -22,7 +22,7 @@ logging:
       format: '%(asctime)s %(name)s %(levelname)s %(message)s'
 
 port: &port 5000
-domain: &domain 127.0.0.1
+domain: &domain localhost
 server_name: '{domain}:{port}'
 base_url: &base_url 'https://{domain}:{port}'
 
@@ -49,8 +49,8 @@ OIDC_KEYS: &oidc_keys
 op:
   server_info:
     issuer: *base_url
-    http_params:
-      verify_ssl: False
+    httpc_params:
+      verify: False
     session_key:
       filename: private/session_jwk.json
       type: OCT
@@ -105,7 +105,7 @@ op:
           - https://example.org/appl
       refresh:
         lifetime: 86400
-    jwks:
+    keys:
       *oidc_keys
     endpoint:
       webfinger:
@@ -212,6 +212,10 @@ op:
         #class: oidcendpoint.user_authn.user.NoAuthn
         #kwargs:
           #user: diana
+    cookie_name:
+      session: oidc_op
+      register: oidc_op_rp
+      session_management: sman
     cookie_dealer:
       class: oidcendpoint.cookie.CookieDealer
       kwargs:
@@ -267,5 +271,5 @@ webserver:
   ca_bundle: null
   verify_user: false
   port: *port
-  domain: *domain
+  domain: 0.0.0.0
   debug: true
