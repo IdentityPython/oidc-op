@@ -261,9 +261,8 @@ op:
             - iss
             - eduperson_scoped_affiliation
     db_conf:
-      abstract_storage_cls: abstorage.base.LabeledAbstractStorage
       keyjar:
-        handler: abstorage.storages.abfile.AbstractFileSystem
+        handler: abstorage.storages.abfile.LabeledAbstractFileSystem
         fdir: storage/keyjar
         key_conv: abstorage.converter.QPKey
         value_conv: cryptojwt.serialize.item.KeyIssuer
