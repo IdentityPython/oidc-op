@@ -232,19 +232,18 @@ def service_endpoint(endpoint):
                 }), 400)
     else:
         if request.data:
-            req_args = request.data \
-                       if isinstance(request.data, str) else \
-                       request.data.decode()
+            if isinstance(request.data, str):
+                req_args = request.data
+            else:
+                req_args = request.data.decode()
         else:
             req_args = dict([(k, v) for k, v in request.form.items()])
         try:
             req_args = endpoint.parse_request(req_args, **pr_args)
         except Exception as err:
             _log.error(err)
-            return make_response(json.dumps({
-                'error': 'invalid_request',
-                'error_description': str(err)
-                }), 400)
+            err_msg = ResponseMessage(error='invalid_request', error_description=str(err))
+            return make_response(err_msg.to_json(), 400)
 
     _log.info('request: {}'.format(req_args))
     if isinstance(req_args, ResponseMessage) and 'error' in req_args:
@@ -258,17 +257,14 @@ def service_endpoint(endpoint):
             kwargs = {}
 
         if isinstance(endpoint, AccessToken):
-            args = endpoint.process_request(AccessTokenRequest(**req_args),
-                                            **kwargs)
+            args = endpoint.process_request(AccessTokenRequest(**req_args), **kwargs)
         else:
             args = endpoint.process_request(req_args, **kwargs)
     except Exception as err:
         message = traceback.format_exception(*sys.exc_info())
         _log.error(message)
-        return make_response(json.dumps({
-            'error': 'invalid_request',
-            'error_description': str(err)
-            }), 400)
+        err_msg = ResponseMessage(error='invalid_request', error_description=str(err))
+        return make_response(err_msg.to_json(), 400)
 
     _log.info('Response args: {}'.format(args))
 
