@@ -62,7 +62,7 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
         "pyyaml",
-        'oidcendpoint>=1.0.0'
+        'oidcendpoint>=1.1.0'
     ],
     zip_safe=False,
     cmdclass={'test': PyTest},

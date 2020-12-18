@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 def main(config_file, args):
     logging.basicConfig(level=logging.DEBUG)
-    config = Configuration.create_from_config_file(config_file)
+    config = Configuration.create_from_config_file(config_file, base_path=dir_path)
     app = oidc_provider_init_app(config, 'oidc_op')
 
     web_conf = config.webserver
