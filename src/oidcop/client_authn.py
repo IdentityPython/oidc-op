@@ -294,7 +294,7 @@ class RequestParam(ClientAuthnMethod):
             if _key in _context.jti_db:
                 raise MultipleUsage("Have seen this token once before")
             else:
-                _context.jti_db.set(_key, utc_time_sans_frac())
+                _context.jti_db[_key] = utc_time_sans_frac()
 
         request[verified_claim_name("client_assertion")] = _jwt
         client_id = kwargs.get("client_id") or _jwt["iss"]
