@@ -1,5 +1,5 @@
 """Configuration management for IDP"""
-
+import logging
 import os
 from typing import Dict
 from typing import Optional
@@ -13,7 +13,7 @@ from oidcop.utils import load_yaml_config
 try:
     from secrets import token_urlsafe as rnd_token
 except ImportError:
-    from oidcendpoint import rndstr as rnd_token
+    from oidcop import rndstr as rnd_token
 
 DEFAULT_ITEM_PATHS = {
     "webserver": ['server_key', 'server_cert'],
@@ -40,7 +40,13 @@ class Configuration:
     """OP Configuration"""
 
     def __init__(self, conf: Dict, base_path: str = '', item_paths: Optional[dict] = None) -> None:
-        self.logger = configure_logging(config=conf.get('logging')).getChild(__name__)
+
+        log_conf = conf.get('logging')
+        if log_conf:
+            self.logger = configure_logging(config=log_conf).getChild(__name__)
+        else:
+            self.logger = logging.getLogger('oidcop')
+
         self.op = {}
         if item_paths is None:
             item_paths = DEFAULT_ITEM_PATHS
