@@ -66,12 +66,6 @@ class Token(object):
         """
         raise NotImplementedError()
 
-    def key(self, **kwargs):
-        """
-        Return a key (the session id)
-        """
-        return rndstr(32)
-
     def info(self, token):
         """
         Return type of Token (A=Access code, T=Token, R=Refresh token) and
@@ -131,23 +125,11 @@ class DefaultToken(Token):
             self.crypt.encrypt(lv_pack(rnd, ttype, session_id, exp).encode())
         ).decode("utf-8")
 
-    def key(self, user="", areq=None):
-        """
-        Return a key (the session id)
-
-        :param user: User id
-        :param areq: The authorization request
-        :return: An ID
-        """
-        csum = hashlib.new("sha224")
-        csum.update(rndstr(32).encode("utf-8"))
-        return csum.hexdigest()  # 56 bytes long, 224 bits
-
     def split_token(self, token):
         try:
             plain = self.crypt.decrypt(base64.b64decode(token))
-        except Exception:
-            raise UnknownToken(token)
+        except Exception as err:
+            raise UnknownToken(err)
         # order: rnd, type, sid
         return lv_unpack(plain)
 
