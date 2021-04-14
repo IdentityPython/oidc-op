@@ -118,15 +118,11 @@ def verify(authn_method):
     auth_args = authn_method.unpack_token(kwargs['token'])
     authz_request = AuthorizationRequest().from_urlencoded(auth_args['query'])
 
-    authn_event = create_authn_event(
-        uid=username,
-        salt=base64.b64encode(os.urandom(16)).decode(),
-        authn_info=auth_args['authn_class_ref'],
-        authn_time=auth_args['iat'])
+    endpoint = current_app.server.server_get("endpoint", 'authorization')
+    _session_id = endpoint.create_session(authz_request, username, auth_args['authn_class_ref'],
+                                           auth_args['iat'], authn_method)
 
-    endpoint = current_app.endpoint_context.endpoint['authorization']
-    args = endpoint.authz_part2(user=username, request=authz_request,
-                                authn_event=authn_event)
+    args = endpoint.authz_part2(request=authz_request, session_id=_session_id)
 
     if isinstance(args, ResponseMessage) and 'error' in args:
         return make_response(args.to_json(), 400)
@@ -136,8 +132,8 @@ def verify(authn_method):
 
 @oidc_op_views.route('/verify/user', methods=['GET', 'POST'])
 def verify_user():
-    authn_method = current_app.endpoint_context.authn_broker.get_method_by_id(
-        'user')
+    authn_method = current_app.server.server_get(
+        "endpoint_context").authn_broker.get_method_by_id('user')
     try:
         return verify(authn_method)
     except FailedAuthentication as exc:
@@ -146,8 +142,8 @@ def verify_user():
 
 @oidc_op_views.route('/verify/user_pass_jinja', methods=['GET', 'POST'])
 def verify_user_pass_jinja():
-    authn_method = current_app.endpoint_context.authn_broker.get_method_by_id(
-        'user')
+    authn_method = current_app.server.server_get(
+        "endpoint_context").authn_broker.get_method_by_id('user')
     try:
         return verify(authn_method)
     except FailedAuthentication as exc:
@@ -157,11 +153,9 @@ def verify_user_pass_jinja():
 @oidc_op_views.route('/.well-known/<service>')
 def well_known(service):
     if service == 'openid-configuration':
-        _endpoint = current_app.endpoint_context.endpoint['provider_config']
-    # if service == 'openid-federation':
-    #     _endpoint = current_app.endpoint_context.endpoint['provider_info']
+        _endpoint = current_app.server.server_get("endpoint", 'provider_config')
     elif service == 'webfinger':
-        _endpoint = current_app.endpoint_context.endpoint['discovery']
+        _endpoint = current_app.server.server_get("endpoint",'discovery')
     else:
         return make_response('Not supported', 400)
 
@@ -171,37 +165,37 @@ def well_known(service):
 @oidc_op_views.route('/registration', methods=['GET', 'POST'])
 def registration():
     return service_endpoint(
-        current_app.endpoint_context.endpoint['registration'])
+        current_app.server.server_get("endpoint",'registration'))
 
 
 @oidc_op_views.route('/registration_api', methods=['GET'])
 def registration_api():
     return service_endpoint(
-        current_app.endpoint_context.endpoint['registration_read'])
+        current_app.server.server_get("endpoint",'registration_read'))
 
 
 @oidc_op_views.route('/authorization')
 def authorization():
     return service_endpoint(
-        current_app.endpoint_context.endpoint['authorization'])
+        current_app.server.server_get("endpoint",'authorization'))
 
 
 @oidc_op_views.route('/token', methods=['GET', 'POST'])
 def token():
     return service_endpoint(
-        current_app.endpoint_context.endpoint['token'])
+        current_app.server.server_get("endpoint",'token'))
 
 
 @oidc_op_views.route('/userinfo', methods=['GET', 'POST'])
 def userinfo():
     return service_endpoint(
-        current_app.endpoint_context.endpoint['userinfo'])
+        current_app.server.server_get("endpoint",'userinfo'))
 
 
 @oidc_op_views.route('/session', methods=['GET'])
 def session_endpoint():
     return service_endpoint(
-        current_app.endpoint_context.endpoint['session'])
+        current_app.server.server_get("endpoint",'session'))
 
 
 def service_endpoint(endpoint):
@@ -298,10 +292,11 @@ def check_session_iframe():
             req_args = dict([(k, v) for k, v in request.form.items()])
 
     if req_args:
+        _context = current_app.server.server_get("endpoint_context")
         # will contain client_id and origin
-        if req_args['origin'] != current_app.endpoint_context.issuer:
+        if req_args['origin'] != _context.issuer:
             return 'error'
-        if req_args['client_id'] != current_app.endpoint_context.cdb:
+        if req_args['client_id'] != _context.cdb:
             return 'error'
         return 'OK'
 
@@ -313,7 +308,7 @@ def check_session_iframe():
 
 @oidc_op_views.route('/verify_logout', methods=['GET', 'POST'])
 def verify_logout():
-    part = urlparse(current_app.endpoint_context.issuer)
+    part = urlparse(current_app.server.server_get("endpoint_context").issuer)
     page = render_template('logout.html', op=part.hostname,
                            do_logout='rp_logout', sjwt=request.args['sjwt'])
     return page
@@ -321,7 +316,7 @@ def verify_logout():
 
 @oidc_op_views.route('/rp_logout', methods=['GET', 'POST'])
 def rp_logout():
-    _endp = current_app.endpoint_context.endpoint['session']
+    _endp = current_app.server.server_get("endpoint",'session')
     _info = _endp.unpack_signed_jwt(request.form['sjwt'])
     try:
         request.form['logout']

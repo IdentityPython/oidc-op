@@ -1,4 +1,5 @@
 """Configuration management for IDP"""
+import json
 import logging
 import os
 from typing import Dict
@@ -39,8 +40,7 @@ DEFAULT_ITEM_PATHS = {
 class Configuration:
     """OP Configuration"""
 
-    def __init__(self, conf: Dict, base_path: str = '', item_paths: Optional[dict] = None) -> None:
-
+    def __init__(self, conf: Dict, base_path: str = '', item_paths: Optional[dict] = None):
         log_conf = conf.get('logging')
         if log_conf:
             self.logger = configure_logging(config=log_conf).getChild(__name__)
@@ -83,5 +83,9 @@ class Configuration:
     @classmethod
     def create_from_config_file(cls, filename: str, base_path: str = '',
                                 item_paths: Optional[dict] = None):
-        """Load configuration as YAML"""
-        return cls(load_yaml_config(filename), base_path, item_paths)
+        if filename.endswith(".yaml"):
+            """Load configuration as YAML"""
+            return cls(load_yaml_config(filename), base_path, item_paths)
+        elif filename.endswith(".json"):
+            _str = open(filename).read()
+            return cls(json.loads(_str), base_path, item_paths)
