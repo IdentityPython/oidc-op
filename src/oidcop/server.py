@@ -139,7 +139,8 @@ class Server(ImpExp):
     def do_authentication(self, target):
         _conf = self.conf.get("authentication")
         if _conf:
-            target.authn_broker = populate_authn_broker(_conf, self.server_get)
+            target.authn_broker = populate_authn_broker(_conf, self.server_get,
+                                                        target.template_handler)
         else:
             target.authn_broker = {}
 

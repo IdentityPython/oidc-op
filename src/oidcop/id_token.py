@@ -119,8 +119,7 @@ class IDToken(object):
         self.server_get = server_get
         self.kwargs = kwargs
         self.scope_to_claims = None
-        self.provider_info = construct_endpoint_info(self.default_capabilities, **kwargs
-                                                     )
+        self.provider_info = construct_endpoint_info(self.default_capabilities, **kwargs)
 
     def payload(
             self,

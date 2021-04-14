@@ -14,7 +14,6 @@ from oidcop.oidc.registration import Registration
 from oidcop.oidc.session import Session
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.session.manager import SessionManager
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_info import UserInfo
 
@@ -166,6 +165,7 @@ COOKIE_CONF = {
     },
 }
 
+
 class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
@@ -177,9 +177,9 @@ class TestEndpoint(object):
         endpoint_context.cdb = CDB
 
         self.session_manager = endpoint_context.session_manager
-        self.authn_endpoint = server.server_get("endpoint","authorization")
-        self.session_endpoint = server.server_get("endpoint","session")
-        self.token_endpoint = server.server_get("endpoint","token")
+        self.authn_endpoint = server.server_get("endpoint", "authorization")
+        self.session_endpoint = server.server_get("endpoint", "session")
+        self.token_endpoint = server.server_get("endpoint", "token")
         self.user_id = "diana"
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=''):

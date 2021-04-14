@@ -46,7 +46,8 @@ def init_user_info(conf, cwd: str):
 def init_service(conf, server_get=None):
     kwargs = conf.get("kwargs", {})
 
-    kwargs["server_get"] = server_get
+    if server_get:
+        kwargs["server_get"] = server_get
 
     if isinstance(conf["class"], str):
         return importer(conf["class"])(**kwargs)
