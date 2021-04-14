@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Optional
 from typing import Union
 from urllib.parse import unquote
 from urllib.parse import urlencode
@@ -463,6 +464,24 @@ class Authorization(Endpoint):
                 "return_type": request["response_type"],
             }
 
+    def create_session(self, request, user_id, acr, time_stamp, authn_method):
+        _context = self.server_get("endpoint_context")
+        _mngr = _context.session_manager
+        authn_event = create_authn_event(
+            user_id,
+            authn_info=acr,
+            time_stamp=time_stamp,
+        )
+        _exp_in = authn_method.kwargs.get("expires_in")
+        if _exp_in and "valid_until" in authn_event:
+            authn_event["valid_until"] = utc_time_sans_frac() + _exp_in
+
+        _token_usage_rules = _context.authz.usage_rules(request["client_id"])
+        return _mngr.create_session(authn_event=authn_event, auth_req=request,
+                                           user_id=user_id, client_id=request["client_id"],
+                                           token_usage_rules=_token_usage_rules)
+
+
     def setup_auth(self, request, redirect_uri, cinfo, cookie, acr=None, **kwargs):
         """
 
@@ -545,7 +564,7 @@ class Authorization(Endpoint):
                 # demand re-authentication
                 return {"function": authn, "args": authn_args}
             else:
-                # I get back a dictionary
+                # I got back a dictionary
                 user = identity["uid"]
                 if "req_user" in kwargs:
                     if user != kwargs["req_user"]:
@@ -586,19 +605,7 @@ class Authorization(Endpoint):
             if authn_event.is_valid() is False:  # if not valid, do new login
                 return {"function": authn, "args": authn_args}
         else:
-            authn_event = create_authn_event(
-                identity["uid"],
-                authn_info=authn_class_ref,
-                time_stamp=_ts,
-            )
-            _exp_in = authn.kwargs.get("expires_in")
-            if _exp_in and "valid_until" in authn_event:
-                authn_event["valid_until"] = utc_time_sans_frac() + _exp_in
-
-            _token_usage_rules = _context.authz.usage_rules(request["client_id"])
-            _session_id = _mngr.create_session(authn_event=authn_event, auth_req=request,
-                                               user_id=user, client_id=request["client_id"],
-                                               token_usage_rules=_token_usage_rules)
+            _session_id = self.create_session(request, identity["uid"], authn_class_ref, _ts, authn)
 
         return {"session_id": _session_id, "identity": identity, "user": user}
 
@@ -821,7 +828,6 @@ class Authorization(Endpoint):
         """
         After the authentication this is where you should end up
 
-        :param user:
         :param request: The Authorization Request
         :param session_id: Session identifier
         :param kwargs: possible other parameters
@@ -898,7 +904,7 @@ class Authorization(Endpoint):
     def do_request_user(self, request_info, **kwargs):
         return kwargs
 
-    def process_request(self, request: Union[Message, dict], **kwargs):
+    def process_request(self, request: Optional[Union[Message, dict]] = None, **kwargs):
         """ The AuthorizationRequest endpoint
 
         :param request: The authorization request as a Message instance
