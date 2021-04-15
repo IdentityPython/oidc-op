@@ -1,4 +1,3 @@
-import base64
 import json
 import os
 import sys
@@ -14,14 +13,14 @@ from flask import render_template
 from flask import request
 from flask.helpers import make_response
 from flask.helpers import send_from_directory
-from oidcendpoint.authn_event import create_authn_event
-from oidcendpoint.exception import FailedAuthentication
-from oidcendpoint.exception import InvalidClient
-from oidcendpoint.exception import UnknownClient
-from oidcendpoint.oidc.token import Token
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+
+from oidcop.exception import FailedAuthentication
+from oidcop.exception import InvalidClient
+from oidcop.exception import UnknownClient
+from oidcop.oidc.token import Token
 
 # logger = logging.getLogger(__name__)
 
@@ -120,7 +119,7 @@ def verify(authn_method):
 
     endpoint = current_app.server.server_get("endpoint", 'authorization')
     _session_id = endpoint.create_session(authz_request, username, auth_args['authn_class_ref'],
-                                           auth_args['iat'], authn_method)
+                                          auth_args['iat'], authn_method)
 
     args = endpoint.authz_part2(request=authz_request, session_id=_session_id)
 
@@ -155,7 +154,7 @@ def well_known(service):
     if service == 'openid-configuration':
         _endpoint = current_app.server.server_get("endpoint", 'provider_config')
     elif service == 'webfinger':
-        _endpoint = current_app.server.server_get("endpoint",'discovery')
+        _endpoint = current_app.server.server_get("endpoint", 'discovery')
     else:
         return make_response('Not supported', 400)
 
@@ -165,42 +164,42 @@ def well_known(service):
 @oidc_op_views.route('/registration', methods=['GET', 'POST'])
 def registration():
     return service_endpoint(
-        current_app.server.server_get("endpoint",'registration'))
+        current_app.server.server_get("endpoint", 'registration'))
 
 
 @oidc_op_views.route('/registration_api', methods=['GET'])
 def registration_api():
     return service_endpoint(
-        current_app.server.server_get("endpoint",'registration_read'))
+        current_app.server.server_get("endpoint", 'registration_read'))
 
 
 @oidc_op_views.route('/authorization')
 def authorization():
     return service_endpoint(
-        current_app.server.server_get("endpoint",'authorization'))
+        current_app.server.server_get("endpoint", 'authorization'))
 
 
 @oidc_op_views.route('/token', methods=['GET', 'POST'])
 def token():
     return service_endpoint(
-        current_app.server.server_get("endpoint",'token'))
+        current_app.server.server_get("endpoint", 'token'))
 
 
 @oidc_op_views.route('/userinfo', methods=['GET', 'POST'])
 def userinfo():
     return service_endpoint(
-        current_app.server.server_get("endpoint",'userinfo'))
+        current_app.server.server_get("endpoint", 'userinfo'))
 
 
 @oidc_op_views.route('/session', methods=['GET'])
 def session_endpoint():
     return service_endpoint(
-        current_app.server.server_get("endpoint",'session'))
+        current_app.server.server_get("endpoint", 'session'))
 
 
 def service_endpoint(endpoint):
     _log = current_app.srv_config.logger
-    _log.info('At the "{}" endpoint'.format(endpoint.endpoint_name))
+    _log.info('At the "{}" endpoint'.format(endpoint.name))
 
     try:
         authn = request.headers['Authorization']
@@ -213,7 +212,7 @@ def service_endpoint(endpoint):
         "method": request.method,
         "url": request.url,
         "headers": request.headers
-    }
+        }
 
     if request.method == 'GET':
         try:
@@ -316,7 +315,7 @@ def verify_logout():
 
 @oidc_op_views.route('/rp_logout', methods=['GET', 'POST'])
 def rp_logout():
-    _endp = current_app.server.server_get("endpoint",'session')
+    _endp = current_app.server.server_get("endpoint", 'session')
     _info = _endp.unpack_signed_jwt(request.form['sjwt'])
     try:
         request.form['logout']

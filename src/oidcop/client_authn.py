@@ -330,6 +330,7 @@ def verify_client(
         get_client_id_from_token: Optional[Callable] = None,
         endpoint=None,  # Optional[Endpoint]
         also_known_as: Optional[str] = None,
+        http_info: Optional[dict] = None
 ):
     """
     Initiated Guessing !

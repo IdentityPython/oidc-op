@@ -1,9 +1,8 @@
 import os
 from urllib.parse import urlparse
 
-from cryptojwt.key_jar import init_key_jar
 from flask.app import Flask
-from oidcendpoint.endpoint_context import EndpointContext
+
 from oidcop.server import Server
 
 folder = os.path.dirname(os.path.realpath(__file__))

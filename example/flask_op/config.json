@@ -32,7 +32,7 @@
     }
   },
   "port": 5000,
-  "domain": "192.168.1.158",
+  "domain": "127.0.0.1",
   "server_name": "{domain}:{port}",
   "base_url": "https://{domain}:{port}",
   "key_def": [
@@ -326,7 +326,7 @@
           },
           "default_values": {
             "name": "oidc_op",
-            "domain": "192.168.1.158",
+            "domain": "127.0.0.1",
             "path": "/",
             "max_age": 3600
           }
@@ -369,8 +369,8 @@
     }
   },
   "webserver": {
-    "server_cert": "certs/89296913_127.0.0.1.cert",
-    "server_key": "certs/89296913_127.0.0.1.key",
+    "server_cert": "certs/client.crt",
+    "server_key": "certs/client.key",
     "ca_bundle": null,
     "verify_user": false,
     "port": 5000,
