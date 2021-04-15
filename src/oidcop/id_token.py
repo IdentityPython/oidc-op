@@ -255,7 +255,7 @@ class IDToken(object):
 
             # Note that this session ID is not the session ID the session manager is using.
             # It must be possible to map from one to the other.
-            logout_session_id = uuid.uuid4().get_hex()
+            logout_session_id = uuid.uuid4().hex
             _item = SessionInfo()
             _item.user_id = user_id
             _item.client_id = client_id
