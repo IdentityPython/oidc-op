@@ -1,0 +1,434 @@
+.. _oidcop_conf:
+
+========================
+Configuration directives
+========================
+
+------
+add_on
+------
+
+An example::
+
+    "add_on": {
+        "pkce": {
+          "function": "oidcop.oidc.add_on.pkce.add_pkce_support",
+          "kwargs": {
+            "essential": false,
+            "code_challenge_method": "S256 S384 S512"
+          }
+        },
+        "claims": {
+          "function": "oidcop.oidc.add_on.custom_scopes.add_custom_scopes",
+          "kwargs": {
+            "research_and_scholarship": [
+              "name",
+              "given_name",
+              "family_name",
+              "email",
+              "email_verified",
+              "sub",
+              "iss",
+              "eduperson_scoped_affiliation"
+            ]
+          }
+        }
+      }
+
+--------------
+authentication
+--------------
+
+An example::
+
+    "authentication": {
+        "user": {
+          "acr": "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
+          "class": "oidcop.user_authn.user.UserPassJinja2",
+          "kwargs": {
+            "verify_endpoint": "verify/user",
+            "template": "user_pass.jinja2",
+            "db": {
+              "class": "oidcop.util.JSONDictDB",
+              "kwargs": {
+                "json_path": "passwd.json"
+              }
+            },
+            "page_header": "Testing log in",
+            "submit_btn": "Get me in!",
+            "user_label": "Nickname",
+            "passwd_label": "Secret sauce"
+          }
+        }
+      },
+
+------------
+capabilities
+------------
+
+This covers most of the basic functionality of the OP. The key words are the
+same as defined in
+https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata .
+A couple of things are defined else where. Like the endpoints, issuer id,
+jwks_uri and the authentication methods at the token endpoint.
+
+An example::
+
+    response_types_supported:
+        - code
+        - token
+        - id_token
+        - "code token"
+        - "code id_token"
+        - "id_token token"
+        - "code id_token token"
+        - none
+      response_modes_supported:
+        - query
+        - fragment
+        - form_post
+      subject_types_supported:
+        - public
+        - pairwise
+      grant_types_supported:
+        - authorization_code
+        - implicit
+        - urn:ietf:params:oauth:grant-type:jwt-bearer
+        - refresh_token
+      claim_types_supported:
+        - normal
+        - aggregated
+        - distributed
+      claims_parameter_supported: True
+      request_parameter_supported: True
+      request_uri_parameter_supported: True
+      frontchannel_logout_supported: True
+      frontchannel_logout_session_supported: True
+      backchannel_logout_supported: True
+      backchannel_logout_session_supported: True
+      check_session_iframe: https://127.0.0.1:5000/check_session_iframe
+
+
+-----------
+cookie_name
+-----------
+
+An example::
+
+    "cookie_name": {
+        "session": "oidc_op",
+        "register": "oidc_op_rp",
+        "session_management": "sman"
+      },
+
+-------------
+cookie_dealer
+-------------
+
+An example::
+
+    "cookie_dealer": {
+        "class": "oidcop.cookie.CookieDealer",
+        "kwargs": {
+          "sign_jwk": {
+            "filename": "private/cookie_sign_jwk.json",
+            "type": "OCT",
+            "kid": "cookie_sign_key_id"
+          },
+          "enc_jwk": {
+            "filename": "private/cookie_enc_jwk.json",
+            "type": "OCT",
+            "kid": "cookie_enc_key_id"
+          },
+          "default_values": {
+            "name": "oidc_op",
+            "domain": "127.0.0.1",
+            "path": "/",
+            "max_age": 3600
+          }
+        }
+      },
+
+--------
+endpoint
+--------
+
+An example::
+
+      "endpoint": {
+        "webfinger": {
+          "path": ".well-known/webfinger",
+          "class": "oidcop.oidc.discovery.Discovery",
+          "kwargs": {
+            "client_authn_method": null
+          }
+        },
+        "provider_info": {
+          "path": ".well-known/openid-configuration",
+          "class": "oidcop.oidc.provider_config.ProviderConfiguration",
+          "kwargs": {
+            "client_authn_method": null
+          }
+        },
+        "registration": {
+          "path": "registration",
+          "class": "oidcop.oidc.registration.Registration",
+          "kwargs": {
+            "client_authn_method": null,
+            "client_secret_expiration_time": 432000
+          }
+        },
+        "registration_api": {
+          "path": "registration_api",
+          "class": "oidcop.oidc.read_registration.RegistrationRead",
+          "kwargs": {
+            "client_authn_method": [
+              "bearer_header"
+            ]
+          }
+        },
+        "introspection": {
+          "path": "introspection",
+          "class": "oidcop.oauth2.introspection.Introspection",
+          "kwargs": {
+            "client_authn_method": [
+              "client_secret_post"
+            ],
+            "release": [
+              "username"
+            ]
+          }
+        },
+        "authorization": {
+          "path": "authorization",
+          "class": "oidcop.oidc.authorization.Authorization",
+          "kwargs": {
+            "client_authn_method": null,
+            "claims_parameter_supported": true,
+            "request_parameter_supported": true,
+            "request_uri_parameter_supported": true,
+            "response_types_supported": [
+              "code",
+              "token",
+              "id_token",
+              "code token",
+              "code id_token",
+              "id_token token",
+              "code id_token token",
+              "none"
+            ],
+            "response_modes_supported": [
+              "query",
+              "fragment",
+              "form_post"
+            ]
+          }
+        },
+        "token": {
+          "path": "token",
+          "class": "oidcop.oidc.token.Token",
+          "kwargs": {
+            "client_authn_method": [
+              "client_secret_post",
+              "client_secret_basic",
+              "client_secret_jwt",
+              "private_key_jwt"
+            ]
+          }
+        },
+        "userinfo": {
+          "path": "userinfo",
+          "class": "oidcop.oidc.userinfo.UserInfo",
+          "kwargs": {
+            "claim_types_supported": [
+              "normal",
+              "aggregated",
+              "distributed"
+            ]
+          }
+        },
+        "end_session": {
+          "path": "session",
+          "class": "oidcop.oidc.session.Session",
+          "kwargs": {
+            "logout_verify_url": "verify_logout",
+            "post_logout_uri_path": "post_logout",
+            "signing_alg": "ES256",
+            "frontchannel_logout_supported": true,
+            "frontchannel_logout_session_supported": true,
+            "backchannel_logout_supported": true,
+            "backchannel_logout_session_supported": true,
+            "check_session_iframe": "check_session_iframe"
+          }
+        }
+      }
+
+------------
+httpc_params
+------------
+
+Example ::
+
+    "httpc_params": {
+        "verify": false
+      },
+
+--------
+id_token
+--------
+
+Defines which class that handles creating an ID Token and possibly also
+arguments used when initiating that class.
+An example::
+
+      "id_token": {
+        "class": "oidcop.id_token.IDToken",
+        "kwargs": {
+          "default_claims": {
+            "email": {
+              "essential": true
+            },
+            "email_verified": {
+              "essential": true
+            }}}},
+
+
+------
+issuer
+------
+
+The issuer ID of the OP.
+
+----
+keys
+----
+
+An example::
+
+    "keys": {
+        "private_path": "private/jwks.json",
+        "key_defs": [
+          {
+            "type": "RSA",
+            "use": [
+              "sig"
+            ]
+          },
+          {
+            "type": "EC",
+            "crv": "P-256",
+            "use": [
+              "sig"
+            ]
+          }
+        ],
+        "public_path": "static/jwks.json",
+        "read_only": false,
+        "uri_path": "static/jwks.json"
+      },
+
+---------------
+login_hint2acrs
+---------------
+
+An example::
+
+      "login_hint2acrs": {
+        "class": "oidcop.login_hint.LoginHint2Acrs",
+        "kwargs": {
+          "scheme_map": {
+            "email": [
+              "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"
+            ]
+          }
+        }
+      },
+
+-----------
+session_key
+-----------
+
+An example::
+
+    "session_key": {
+        "filename": "private/session_jwk.json",
+        "type": "OCT",
+        "use": "sig"
+      },
+
+------------
+template_dir
+------------
+
+An example::
+
+      "template_dir": "templates"
+
+------------------
+token_handler_args
+------------------
+
+An example::
+
+    "token_handler_args": {
+        "jwks_def": {
+          "private_path": "private/token_jwks.json",
+          "read_only": false,
+          "key_defs": [
+            {
+              "type": "oct",
+              "bytes": 24,
+              "use": [
+                "enc"
+              ],
+              "kid": "code"
+            },
+            {
+              "type": "oct",
+              "bytes": 24,
+              "use": [
+                "enc"
+              ],
+              "kid": "refresh"
+            }
+          ]
+        },
+        "code": {
+          "kwargs": {
+            "lifetime": 600
+          }
+        },
+        "token": {
+          "class": "oidcop.token.jwt_token.JWTToken",
+          "kwargs": {
+              "lifetime": 3600,
+              "add_claims": [
+                "email",
+                "email_verified",
+                "phone_number",
+                "phone_number_verified"
+              ],
+              "add_claim_by_scope": true,
+              "aud": ["https://example.org/appl"]
+           }
+        },
+        "refresh": {
+            "kwargs": {
+                "lifetime": 86400
+            }
+        }
+      }
+
+--------
+userinfo
+--------
+
+An example::
+
+      "userinfo": {
+        "class": "oidcop.user_info.UserInfo",
+        "kwargs": {
+          "db_file": "users.json"
+        }
+      }
+
