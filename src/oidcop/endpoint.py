@@ -131,7 +131,10 @@ class Endpoint(object):
         self.allowed_targets = [self.name]
         self.client_verification_method = []
 
-    def parse_request(self, request: str, auth=None, **kwargs):
+    def parse_request(self,
+                      request: Union[Message, dict, str],
+                      auth: Optional[Union[dict, str]] = None,
+                      **kwargs):
         """
 
         :param request: The request the server got
@@ -202,12 +205,11 @@ class Endpoint(object):
     def get_client_id_from_token(self, endpoint_context, token, request=None):
         return ""
 
-    def client_authentication(self, request, auth=None, **kwargs):
+    def client_authentication(self, request: Message, auth: Optional[Union[dict, str]] = None,
+                              **kwargs):
         """
         Do client authentication
 
-        :param endpoint_context: A
-            :py:class:`oidcop.endpoint_context.SrvInfo` instance
         :param request: Parsed request, a self.request_cls class instance
         :param authn: Authorization info
         :return: client_id or raise an exception

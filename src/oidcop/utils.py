@@ -63,7 +63,7 @@ def create_context(dir_path, config, **kwargs):
         elif _verify_user == "required":
             context.verify_mode = ssl.CERT_REQUIRED
         else:
-            sys.exit("Unknown verify_user specification: '{}'".format(_verify_user))
+            sys.exit(f"Unknown verify_user specification: '{_verify_user}'")
         _ca_bundle = lower_or_upper(config, "ca_bundle")
         if _ca_bundle:
             context.load_verify_locations(_ca_bundle)
@@ -72,9 +72,9 @@ def create_context(dir_path, config, **kwargs):
 
     try:
         context.load_cert_chain(_cert_file, _key_file)
-    except Exception as e:
-        print("cert_file:", _cert_file)
-        print("key_file:", _key_file)
-        sys.exit("Error starting server. Missing cert or key. Details: {}".format(e))
+    except Exception as err:
+        print(f"cert_file:{_cert_file}")
+        print(f"key_file:{_key_file}")
+        sys.exit(f"Error starting server. Missing cert or key. Details: {err}")
 
     return context

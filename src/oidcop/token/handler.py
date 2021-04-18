@@ -76,8 +76,8 @@ class TokenHandler(ImpExp):
 
 
 def init_token_handler(server_get, spec, typ):
-
     _kwargs = spec.get("kwargs", {})
+
     _lt = spec.get("lifetime")
     if _lt:
         _kwargs["lifetime"] = _lt
