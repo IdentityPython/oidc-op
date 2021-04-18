@@ -73,14 +73,49 @@
   },
   "op": {
     "server_info": {
-      "issuer": "https://{domain}:{port}",
-      "httpc_params": {
-        "verify": false
+      "add_on": {
+        "pkce": {
+          "function": "oidcop.oidc.add_on.pkce.add_pkce_support",
+          "kwargs": {
+            "essential": false,
+            "code_challenge_method": "S256 S384 S512"
+          }
+        },
+        "claims": {
+          "function": "oidcop.oidc.add_on.custom_scopes.add_custom_scopes",
+          "kwargs": {
+            "research_and_scholarship": [
+              "name",
+              "given_name",
+              "family_name",
+              "email",
+              "email_verified",
+              "sub",
+              "iss",
+              "eduperson_scoped_affiliation"
+            ]
+          }
+        }
       },
-      "session_key": {
-        "filename": "private/session_jwk.json",
-        "type": "OCT",
-        "use": "sig"
+      "authentication": {
+        "user": {
+          "acr": "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
+          "class": "oidcop.user_authn.user.UserPassJinja2",
+          "kwargs": {
+            "verify_endpoint": "verify/user",
+            "template": "user_pass.jinja2",
+            "db": {
+              "class": "oidcop.util.JSONDictDB",
+              "kwargs": {
+                "json_path": "passwd.json"
+              }
+            },
+            "page_header": "Testing log in",
+            "submit_btn": "Get me in!",
+            "user_label": "Nickname",
+            "passwd_label": "Secret sauce"
+          }
+        }
       },
       "capabilities": {
         "subject_types_supported": [
@@ -94,84 +129,31 @@
           "refresh_token"
         ]
       },
-      "template_dir": "templates",
-      "id_token": {
-        "class": "oidcop.id_token.IDToken",
+      "cookie_dealer": {
+        "class": "oidcop.cookie.CookieDealer",
         "kwargs": {
-          "default_claims": {
-            "email": {
-              "essential": true
-            },
-            "email_verified": {
-              "essential": true
-            }
-          }
-        }
-      },
-      "token_handler_args": {
-        "jwks_def": {
-          "private_path": "private/token_jwks.json",
-          "read_only": false,
-          "key_defs": [
-            {
-              "type": "oct",
-              "bytes": 24,
-              "use": [
-                "enc"
-              ],
-              "kid": "code"
-            },
-            {
-              "type": "oct",
-              "bytes": 24,
-              "use": [
-                "enc"
-              ],
-              "kid": "refresh"
-            }
-          ]
-        },
-        "code": {
-          "lifetime": 600
-        },
-        "token": {
-          "class": "oidcop.token.jwt_token.JWTToken",
-          "lifetime": 3600,
-          "add_claims": [
-            "email",
-            "email_verified",
-            "phone_number",
-            "phone_number_verified"
-          ],
-          "add_claim_by_scope": true,
-          "aud": [
-            "https://example.org/appl"
-          ]
-        },
-        "refresh": {
-          "lifetime": 86400
-        }
-      },
-      "keys": {
-        "private_path": "private/jwks.json",
-        "key_defs": [
-          {
-            "type": "RSA",
-            "use": [
-              "sig"
-            ]
+          "sign_jwk": {
+            "filename": "private/cookie_sign_jwk.json",
+            "type": "OCT",
+            "kid": "cookie_sign_key_id"
           },
-          {
-            "type": "EC",
-            "crv": "P-256",
-            "use": [
-              "sig"
-            ]
+          "enc_jwk": {
+            "filename": "private/cookie_enc_jwk.json",
+            "type": "OCT",
+            "kid": "cookie_enc_key_id"
+          },
+          "default_values": {
+            "name": "oidc_op",
+            "domain": "127.0.0.1",
+            "path": "/",
+            "max_age": 3600
           }
-        ],
-        "public_path": "static/jwks.json",
-        "read_only": false,
-        "uri_path": "static/jwks.json"
+        }
+      },
+      "cookie_name": {
+        "session": "oidc_op",
+        "register": "oidc_op_rp",
+        "session_management": "sman"
       },
       "endpoint": {
         "webfinger": {
@@ -280,57 +262,43 @@
           }
         }
       },
-      "userinfo": {
-        "class": "oidcop.user_info.UserInfo",
-        "kwargs": {
-          "db_file": "users.json"
-        }
+      "httpc_params": {
+        "verify": false
       },
-      "authentication": {
-        "user": {
-          "acr": "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
-          "class": "oidcop.user_authn.user.UserPassJinja2",
-          "kwargs": {
-            "verify_endpoint": "verify/user",
-            "template": "user_pass.jinja2",
-            "db": {
-              "class": "oidcop.util.JSONDictDB",
-              "kwargs": {
-                "json_path": "passwd.json"
-              }
+      "id_token": {
+        "class": "oidcop.id_token.IDToken",
+        "kwargs": {
+          "default_claims": {
+            "email": {
+              "essential": true
             },
-            "page_header": "Testing log in",
-            "submit_btn": "Get me in!",
-            "user_label": "Nickname",
-            "passwd_label": "Secret sauce"
+            "email_verified": {
+              "essential": true
+            }
           }
         }
       },
-      "cookie_name": {
-        "session": "oidc_op",
-        "register": "oidc_op_rp",
-        "session_management": "sman"
-      },
-      "cookie_dealer": {
-        "class": "oidcop.cookie.CookieDealer",
-        "kwargs": {
-          "sign_jwk": {
-            "filename": "private/cookie_sign_jwk.json",
-            "type": "OCT",
-            "kid": "cookie_sign_key_id"
+      "issuer": "https://{domain}:{port}",
+      "keys": {
+        "private_path": "private/jwks.json",
+        "key_defs": [
+          {
+            "type": "RSA",
+            "use": [
+              "sig"
+            ]
           },
-          "enc_jwk": {
-            "filename": "private/cookie_enc_jwk.json",
-            "type": "OCT",
-            "kid": "cookie_enc_key_id"
-          },
-          "default_values": {
-            "name": "oidc_op",
-            "domain": "127.0.0.1",
-            "path": "/",
-            "max_age": 3600
+          {
+            "type": "EC",
+            "crv": "P-256",
+            "use": [
+              "sig"
+            ]
           }
-        }
+        ],
+        "public_path": "static/jwks.json",
+        "read_only": false,
+        "uri_path": "static/jwks.json"
       },
       "login_hint2acrs": {
         "class": "oidcop.login_hint.LoginHint2Acrs",
@@ -342,28 +310,66 @@
           }
         }
       },
-      "add_on": {
-        "pkce": {
-          "function": "oidcop.oidc.add_on.pkce.add_pkce_support",
+      "session_key": {
+        "filename": "private/session_jwk.json",
+        "type": "OCT",
+        "use": "sig"
+      },
+      "template_dir": "templates",
+      "token_handler_args": {
+        "jwks_def": {
+          "private_path": "private/token_jwks.json",
+          "read_only": false,
+          "key_defs": [
+            {
+              "type": "oct",
+              "bytes": 24,
+              "use": [
+                "enc"
+              ],
+              "kid": "code"
+            },
+            {
+              "type": "oct",
+              "bytes": 24,
+              "use": [
+                "enc"
+              ],
+              "kid": "refresh"
+            }
+          ]
+        },
+        "code": {
           "kwargs": {
-            "essential": false,
-            "code_challenge_method": "S256 S384 S512"
+            "lifetime": 600
           }
         },
-        "claims": {
-          "function": "oidcop.oidc.add_on.custom_scopes.add_custom_scopes",
+        "token": {
+          "class": "oidcop.token.jwt_token.JWTToken",
           "kwargs": {
-            "research_and_scholarship": [
-              "name",
-              "given_name",
-              "family_name",
+            "lifetime": 3600,
+            "add_claims": [
               "email",
               "email_verified",
-              "sub",
-              "iss",
-              "eduperson_scoped_affiliation"
+              "phone_number",
+              "phone_number_verified"
+            ],
+            "add_claim_by_scope": true,
+            "aud": [
+              "https://example.org/appl"
             ]
           }
+        },
+        "refresh": {
+          "kwargs": {
+            "lifetime": 86400
+          }
+        }
+      },
+      "userinfo": {
+        "class": "oidcop.user_info.UserInfo",
+        "kwargs": {
+          "db_file": "users.json"
         }
       }
     }
@@ -374,7 +380,7 @@
     "ca_bundle": null,
     "verify_user": false,
     "port": 5000,
-    "domain": "0.0.0.0",
+    "domain": "127.0.0.1",
     "debug": true
   }
 }
