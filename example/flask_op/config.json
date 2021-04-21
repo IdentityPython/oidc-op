@@ -130,13 +130,13 @@
         ]
       },
       "cookie_handler": {
-        "class": "oidcop.cookie.CookieHandler",
+        "class": "oidcop.cookie_handler.CookieHandler",
         "kwargs": {
           "keys": {
             "private_path": "private/cookie_jwks.json",
             "key_defs": [
-              {"type": "OCT", "use": ["enc"]},
-              {"type": "OCT", "use": ["sig"]}
+              {"type": "OCT", "use": ["enc"], "kid": "enc"},
+              {"type": "OCT", "use": ["sig"], "kid": "sig"}
             ],
             "read_only": false
           },
