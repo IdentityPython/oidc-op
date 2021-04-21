@@ -69,13 +69,13 @@ class TestEndpoint(object):
     def test_parse_urlencoded(self):
         self.endpoint.request_format = "urlencoded"
         request = REQ.to_urlencoded()
-        req = self.endpoint.parse_request(request)
+        req = self.endpoint.parse_request(request, http_info={})
         assert req == REQ
 
     def test_parse_url(self):
         self.endpoint.request_format = "url"
         request = "{}?{}".format(self.endpoint_context.issuer, REQ.to_urlencoded())
-        req = self.endpoint.parse_request(request)
+        req = self.endpoint.parse_request(request, http_info={})
         assert req == REQ
 
     def test_parse_json(self):

@@ -1,22 +1,22 @@
 # coding=utf-8
 import base64
 import inspect
+import json
 import logging
 import sys
 import time
-import warnings
+from typing import List
 from urllib.parse import unquote
+import warnings
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptojwt.jwt import JWT
+from oidcendpoint.session import unpack_session_key
 
-from oidcop import sanitize
-from oidcop.cookie import cookie_value
 from oidcop.exception import FailedAuthentication
 from oidcop.exception import ImproperlyConfigured
 from oidcop.exception import InvalidCookieSign
 from oidcop.exception import OnlyForTestingWarning
-from oidcop.exception import ToOld
 from oidcop.util import instantiate
 
 __author__ = "Roland Hedberg"
@@ -42,8 +42,6 @@ LOC = {
 
 
 class UserAuthnMethod(object):
-    MULTI_AUTH_COOKIE = "rp_query_cookie"
-
     # override in subclass specifying suitable url endpoint to POST user input
     url_endpoint = "/verify"
     FAILED_AUTHN = (None, True)
@@ -63,40 +61,12 @@ class UserAuthnMethod(object):
         """
         raise NotImplemented
 
-    def authenticated_as(self, cookie=None, **kwargs):
+    def authenticated_as(self, client_id, cookie=None, **kwargs):
         if cookie is None:
             return None, 0
         else:
-            logger.debug("kwargs: %s" % sanitize(kwargs))
-
-            _context = self.server_get("endpoint_context")
-            try:
-                val = _context.cookie_dealer.get_cookie_value(
-                    cookie, cookie_name=_context.cookie_name["session"]
-                )
-            except (InvalidCookieSign, AssertionError, AttributeError) as err:
-                logger.warning(err)
-                val = None
-
-            if val is None:
-                return None, 0
-            else:
-                uid, _ts, typ = val
-
-            if typ == "uam":  # short lived
-                _ttl = _context.cookie_dealer.ttl
-                _now = int(time.time())
-                if _now > (int(_ts) + int(_ttl * 60)):
-                    logger.debug("Authentication timed out")
-                    raise ToOld("%d > (%d + %d)" % (_now, int(_ts), int(_ttl * 60)))
-            else:
-                if "max_age" in kwargs and kwargs["max_age"]:
-                    _now = int(time.time())
-                    if _now > (int(_ts) + int(kwargs["max_age"])):
-                        logger.debug("Authentication too old")
-                        raise ToOld("%d > (%d + %d)" % (_now, int(_ts), int(kwargs["max_age"])))
-
-            return {"uid": uid}, _ts
+            _info = self.cookie_info(cookie, client_id)
+            return _info, time.time()
 
     def verify(self, *args, **kwargs):
         """
@@ -104,15 +74,6 @@ class UserAuthnMethod(object):
         :return: username of the authenticated user
         """
         raise NotImplemented
-
-    def get_multi_auth_cookie(self, cookie):
-        rp_query_cookie = self.server_get("endpoint_context").cookie_dealer.get_cookie_value(
-            cookie, UserAuthnMethod.MULTI_AUTH_COOKIE
-        )
-
-        if rp_query_cookie:
-            return rp_query_cookie[0]
-        return ""
 
     def unpack_token(self, token):
         return verify_signed_jwt(token=token, keyjar=self.server_get("endpoint_context").keyjar)
@@ -129,6 +90,29 @@ class UserAuthnMethod(object):
             return True
         else:
             return False
+
+    def cookie_info(self, cookie: List[dict], client_id: str) -> dict:
+        _context = self.server_get("endpoint_context")
+        try:
+            vals = _context.cookie_handler.parse_cookie(
+                cookies=cookie,
+                name=_context.cookie_handler.name["session"]
+            )
+        except (InvalidCookieSign, AssertionError, AttributeError) as err:
+            logger.warning(err)
+            vals = None
+
+        if vals is None:
+            pass
+        else:
+            for val in vals:
+                _info = json.loads(val["value"])
+                _, cid, _ = unpack_session_key(_info["sid"])
+                if cid != client_id:
+                    continue
+                else:
+                    return _info
+        return {}
 
 
 def create_signed_jwt(issuer, keyjar, sign_alg="RS256", **kwargs):
@@ -224,7 +208,7 @@ class BasicAuthn(UserAuthnMethod):
         if password != self.passwd[user]:
             raise FailedAuthentication("Wrong password")
 
-    def authenticated_as(self, cookie=None, authorization="", **kwargs):
+    def authenticated_as(self, client_id, cookie=None, authorization="", **kwargs):
         """
 
         :param cookie: A HTTP Cookie
@@ -235,10 +219,13 @@ class BasicAuthn(UserAuthnMethod):
         if authorization.startswith("Basic"):
             authorization = authorization[6:]
 
-        (user, pwd) = base64.b64decode(authorization).split(":")
+        (user, pwd) = base64.b64decode(authorization).split(b":")
         user = unquote(user)
         self.verify_password(user, pwd)
-        return {"uid": user}, time.time()
+        res = {"uid": user}
+        if cookie:
+            res.update(self.cookie_info(cookie, client_id))
+        return res, time.time()
 
 
 class SymKeyAuthn(UserAuthnMethod):
@@ -253,7 +240,7 @@ class SymKeyAuthn(UserAuthnMethod):
         self.symkey = symkey
         self.ttl = ttl
 
-    def authenticated_as(self, cookie=None, authorization="", **kwargs):
+    def authenticated_as(self, client_id, cookie=None, authorization="", **kwargs):
         """
 
         :param cookie: A HTTP Cookie
@@ -261,14 +248,18 @@ class SymKeyAuthn(UserAuthnMethod):
         :param kwargs: extra key word arguments
         :return:
         """
-        (encmsg, iv) = base64.b64decode(authorization).split(":")
+        (encmsg, iv) = base64.b64decode(authorization).split(b":")
         try:
             aesgcm = AESGCM(self.symkey)
             user = aesgcm.decrypt(iv, encmsg, None)
         except (AssertionError, KeyError):
             raise FailedAuthentication("Decryption failed")
 
-        return {"uid": user}, time.time()
+        res = {"uid": user}
+        if cookie:
+            res.update(self.cookie_info(cookie, client_id))
+
+        return res, time.time()
 
 
 class NoAuthn(UserAuthnMethod):
@@ -279,10 +270,10 @@ class NoAuthn(UserAuthnMethod):
         self.user = user
         self.fail = None
 
-    def authenticated_as(self, cookie=None, authorization="", **kwargs):
+    def authenticated_as(self, cookie=None, authorization="", client_id="", **kwargs):
         """
 
-        :param cookie: A HTTP Cookie
+        :param cookie: A list of Cookie information
         :param authorization: The HTTP Authorization header
         :param kwargs: extra key word arguments
         :return:
@@ -292,26 +283,8 @@ class NoAuthn(UserAuthnMethod):
             raise self.fail()
 
         res = {"uid": self.user}
-
         if cookie:
-            _context = self.server_get("endpoint_context")
-            try:
-                val = _context.cookie_dealer.get_cookie_value(
-                    cookie, cookie_name=_context.cookie_name["session"]
-                )
-            except (InvalidCookieSign, AssertionError, AttributeError) as err:
-                logger.warning(err)
-                val = None
-
-            if val is None:
-                return None, 0
-            else:
-                b64val, _ts, typ = val
-                info = cookie_value(b64val)
-                if isinstance(info, dict):
-                    res.update(info)
-                else:
-                    res["value"] = b64val
+            res.update(self.cookie_info(cookie, client_id))
 
         return res, time.time()
 

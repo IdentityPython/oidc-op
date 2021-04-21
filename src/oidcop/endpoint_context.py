@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any
 from typing import Optional
@@ -89,7 +90,7 @@ class EndpointContext(OidcContext):
         # "authz": AuthzHandling,
         "cdb": {},
         "conf": {},
-        # "cookie_dealer": None,
+        # "cookie_handler": None,
         "cwd": "",
         "endpoint_to_authn_method": {},
         "httpc_params": {},
@@ -117,7 +118,7 @@ class EndpointContext(OidcContext):
             conf: dict,
             keyjar: Optional[KeyJar] = None,
             cwd: Optional[str] = "",
-            cookie_dealer: Optional[Any] = None,
+            cookie_handler: Optional[Any] = None,
             httpc: Optional[Any] = None,
     ):
         OidcContext.__init__(self, conf, keyjar, entity_id=conf.get("issuer", ""))
@@ -142,7 +143,7 @@ class EndpointContext(OidcContext):
         self.args = {}
         self.authn_broker = None
         self.authz = None
-        self.cookie_dealer = cookie_dealer
+        self.cookie_handler = cookie_handler
         self.endpoint_to_authn_method = {}
         self.httpc = httpc or requests
         self.idtoken = None
@@ -178,15 +179,6 @@ class EndpointContext(OidcContext):
         self._sub_func = {}
         self.do_sub_func()
 
-        if "cookie_name" in conf:
-            self.cookie_name = conf["cookie_name"]
-        else:
-            self.cookie_name = {
-                "session": "oidcop",
-                "register": "oidc_op_rp",
-                "session_management": "sman",
-            }
-
         _handler = conf.get("template_handler")
         if _handler:
             self.template_handler = _handler
@@ -213,7 +205,7 @@ class EndpointContext(OidcContext):
             pass
 
         for item in [
-            "cookie_dealer",
+            "cookie_handler",
             "authentication",
             "id_token",
             "scope2claims",
@@ -240,6 +232,10 @@ class EndpointContext(OidcContext):
         self.set_scopes_handler()
         self.dev_auth_db = None
         self.claims_interface = None
+
+    def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
+        return self.cookie_handler.make_cookie_content(
+            name=name, value=json.dumps(kwargs), max_age=max_age)
 
     def set_scopes_handler(self):
         _spec = self.conf.get("scopes_handler")
@@ -292,11 +288,11 @@ class EndpointContext(OidcContext):
             else:
                 logger.warning("Cannot init_user_info if no session manager was provided.")
 
-    def do_cookie_dealer(self):
-        _conf = self.conf.get("cookie_dealer")
+    def do_cookie_handler(self):
+        _conf = self.conf.get("cookie_handler")
         if _conf:
-            if not self.cookie_dealer:
-                self.cookie_dealer = init_service(_conf)
+            if not self.cookie_handler:
+                self.cookie_handler = init_service(_conf)
 
     def do_sub_func(self) -> None:
         """

@@ -2,7 +2,6 @@ import base64
 import json
 import os
 
-import pytest
 from cryptojwt import JWT
 from cryptojwt import as_unicode
 from cryptojwt.key_jar import build_keyjar
@@ -12,11 +11,11 @@ from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac
 from oidcmsg.time_util import utc_time_sans_frac
+import pytest
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.client_authn import verify_client
-from oidcop.endpoint_context import EndpointContext
 from oidcop.exception import UnAuthorizedClient
 from oidcop.oauth2.authorization import Authorization
 from oidcop.oauth2.introspection import Introspection
@@ -203,8 +202,8 @@ class TestEndpoint:
             endpoint_context.keyjar.export_jwks_as_json(private=True),
             endpoint_context.issuer,
         )
-        self.introspection_endpoint = server.server_get("endpoint","introspection")
-        self.token_endpoint = server.server_get("endpoint","token")
+        self.introspection_endpoint = server.server_get("endpoint", "introspection")
+        self.token_endpoint = server.server_get("endpoint", "token")
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
@@ -266,13 +265,16 @@ class TestEndpoint:
 
         _basic_token = "{}:{}".format(
             "client_1",
-            self.introspection_endpoint.server_get("endpoint_context").cdb["client_1"]["client_secret"]
+            self.introspection_endpoint.server_get("endpoint_context").cdb["client_1"][
+                "client_secret"]
         )
         _basic_token = as_unicode(base64.b64encode(as_bytes(_basic_token)))
         _basic_authz = "Basic {}".format(_basic_token)
+        http_info = {"headers": {"authorization": _basic_authz}}
 
         with pytest.raises(UnAuthorizedClient):
-            self.introspection_endpoint.parse_request({"token": access_token.value}, _basic_authz)
+            self.introspection_endpoint.parse_request({"token": access_token.value},
+                                                      http_info=http_info)
 
     def test_process_request(self):
         access_token = self._get_access_token(AUTH_REQ)

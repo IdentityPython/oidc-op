@@ -2,9 +2,6 @@ import os
 
 import pytest
 
-from oidcop.cookie import cookie_value
-from oidcop.cookie import new_cookie
-from oidcop.endpoint_context import EndpointContext
 from oidcop.server import Server
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_authn.authn_context import UNSPECIFIED
@@ -58,15 +55,14 @@ class TestUserAuthn(object):
                     "kwargs": {"user": "diana"},
                 },
             },
-            "cookie_dealer": {
-                "class": "oidcop.cookie.CookieDealer",
+            "cookie_handler": {
+                "class": "oidcop.cookie_handler.CookieHandler",
                 "kwargs": {
                     "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                    "default_values": {
-                        "name": "oidc_xx",
-                        "domain": "example.com",
-                        "path": "/",
-                        "max_age": 3600,
+                    "name": {
+                        "session": "oidc_op",
+                        "register": "oidc_op_reg",
+                        "session_management": "oidc_op_sman"
                     },
                 },
             },
@@ -87,15 +83,14 @@ class TestUserAuthn(object):
         method = authn_item[0]["method"]
 
         authn_req = {"state": "state_identifier", "client_id": "client 12345"}
-        _cookie = new_cookie(
-            self.endpoint_context,
+        _cookie = self.endpoint_context.new_cookie(
+            name=self.endpoint_context.cookie_handler.name["session"],
             sub="diana",
-            sid="session_identifier",
+            sid="diana;;client 12345;;abcdefgh",
             state=authn_req["state"],
             client_id=authn_req["client_id"],
-            cookie_name=self.endpoint_context.cookie_name["session"],
         )
 
-        _info, _time_stamp = method.authenticated_as(_cookie)
-        _info = cookie_value(_info["uid"])
+        _info, _time_stamp = method.authenticated_as("client 12345", [_cookie])
+        assert set(_info.keys()) == {"sub", "sid","state", "client_id"}
         assert _info["sub"] == "diana"

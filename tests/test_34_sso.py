@@ -87,7 +87,8 @@ USERINFO_db = json.loads(open(full_path("users.json")).read())
 client_yaml = """
 oidc_clients:
   client_1:
-    "client_secret": 'hemligtkodord'
+    client_secret: hemligtkodord,
+    client_id: client_1,
     "redirect_uris": 
         - ['https://example.com/cb', '']
     "client_salt": "salted"
@@ -100,12 +101,14 @@ oidc_clients:
         - 'code id_token token'
   client_2:
     client_secret: "spraket_sr.se"
+    client_id: client_2,
     redirect_uris:
       - ['https://app1.example.net/foo', '']
       - ['https://app2.example.net/bar', '']
     response_types:
       - code
   client_3:
+    client_id: client_3,
     client_secret: '2222222222222222222222222222222222222222'
     redirect_uris:
       - ['https://127.0.0.1:8090/authz_cb/bobcat', '']
@@ -149,15 +152,14 @@ class TestUserAuthn(object):
                     "kwargs": {"user": "diana"},
                 },
             },
-            "cookie_dealer": {
-                "class": "oidcop.cookie.CookieDealer",
+            "cookie_handler": {
+                "class": "oidcop.cookie_handler.CookieHandler",
                 "kwargs": {
                     "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                    "default_values": {
-                        "name": "oidc_xx",
-                        "domain": "example.com",
-                        "path": "/",
-                        "max_age": 3600,
+                    "name": {
+                        "session": "oidc_op",
+                        "register": "oidc_op_reg",
+                        "session_management": "oidc_op_sman"
                     },
                 },
             },
@@ -187,19 +189,20 @@ class TestUserAuthn(object):
 
         res = self.endpoint.authz_part2(request, info["session_id"], cookie="")
         assert res
-        cookie = res["cookie"]
+        cookies_1 = res["cookie"]
 
         # second login - from 2nd client
         request = self.endpoint.parse_request(AUTH_REQ_2.to_dict())
         redirect_uri = request["redirect_uri"]
         cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
         info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=None)
+        sid2 = info["session_id"]
 
         assert set(info.keys()) == {"session_id", "identity", "user"}
         assert info["user"] == "diana"
 
-        self.endpoint.authz_part2(request, info["session_id"], cookie="")
-        cookie = res["cookie"]
+        res = self.endpoint.authz_part2(request, info["session_id"], cookie="")
+        cookies_2 = res["cookie"]
 
         # third login - from 3rd client
         request = self.endpoint.parse_request(AUTH_REQ_3.to_dict())
@@ -210,13 +213,14 @@ class TestUserAuthn(object):
         assert set(info.keys()) == {"session_id", "identity", "user"}
         assert info["user"] == "diana"
 
-        self.endpoint.authz_part2(request, info["session_id"], cookie="")
+        res = self.endpoint.authz_part2(request, info["session_id"], cookie="")
+        cookies_3 = res["cookie"]
 
         # fourth login - from 1st client
         request = self.endpoint.parse_request(AUTH_REQ_4.to_dict())
         redirect_uri = request["redirect_uri"]
         cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
-        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=cookie[0])
+        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=cookies_1)
 
         assert set(info.keys()) == {"session_id", "identity", "user"}
         assert info["user"] == "diana"
@@ -227,9 +231,9 @@ class TestUserAuthn(object):
         request = self.endpoint.parse_request(AUTH_REQ_2.to_dict())
         redirect_uri = request["redirect_uri"]
         cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
-        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=cookie[0])
-
-        assert set(info.keys()) == {"args", "function"}
+        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=cookies_1)
+        # No valid login cookie so new session
+        assert info["session_id"] != sid2
 
         user_session_info = self.endpoint.server_get("endpoint_context").session_manager.get(["diana"])
         assert len(user_session_info.subordinate) == 3

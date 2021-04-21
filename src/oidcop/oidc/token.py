@@ -13,9 +13,9 @@ from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import time_sans_frac
 
 from oidcop import sanitize
-from oidcop.cookie import new_cookie
 from oidcop.endpoint import Endpoint
 from oidcop.exception import ProcessError
+from oidcop.session import session_key
 from oidcop.session import unpack_session_key
 from oidcop.session.grant import AuthorizationCode
 from oidcop.session.grant import Grant
@@ -320,7 +320,6 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return request
 
 
-
 HELPER_BY_GRANT_TYPE = {
     "authorization_code": AccessTokenHelper,
     "refresh_token": RefreshTokenHelper,
@@ -428,14 +427,14 @@ class Token(Endpoint):
         _session_info = _context.session_manager.get_session_info_by_token(
             _access_token, grant=True)
 
-        _cookie = new_cookie(
-            _context,
+        _cookie = _context.new_cookie(
+            name=_context.cookie_handler.name["session"],
             sub=_session_info["grant"].sub,
-            cookie_name=_context.cookie_name["session"],
-        )
+            sid=session_key(_session_info['user_id'], _session_info['user_id'],
+                            _session_info['grant'].id))
 
         _headers = [("Content-type", "application/json")]
         resp = {"response_args": response_args, "http_headers": _headers}
         if _cookie:
-            resp["cookie"] = _cookie
+            resp["cookie"] = [_cookie]
         return resp

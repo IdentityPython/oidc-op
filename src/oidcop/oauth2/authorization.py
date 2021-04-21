@@ -22,9 +22,7 @@ from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop import rndstr
 from oidcop.authn_event import create_authn_event
-from oidcop.cookie import append_cookie
-from oidcop.cookie import compute_session_state
-from oidcop.cookie import new_cookie
+from oidcop.cookie_handler import compute_session_state
 from oidcop.endpoint import Endpoint
 from oidcop.exception import InvalidRequest
 from oidcop.exception import NoSuchAuthentication
@@ -328,7 +326,7 @@ class Authorization(Endpoint):
             token.expires_at = utc_time_sans_frac() + _exp_in
 
         self.server_get("endpoint_context").session_manager.set(unpack_session_key(session_id),
-                                                        grant)
+                                                                grant)
 
         return token
 
@@ -478,9 +476,8 @@ class Authorization(Endpoint):
 
         _token_usage_rules = _context.authz.usage_rules(request["client_id"])
         return _mngr.create_session(authn_event=authn_event, auth_req=request,
-                                           user_id=user_id, client_id=request["client_id"],
-                                           token_usage_rules=_token_usage_rules)
-
+                                    user_id=user_id, client_id=request["client_id"],
+                                    token_usage_rules=_token_usage_rules)
 
     def setup_auth(self, request, redirect_uri, cinfo, cookie, acr=None, **kwargs):
         """
@@ -488,7 +485,7 @@ class Authorization(Endpoint):
         :param request: The authorization/authentication request
         :param redirect_uri:
         :param cinfo: client info
-        :param cookie:
+        :param cookie: List of cookies
         :param acr: Default ACR, if nothing else is specified
         :param kwargs:
         :return:
@@ -499,6 +496,7 @@ class Authorization(Endpoint):
         authn = res["method"]
         authn_class_ref = res["acr"]
 
+        client_id = request.get("client_id")
         _context = self.server_get("endpoint_context")
         try:
             _auth_info = kwargs.get("authn", "")
@@ -508,7 +506,7 @@ class Authorization(Endpoint):
                 _max_age = max_age(request)
 
             identity, _ts = authn.authenticated_as(
-                cookie, authorization=_auth_info, max_age=_max_age
+                cookie, authorization=_auth_info, max_age=_max_age, client_id=client_id
             )
         except (NoSuchAuthentication, TamperAllert):
             identity = None
@@ -796,18 +794,6 @@ class Authorization(Endpoint):
         else:
             response_info["return_uri"] = redirect_uri
 
-        # Must not use HTTP unless implicit grant type and native application
-        # info = self.aresp_check(response_info['response_args'], request)
-        # if isinstance(info, ResponseMessage):
-        #     return info
-
-        _cookie = new_cookie(
-            _context,
-            sid=session_id,
-            state=request.get("state"),
-            cookie_name=_context.cookie_name["session"],
-        )
-
         # Now about the response_mode. Should not be set if it's obvious
         # from the response_type. Knows about 'query', 'fragment' and
         # 'form_post'.
@@ -820,7 +806,13 @@ class Authorization(Endpoint):
                     response_info, "invalid_request", "{}".format(err.args)
                 )
 
-        response_info["cookie"] = [_cookie]
+        _cookie_info = _context.new_cookie(
+            name=_context.cookie_handler.name["session"],
+            sid= session_id,
+            state= request.get("state")
+        )
+
+        response_info["cookie"] = [_cookie_info]
 
         return response_info
 
@@ -855,22 +847,12 @@ class Authorization(Endpoint):
                 as_bytes(json.dumps({"authn_time": authn_event["authn_time"]}))
             )
 
-            opbs_value = ''
-            if hasattr(_context.cookie_dealer, 'create_cookie'):
-                session_cookie = _context.cookie_dealer.create_cookie(
-                    as_unicode(_state),
-                    typ="session",
-                    cookie_name=_context.cookie_name["session_management"],
-                    same_site="None",
-                    http_only=False,
-                )
+            _session_cookie_content = _context.new_cookie(
+                name=_context.cookie_handler.name["session_management"],
+                state=as_unicode(_state),
+            )
 
-                opbs = session_cookie[_context.cookie_name["session_management"]]
-                opbs_value = opbs.value
-            else:
-                session_cookie = None
-                logger.debug(
-                    "Failed to set Cookie, that's not configured in main configuration.")
+            opbs_value = _session_cookie_content["value"]
 
             logger.debug(
                 "compute_session_state: client_id=%s, origin=%s, opbs=%s, salt=%s",
@@ -884,14 +866,11 @@ class Authorization(Endpoint):
                 opbs_value, salt, request["client_id"], resp_info["return_uri"]
             )
 
-            if opbs_value and session_cookie:
+            if _session_cookie_content:
                 if "cookie" in resp_info:
-                    if isinstance(resp_info["cookie"], list):
-                        resp_info["cookie"].append(session_cookie)
-                    else:
-                        append_cookie(resp_info["cookie"], session_cookie)
+                    resp_info["cookie"].append(_session_cookie_content)
                 else:
-                    resp_info["cookie"] = session_cookie
+                    resp_info["cookie"] = [_session_cookie_content]
 
             resp_info["response_args"]["session_state"] = _session_state
 
@@ -904,9 +883,13 @@ class Authorization(Endpoint):
     def do_request_user(self, request_info, **kwargs):
         return kwargs
 
-    def process_request(self, request: Optional[Union[Message, dict]] = None, **kwargs):
+    def process_request(self,
+                        request: Optional[Union[Message, dict]] = None,
+                        http_info: Optional[dict] = None,
+                        **kwargs):
         """ The AuthorizationRequest endpoint
 
+        :param http_info: Information on the HTTP request
         :param request: The authorization request as a Message instance
         :return: dictionary
         """
@@ -923,14 +906,17 @@ class Authorization(Endpoint):
         if cinfo:
             check_unknown_scopes_policy(request, cinfo, _context)
 
-        cookie = kwargs.get("cookie", "")
-        if cookie:
-            del kwargs["cookie"]
+        if http_info is None:
+            http_info = {}
+
+        _cookies = http_info.get("cookie")
+        if _cookies:
+            _cookies = _context.cookie_handler.parse_cookie('oidcop', _cookies)
 
         kwargs = self.do_request_user(request_info=request, **kwargs)
 
         info = self.setup_auth(
-            request, request["redirect_uri"], cinfo, cookie, **kwargs
+            request, request["redirect_uri"], cinfo, _cookies, **kwargs
         )
 
         if "error" in info:
@@ -940,7 +926,7 @@ class Authorization(Endpoint):
         if not _function:
             logger.debug("- authenticated -")
             logger.debug("AREQ keys: %s" % request.keys())
-            return self.authz_part2(request=request, cookie=cookie, **info)
+            return self.authz_part2(request=request, cookie=_cookies, **info)
 
         try:
             # Run the authentication function

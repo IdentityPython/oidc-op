@@ -16,9 +16,7 @@ from oidcmsg.oidc import verify_id_token
 import pytest
 import responses
 
-from oidcop.cookie import CookieDealer
-from oidcop.cookie import new_cookie
-from oidcop.endpoint_context import EndpointContext
+from oidcop.cookie_handler import CookieHandler
 from oidcop.exception import RedirectURIError
 from oidcop.oauth2.authorization import join_query
 from oidcop.oidc import userinfo
@@ -162,15 +160,14 @@ class TestEndpoint(object):
         }
         cookie_conf = {
             "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-            "default_values": {
-                "name": "oidcop",
-                "domain": "127.0.0.1",
-                "path": "/",
-                "max_age": 3600,
+            "name": {
+                "session": "oidc_op",
+                "register": "oidc_op_reg",
+                "session_management": "oidc_op_sman"
             },
         }
-        self.cd = CookieDealer(**cookie_conf)
-        server = Server(conf, cookie_dealer=self.cd, keyjar=KEYJAR)
+        self.cd = CookieHandler(**cookie_conf)
+        server = Server(conf, cookie_handler=self.cd, keyjar=KEYJAR)
         endpoint_context = server.endpoint_context
         endpoint_context.cdb = {
             "client_1": {
@@ -199,15 +196,15 @@ class TestEndpoint(object):
     def test_end_session_endpoint(self):
         # End session not allowed if no cookie and no id_token_hint is sent
         # (can't determine session)
+        http_info = {'headers': {'cookie': ["FAIL"]}}
         with pytest.raises(ValueError):
-            _ = self.session_endpoint.process_request("", cookie="FAIL")
+            _ = self.session_endpoint.process_request("", http_info=http_info)
 
     def _create_cookie(self, session_id):
         ec = self.session_endpoint.server_get("endpoint_context")
-        return new_cookie(
-            ec,
+        return ec.new_cookie(
+            name=ec.cookie_handler.name["session"],
             sid=session_id,
-            cookie_name=ec.cookie_name["session"],
         )
 
     def _code_auth(self, state):
@@ -244,11 +241,11 @@ class TestEndpoint(object):
         _pr_resp = self.authn_endpoint.parse_request(req.to_dict())
         _resp = self.authn_endpoint.process_request(_pr_resp)
 
-        part = self.session_endpoint.server_get("endpoint_context").cookie_dealer.get_cookie_value(
-            _resp["cookie"][0], cookie_name="oidcop"
+        _info = self.session_endpoint.server_get("endpoint_context").cookie_handler.parse_cookie(
+            "oidc_op", _resp["cookie"]
         )
-        # value is a base64 encoded JSON document
-        _cookie_info = json.loads(as_unicode(b64d(as_bytes(part[0]))))
+        # value is a JSON document
+        _cookie_info = json.loads(_info[0]["value"])
 
         return _resp["response_args"], _cookie_info["sid"]
 
@@ -257,9 +254,9 @@ class TestEndpoint(object):
         _code = _resp["response_args"]["code"]
         _session_info = self.session_manager.get_session_info_by_token(_code)
         cookie = self._create_cookie(_session_info["session_id"])
-
-        _req_args = self.session_endpoint.parse_request({"state": "1234567"})
-        resp = self.session_endpoint.process_request(_req_args, cookie=cookie)
+        http_info = {"cookie": [cookie]}
+        _req_args = self.session_endpoint.parse_request({"state": "1234567"}, http_info=http_info)
+        resp = self.session_endpoint.process_request(_req_args, http_info=http_info)
 
         # returns a signed JWT to be put in a verification web page shown to
         # the user
@@ -278,9 +275,10 @@ class TestEndpoint(object):
 
         _uid, _cid, _gid = unpack_session_key(_session_id)
         cookie = self._create_cookie(session_key(_uid, "client_66", _gid))
+        http_info = {"cookie": [cookie]}
 
         with pytest.raises(ValueError):
-            self.session_endpoint.process_request({"state": "foo"}, cookie=cookie)
+            self.session_endpoint.process_request({"state": "foo"}, http_info=http_info)
 
     def test_end_session_endpoint_with_cookie_id_token_and_unknown_sid(self):
         # Need cookie and ID Token to figure this out
@@ -289,6 +287,7 @@ class TestEndpoint(object):
 
         _uid, _cid, _gid = unpack_session_key(_session_id)
         cookie = self._create_cookie(session_key(_uid, "client_66", _gid))
+        http_info = {"cookie": [cookie]}
 
         msg = Message(id_token=id_token)
         verify_id_token(msg, keyjar=self.session_endpoint.server_get("endpoint_context").keyjar)
@@ -298,7 +297,7 @@ class TestEndpoint(object):
             verified_claim_name("id_token")
         ]
         with pytest.raises(ValueError):
-            self.session_endpoint.process_request(msg2, cookie=cookie)
+            self.session_endpoint.process_request(msg2, http_info=http_info)
 
     def test_end_session_endpoint_with_cookie_dual_login(self):
         _resp = self._code_auth("1234567")
@@ -306,8 +305,9 @@ class TestEndpoint(object):
         _code = _resp["response_args"]["code"]
         _session_info = self.session_manager.get_session_info_by_token(_code)
         cookie = self._create_cookie(_session_info["session_id"])
+        http_info = {"cookie": [cookie]}
 
-        resp = self.session_endpoint.process_request({"state": "abcde"}, cookie=cookie)
+        resp = self.session_endpoint.process_request({"state": "abcde"}, http_info=http_info)
 
         # returns a signed JWT to be put in a verification web page shown to
         # the user
@@ -325,6 +325,7 @@ class TestEndpoint(object):
         _code = _resp["response_args"]["code"]
         _session_info = self.session_manager.get_session_info_by_token(_code)
         cookie = self._create_cookie(_session_info["session_id"])
+        http_info = {"cookie": [cookie]}
 
         post_logout_redirect_uri = join_query(
             *self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
@@ -338,7 +339,7 @@ class TestEndpoint(object):
                     "post_logout_redirect_uri": post_logout_redirect_uri,
                     "state": "abcde",
                 },
-                cookie=cookie,
+                http_info=http_info
             )
 
     def test_end_session_endpoint_with_wrong_post_logout_redirect_uri(self):
@@ -349,6 +350,7 @@ class TestEndpoint(object):
         id_token = resp_args["id_token"]
 
         cookie = self._create_cookie(_session_id)
+        http_info = {"cookie": [cookie]}
 
         post_logout_redirect_uri = "https://demo.example.com/log_out"
 
@@ -365,7 +367,7 @@ class TestEndpoint(object):
                         verified_claim_name("id_token")
                     ],
                 },
-                cookie=cookie,
+                http_info=http_info
             )
 
     def test_back_channel_logout_no_uri(self):

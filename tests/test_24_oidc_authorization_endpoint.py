@@ -4,9 +4,6 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
-import pytest
-import responses
-import yaml
 from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.utils import as_bytes
@@ -19,13 +16,13 @@ from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import verified_claim_name
 from oidcmsg.oidc import verify_id_token
+import pytest
+import responses
+import yaml
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
-from oidcop.cookie import CookieDealer
-from oidcop.cookie import cookie_value
-from oidcop.cookie import new_cookie
-from oidcop.endpoint_context import EndpointContext
+from oidcop.cookie_handler import CookieHandler
 from oidcop.exception import InvalidRequest
 from oidcop.exception import NoSuchAuthentication
 from oidcop.exception import RedirectURIError
@@ -238,16 +235,15 @@ class TestEndpoint(object):
                     }
                 }
             },
-            "cookie_dealer": {
-                "class": CookieDealer,
+            "cookie_handler": {
+                "class": CookieHandler,
                 "kwargs": {
                     "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                    "default_values": {
-                        "name": "oidcop",
-                        "domain": "127.0.0.1",
-                        "path": "/",
-                        "max_age": 3600,
-                    },
+                    "name": {
+                        "session": "oidc_op",
+                        "register": "oidc_op_reg",
+                        "session_management": "oidc_op_sman"
+                    }
                 },
             },
             "login_hint2acrs": {
@@ -263,7 +259,7 @@ class TestEndpoint(object):
         endpoint_context.keyjar.import_jwks(
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
-        self.endpoint = server.server_get("endpoint","authorization")
+        self.endpoint = server.server_get("endpoint", "authorization")
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
@@ -601,11 +597,11 @@ class TestEndpoint(object):
             "id_token_signed_response_alg": "RS256",
         }
 
-        kaka = self.endpoint.server_get("endpoint_context").cookie_dealer.create_cookie(
+        kaka = self.endpoint.server_get("endpoint_context").cookie_handler.make_cookie_content(
             "value", "sso"
         )
 
-        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, kaka)
+        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, [kaka])
         assert set(res.keys()) == {"session_id", "identity", "user"}
 
     def test_setup_auth_error(self):
@@ -902,16 +898,10 @@ class TestUserAuthn(object):
                     "kwargs": {"user": "diana"},
                 },
             },
-            "cookie_dealer": {
-                "class": "oidcop.cookie.CookieDealer",
+            "cookie_handler": {
+                "class": "oidcop.cookie_handler.CookieHandler",
                 "kwargs": {
-                    "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                    "default_values": {
-                        "name": "oidc_xx",
-                        "domain": "example.com",
-                        "path": "/",
-                        "max_age": 3600,
-                    },
+                    "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch"
                 },
             },
             "template_dir": "template",
@@ -931,15 +921,13 @@ class TestUserAuthn(object):
         method = authn_item[0]["method"]
 
         authn_req = {"state": "state_identifier", "client_id": "client 12345"}
-        _cookie = new_cookie(
-            self.endpoint_context,
+        _cookie = self.endpoint_context.new_cookie(
+            name=self.endpoint_context.cookie_handler.name["session"],
             sub="diana",
-            sid="session_identifier",
+            sid="diana;;client 12345;;abcdefgh",
             state=authn_req["state"],
             client_id=authn_req["client_id"],
-            cookie_name=self.endpoint_context.cookie_name["session"],
         )
 
-        _info, _time_stamp = method.authenticated_as(_cookie)
-        _info = cookie_value(_info["uid"])
+        _info, _time_stamp = method.authenticated_as(client_id="client 12345", cookie=[_cookie])
         assert _info["sub"] == "diana"

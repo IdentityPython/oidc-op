@@ -6,7 +6,7 @@ from oidcmsg.oidc import AuthorizationRequest
 import pytest
 
 from oidcop.authn_event import create_authn_event
-from oidcop.cookie import CookieDealer
+from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -156,13 +156,7 @@ CONF = {
 }
 
 COOKIE_CONF = {
-    "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-    "default_values": {
-        "name": "oidcop",
-        "domain": "127.0.0.1",
-        "path": "/",
-        "max_age": 3600,
-    },
+    "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch"
 }
 
 
@@ -170,9 +164,9 @@ class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
 
-        self.cd = CookieDealer(**COOKIE_CONF)
+        self.cd = CookieHandler(**COOKIE_CONF)
 
-        server = Server(CONF, cookie_dealer=self.cd, keyjar=KEYJAR)
+        server = Server(CONF, cookie_handler=self.cd, keyjar=KEYJAR)
         endpoint_context = server.endpoint_context
         endpoint_context.cdb = CDB
 
@@ -222,7 +216,8 @@ class TestEndpoint(object):
         assert _store
         _store_str = json.dumps(_store)
 
-        server = Server(CONF, cookie_dealer=self.cd, keyjar=KEYJAR)
+        # 2nd server
+        server = Server(CONF, cookie_handler=self.cd, keyjar=KEYJAR)
         server.endpoint_context.cdb = CDB
         _mngr = server.endpoint_context.session_manager
 

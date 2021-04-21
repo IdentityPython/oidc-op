@@ -6,11 +6,9 @@ from typing import Union
 import uuid
 
 from oidcmsg.oauth2 import AuthorizationRequest
-from oidcop.token import Crypt
 
 from oidcop import rndstr
 from oidcop.authn_event import AuthnEvent
-from oidcop.token import DefaultToken
 from oidcop.token import handler
 from . import session_key
 from . import unpack_session_key

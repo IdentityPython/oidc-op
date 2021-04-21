@@ -152,7 +152,7 @@ class UserInfo(Endpoint):
 
         return {"response_args": info, "client_id": _session_info["client_id"]}
 
-    def parse_request(self, request, auth=None, **kwargs):
+    def parse_request(self, request, http_info=None, **kwargs):
         """
 
         :param request:
@@ -166,7 +166,7 @@ class UserInfo(Endpoint):
 
         # Verify that the client is allowed to do this
         try:
-            auth_info = self.client_authentication(request, auth, **kwargs)
+            auth_info = self.client_authentication(request, http_info, **kwargs)
         except (ValueError, UnknownToken) as e:
             return self.error_cls(
                 error="invalid_token", error_description=e.args[0]

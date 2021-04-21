@@ -1,20 +1,19 @@
 import io
 import json
 import os
-import string
 from secrets import choice
+import string
 
-import pytest
-import yaml
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AuthorizationErrorResponse
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import TokenErrorResponse
+import pytest
+import yaml
 
-from oidcop.cookie import CookieDealer
-from oidcop.endpoint_context import EndpointContext
+from oidcop.cookie_handler import CookieHandler
 from oidcop.id_token import IDToken
 from oidcop.oidc.add_on.pkce import CC_METHOD
 from oidcop.oidc.authorization import Authorization
@@ -163,15 +162,14 @@ def conf():
                 "kwargs": {"essential": True},
             }
         },
-        "cookie_dealer": {
-            "class": CookieDealer,
+        "cookie_handler": {
+            "class": CookieHandler,
             "kwargs": {
                 "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                "default_values": {
-                    "name": "oidcop",
-                    "domain": "127.0.0.1",
-                    "path": "/",
-                    "max_age": 3600,
+                "name": {
+                    "session": "oidc_op",
+                    "register": "oidc_op_reg",
+                    "session_management": "oidc_op_sman"
                 },
             },
         },
@@ -219,8 +217,8 @@ class TestEndpoint(object):
     def create_endpoint(self, conf):
         server = create_server(conf)
         self.session_manager = server.endpoint_context.session_manager
-        self.authn_endpoint = server.server_get("endpoint","authorization")
-        self.token_endpoint = server.server_get("endpoint","token")
+        self.authn_endpoint = server.server_get("endpoint", "authorization")
+        self.token_endpoint = server.server_get("endpoint", "token")
 
     def test_unsupported_code_challenge_methods(self, conf):
         conf["add_on"]["pkce"]["kwargs"]["code_challenge_methods"] = ["dada"]
@@ -283,8 +281,8 @@ class TestEndpoint(object):
     def test_not_essential(self, conf):
         conf["add_on"]["pkce"]["kwargs"]["essential"] = False
         server = create_server(conf)
-        authn_endpoint = server.server_get("endpoint","authorization")
-        token_endpoint = server.server_get("endpoint","token")
+        authn_endpoint = server.server_get("endpoint", "authorization")
+        token_endpoint = server.server_get("endpoint", "token")
         _authn_req = AUTH_REQ.copy()
 
         _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
@@ -316,7 +314,7 @@ class TestEndpoint(object):
     def test_unsupported_code_challenge_method(self, conf):
         conf["add_on"]["pkce"]["kwargs"]["code_challenge_methods"] = ["plain"]
         server = create_server(conf)
-        authn_endpoint = server.server_get("endpoint","authorization")
+        authn_endpoint = server.server_get("endpoint", "authorization")
 
         _cc_info = _code_challenge()
         _authn_req = AUTH_REQ.copy()

@@ -13,8 +13,7 @@ from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oauth2 import JWTSecuredAuthorizationRequest
 from oidcmsg.time_util import in_a_while
 
-from oidcop.cookie import CookieDealer
-from oidcop.endpoint_context import EndpointContext
+from oidcop.cookie_handler import CookieHandler
 from oidcop.id_token import IDToken
 from oidcop.oauth2.authorization import Authorization
 from oidcop.server import Server
@@ -81,12 +80,12 @@ class SimpleCookieDealer(object):
         return cookie
 
     @staticmethod
-    def get_cookie_value(cookie=None, cookie_name=None):
-        if cookie is None or cookie_name is None:
+    def get_cookie_value(cookie=None, name=None):
+        if cookie is None or name is None:
             return None
         else:
             try:
-                info, timestamp = cookie[cookie_name].split("|")
+                info, timestamp = cookie[name].split("|")
             except (TypeError, AssertionError):
                 return None
             else:
@@ -163,15 +162,14 @@ class TestEndpoint(object):
             },
             "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_db}},
             "template_dir": "template",
-            "cookie_dealer": {
-                "class": CookieDealer,
+            "cookie_handler": {
+                "class": CookieHandler,
                 "kwargs": {
                     "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                    "default_values": {
-                        "name": "oidcop",
-                        "domain": "127.0.0.1",
-                        "path": "/",
-                        "max_age": 3600,
+                    "name": {
+                        "session": "oidc_op",
+                        "register": "oidc_op_reg",
+                        "session_management": "oidc_op_sman"
                     },
                 },
             },

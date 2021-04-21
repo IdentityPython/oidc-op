@@ -19,7 +19,6 @@ from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop import rndstr
 from oidcop import sanitize
-from oidcop.cookie import new_cookie
 from oidcop.endpoint import Endpoint
 from oidcop.exception import CapabilitiesMisMatch
 from oidcop.exception import InvalidRedirectURIError
@@ -465,10 +464,9 @@ class Registration(Endpoint):
             return reg_resp
         else:
             _context = self.server_get("endpoint_context")
-            _cookie = new_cookie(
-                _context,
-                cookie_name=_context.cookie_name["register"],
-                client_id=reg_resp["client_id"],
+            _cookie = _context.new_cookie(
+                name=_context.cookie_handler.name["register"],
+                client_id= reg_resp["client_id"]
             )
 
             return {"response_args": reg_resp, "cookie": _cookie}

@@ -26,7 +26,7 @@ DEFAULT_ITEM_PATHS = {
                 "jwks_def": ["private_path", "public_path"]
             },
             "keys": ["private_path", "public_path"],
-            "cookie_dealer": {
+            "cookie_handler": {
                 "kwargs": {
                     "sign_jwk": ["private_path", "public_path"],
                     "enc_jwk": ["private_path", "public_path"]

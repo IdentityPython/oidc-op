@@ -1,10 +1,10 @@
 # -*- coding: latin-1 -*-
 import json
 
-import pytest
 from oidcmsg.oidc import RegistrationRequest
+import pytest
 
-from oidcop.endpoint_context import EndpointContext
+from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.read_registration import RegistrationRead
 from oidcop.oidc.registration import Registration
@@ -15,6 +15,11 @@ from oidcop.server import Server
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
+]
+
+COOKIE_KEY_DEFS = [
+    {"type": "oct", "kid": "sig", "use": ["sig"]},
+    {"type": "oct", "kid": "enc", "use": ["enc"]}
 ]
 
 RESPONSE_TYPES_SUPPORTED = [
@@ -77,6 +82,14 @@ class TestEndpoint(object):
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
             "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
+            "cookie_handler": {
+                "class": CookieHandler,
+                "kwargs": {
+                    "keys": {
+                        "key_defs": COOKIE_KEY_DEFS
+                    }
+                }
+            },
             "endpoint": {
                 "registration": {
                     "path": "registration",
@@ -110,8 +123,8 @@ class TestEndpoint(object):
             "template_dir": "template",
         }
         server = Server(conf)
-        self.registration_endpoint = server.server_get("endpoint","registration")
-        self.registration_api_endpoint = server.server_get("endpoint","registration_read")
+        self.registration_endpoint = server.server_get("endpoint", "registration")
+        self.registration_api_endpoint = server.server_get("endpoint", "registration_read")
 
     def test_do_response(self):
         _req = self.registration_endpoint.parse_request(CLI_REQ.to_json())
@@ -121,11 +134,15 @@ class TestEndpoint(object):
         _msg = json.loads(msg["response"])
         assert _msg
 
+        http_info = {
+            "headers": {
+                "authorization": "Bearer {}".format(
+                    _resp["response_args"]["registration_access_token"]
+                )}}
+
         _api_req = self.registration_api_endpoint.parse_request(
             "client_id={}".format(_resp["response_args"]["client_id"]),
-            auth="Bearer {}".format(
-                _resp["response_args"]["registration_access_token"]
-            ),
+            http_info=http_info
         )
         assert set(_api_req.keys()) == {"client_id"}
 

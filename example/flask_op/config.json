@@ -129,31 +129,23 @@
           "refresh_token"
         ]
       },
-      "cookie_dealer": {
-        "class": "oidcop.cookie.CookieDealer",
+      "cookie_handler": {
+        "class": "oidcop.cookie.CookieHandler",
         "kwargs": {
-          "sign_jwk": {
-            "filename": "private/cookie_sign_jwk.json",
-            "type": "OCT",
-            "kid": "cookie_sign_key_id"
+          "keys": {
+            "private_path": "private/cookie_jwks.json",
+            "key_defs": [
+              {"type": "OCT", "use": ["enc"]},
+              {"type": "OCT", "use": ["sig"]}
+            ],
+            "read_only": false
           },
-          "enc_jwk": {
-            "filename": "private/cookie_enc_jwk.json",
-            "type": "OCT",
-            "kid": "cookie_enc_key_id"
-          },
-          "default_values": {
-            "name": "oidc_op",
-            "domain": "127.0.0.1",
-            "path": "/",
-            "max_age": 3600
+          "name": {
+            "session": "oidc_op",
+            "register": "oidc_op_rp",
+            "session_management": "sman"
           }
         }
-      },
-      "cookie_name": {
-        "session": "oidc_op",
-        "register": "oidc_op_rp",
-        "session_management": "sman"
       },
       "endpoint": {
         "webfinger": {

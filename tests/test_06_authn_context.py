@@ -6,8 +6,7 @@ from cryptojwt.jwk.hmac import SYMKey
 from oidcmsg.time_util import time_sans_frac
 
 from oidcop.authn_event import AuthnEvent
-from oidcop.cookie import CookieDealer
-from oidcop.endpoint_context import EndpointContext
+from oidcop.cookie_handler import CookieHandler
 from oidcop.id_token import IDToken
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -161,15 +160,14 @@ class TestAuthnBrokerEC:
         }
         cookie_conf = {
             "sign_key": SYMKey(k="ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch"),
-            "default_values": {
-                "name": "oidcop",
-                "domain": "127.0.0.1",
-                "path": "/",
-                "max_age": 3600,
+            "name": {
+                "session": "oidc_op",
+                "register": "oidc_op_reg",
+                "session_management": "oidc_op_sman"
             },
         }
-        cookie_dealer = CookieDealer(**cookie_conf)
-        server = Server(conf, cookie_dealer=cookie_dealer)
+        cookie_handler = CookieHandler(**cookie_conf)
+        server = Server(conf, cookie_handler=cookie_handler)
         endpoint_context = server.endpoint_context
         endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",

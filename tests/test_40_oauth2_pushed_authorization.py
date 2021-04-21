@@ -1,15 +1,14 @@
 import io
 
-import pytest
-import yaml
 from cryptojwt import JWT
 from cryptojwt.jwt import remove_jwt_parameters
 from cryptojwt.key_jar import init_key_jar
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AuthorizationRequest
+import pytest
+import yaml
 
-from oidcop.cookie import CookieDealer
-from oidcop.endpoint_context import EndpointContext
+from oidcop.cookie_handler import CookieHandler
 from oidcop.id_token import IDToken
 from oidcop.oauth2.authorization import Authorization
 from oidcop.oauth2.pushed_authorization import PushedAuthorization
@@ -156,15 +155,14 @@ class TestEndpoint(object):
                 }
             },
             "template_dir": "template",
-            "cookie_dealer": {
-                "class": CookieDealer,
+            "cookie_handler": {
+                "class": CookieHandler,
                 "kwargs": {
                     "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                    "default_values": {
-                        "name": "oidcop",
-                        "domain": "127.0.0.1",
-                        "path": "/",
-                        "max_age": 3600,
+                    "name": {
+                        "session": "oidc_op",
+                        "register": "oidc_op_reg",
+                        "session_management": "oidc_op_sman"
                     },
                 },
             },
@@ -183,17 +181,17 @@ class TestEndpoint(object):
             self.rp_keyjar.export_jwks(issuer_id="s6BhdRkqt3"), "s6BhdRkqt3"
         )
 
-        self.pushed_authorization_endpoint = server.server_get("endpoint","pushed_authorization")
-        self.authorization_endpoint = server.server_get("endpoint","authorization")
+        self.pushed_authorization_endpoint = server.server_get("endpoint", "pushed_authorization")
+        self.authorization_endpoint = server.server_get("endpoint", "authorization")
 
     def test_init(self):
         assert self.pushed_authorization_endpoint
 
     def test_pushed_auth_urlencoded(self):
+        http_info = {
+            "headers": {"authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"}}
 
-        _req = self.pushed_authorization_endpoint.parse_request(
-            AUTHN_REQUEST, auth="Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"
-        )
+        _req = self.pushed_authorization_endpoint.parse_request(AUTHN_REQUEST, http_info=http_info)
 
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {
@@ -212,10 +210,10 @@ class TestEndpoint(object):
         _jws = _jwt.pack(_msg.to_dict())
 
         authn_request = "request={}".format(_jws)
+        http_info = {
+            "headers": {"authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"}}
 
-        _req = self.pushed_authorization_endpoint.parse_request(
-            authn_request, auth="Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"
-        )
+        _req = self.pushed_authorization_endpoint.parse_request(authn_request, http_info=http_info)
 
         assert isinstance(_req, AuthorizationRequest)
         _req = remove_jwt_parameters(_req)
@@ -232,9 +230,10 @@ class TestEndpoint(object):
         }
 
     def test_pushed_auth_urlencoded_process(self):
-        _req = self.pushed_authorization_endpoint.parse_request(
-            AUTHN_REQUEST, auth="Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"
-        )
+        http_info = {
+            "headers": {"authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"}}
+
+        _req = self.pushed_authorization_endpoint.parse_request(AUTHN_REQUEST, http_info=http_info)
 
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {

@@ -49,8 +49,7 @@ class WrongAuthnMethod(Exception):
 class ClientAuthnMethod(object):
     def __init__(self, server_get):
         """
-        :param endpoint_context: Server info, a
-            :py:class:`oidcop.endpoint_context.EndpointContext` instance
+        :param server_get: A method that can be used to get general server information.
         """
         self.server_get = server_get
 
@@ -73,11 +72,11 @@ class ClientAuthnMethod(object):
         raise NotImplementedError()
 
 
-def basic_authn(authn):
-    if not authn.startswith("Basic "):
+def basic_authn(authorization_token):
+    if not authorization_token.startswith("Basic "):
         raise AuthnFailure("Wrong type of authorization token")
 
-    _tok = as_bytes(authn[6:])
+    _tok = as_bytes(authorization_token[6:])
     # Will raise ValueError type exception if not base64 encoded
     _tok = base64.b64decode(_tok)
     part = [unquote_plus(p) for p in as_unicode(_tok).split(":")]
@@ -96,13 +95,13 @@ class ClientSecretBasic(ClientAuthnMethod):
 
     tag = "client_secret_basic"
 
-    def is_usable(self, request=None, authorization_info=None):
-        if authorization_info is not None and authorization_info.startswith("Basic "):
+    def is_usable(self, request=None, authorization_token=None):
+        if authorization_token is not None and authorization_token.startswith("Basic "):
             return True
         return False
 
-    def verify(self, authorization_info, **kwargs):
-        client_info = basic_authn(authorization_info)
+    def verify(self, authorization_token, **kwargs):
+        client_info = basic_authn(authorization_token)
 
         if (
                 self.server_get("endpoint_context").cdb[client_info["id"]]["client_secret"]
@@ -123,7 +122,7 @@ class ClientSecretPost(ClientSecretBasic):
 
     tag = "client_secret_post"
 
-    def is_usable(self, request=None, authorization_info=None):
+    def is_usable(self, request=None, authorization_token=None):
         if request is None:
             return False
         if "client_id" in request and "client_secret" in request:
@@ -146,13 +145,13 @@ class BearerHeader(ClientSecretBasic):
 
     tag = "bearer_header"
 
-    def is_usable(self, request=None, authorization_info=None):
-        if authorization_info is not None and authorization_info.startswith("Bearer "):
+    def is_usable(self, request=None, authorization_token=None):
+        if authorization_token is not None and authorization_token.startswith("Bearer "):
             return True
         return False
 
-    def verify(self, authorization_info, **kwargs):
-        return {"token": authorization_info.split(" ", 1)[1]}
+    def verify(self, authorization_token, **kwargs):
+        return {"token": authorization_token.split(" ", 1)[1]}
 
 
 class BearerBody(ClientSecretPost):
@@ -162,7 +161,7 @@ class BearerBody(ClientSecretPost):
 
     tag = "bearer_body"
 
-    def is_usable(self, request=None, authorization_info=None):
+    def is_usable(self, request=None, authorization_token=None):
         if request is not None and "access_token" in request:
             return True
         return False
@@ -180,7 +179,7 @@ class BearerBody(ClientSecretPost):
 
 
 class JWSAuthnMethod(ClientAuthnMethod):
-    def is_usable(self, request=None, authorization_info=None):
+    def is_usable(self, request=None, authorization_token=None):
         if request is None:
             return False
         if "client_assertion" in request:
@@ -326,30 +325,28 @@ def valid_client_info(cinfo):
 def verify_client(
         endpoint_context: EndpointContext,
         request: Union[dict, Message],
-        authorization_info: Optional[Union[dict, str]] = None,
+        http_info: Optional[dict] = None,
         get_client_id_from_token: Optional[Callable] = None,
         endpoint=None,  # Optional[Endpoint]
-        also_known_as: Optional[str] = None,
-        http_info: Optional[dict] = None
+        also_known_as: Optional[str] = None
 ):
     """
     Initiated Guessing !
 
+    :param also_known_as:
     :param endpoint: Endpoint instance
     :param endpoint_context: EndpointContext instance
     :param request: The request
-    :param authorization_info: Client authentication information
+    :param http_info: Client authentication information
     :param get_client_id_from_token: Function that based on a token returns a client id.
     :return: dictionary containing client id, client authentication method and
         possibly access token.
     """
 
-    # fixes request = {} instead of str
-    # "AttributeError: 'dict' object has no attribute 'startswith'" in oidcop/endpoint.py(
-    # 158)client_authentication()
-    if isinstance(authorization_info, dict):
-        strings_parade = ("{} {}".format(k, v) for k, v in authorization_info.items())
-        authorization_info = " ".join(strings_parade)
+    if http_info and 'headers' in http_info:
+        authorization_token = http_info["headers"].get("authorization")
+    else:
+        authorization_token = None
 
     auth_info = {}
     _methods = []
@@ -362,11 +359,11 @@ def verify_client(
     for _method in _methods:
         if _method is None:
             continue
-        if _method.is_usable(request, authorization_info):
+        if _method.is_usable(request, authorization_token):
             try:
                 auth_info = _method.verify(
                     request=request,
-                    authorization_info=authorization_info,
+                    authorization_token=authorization_token,
                     endpoint=endpoint,
                 )
             except Exception as err:

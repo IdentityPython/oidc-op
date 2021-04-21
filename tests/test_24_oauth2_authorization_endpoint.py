@@ -20,7 +20,7 @@ import yaml
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
-from oidcop.cookie import CookieDealer
+from oidcop.cookie_handler import CookieHandler
 from oidcop.exception import InvalidRequest
 from oidcop.exception import NoSuchAuthentication
 from oidcop.exception import RedirectURIError
@@ -40,6 +40,11 @@ from oidcop.user_info import UserInfo
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]}
     # {"type": "EC", "crv": "P-256", "use": ["sig"]}
+]
+
+COOKIE_KEYDEFS = [
+    {"type": "oct", "kid": "sig", "use": ["sig"]},
+    {"type": "oct", "kid": "enc", "use": ["enc"]}
 ]
 
 RESPONSE_TYPES_SUPPORTED = [["code"], ["token"], ["code", "token"], ["none"]]
@@ -98,12 +103,12 @@ class SimpleCookieDealer(object):
         return cookie
 
     @staticmethod
-    def get_cookie_value(cookie=None, cookie_name=None):
-        if cookie is None or cookie_name is None:
+    def get_cookie_value(cookie=None, name=None):
+        if cookie is None or name is None:
             return None
         else:
             try:
-                info, timestamp = cookie[cookie_name].split("|")
+                info, timestamp = cookie[name].split("|")
             except (TypeError, AssertionError):
                 return None
             else:
@@ -176,16 +181,15 @@ class TestEndpoint(object):
             },
             "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_db}},
             "template_dir": "template",
-            "cookie_dealer": {
-                "class": CookieDealer,
+            "cookie_handler": {
+                "class": CookieHandler,
                 "kwargs": {
-                    "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                    "default_values": {
-                        "name": "oidcop",
-                        "domain": "127.0.0.1",
-                        "path": "/",
-                        "max_age": 3600,
-                    },
+                    "keys": {"key_defs": COOKIE_KEYDEFS},
+                    "name": {
+                        "session": "oidc_op",
+                        "register": "oidc_op_reg",
+                        "session_management": "oidc_op_sman"
+                    }
                 },
             },
             "authz": {
@@ -214,7 +218,7 @@ class TestEndpoint(object):
         endpoint_context.keyjar.import_jwks(
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
-        self.endpoint = server.server_get("endpoint","authorization")
+        self.endpoint = server.server_get("endpoint", "authorization")
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
@@ -451,11 +455,11 @@ class TestEndpoint(object):
             "id_token_signed_response_alg": "RS256",
         }
 
-        kaka = self.endpoint.server_get("endpoint_context").cookie_dealer.create_cookie(
+        kaka = self.endpoint.server_get("endpoint_context").cookie_handler.make_cookie_content(
             "value", "sso"
         )
 
-        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, kaka)
+        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, [kaka])
         assert set(res.keys()) == {"session_id", "identity", "user"}
 
     def test_setup_auth_error(self):
@@ -506,14 +510,13 @@ class TestEndpoint(object):
         _context = self.endpoint.server_get("endpoint_context")
         _context.cdb["client_id"] = cinfo
 
-        kaka = _context.cookie_dealer.create_cookie(
-            "value", "sso")
+        kaka = _context.cookie_handler.make_cookie_content("value", "sso")
 
         # force to 400 Http Error message if the release scope policy is heavy!
         _context.conf['capabilities']['deny_unknown_scopes'] = True
         excp = None
         try:
-            res = self.endpoint.process_request(request)
+            res = self.endpoint.process_request(request, http_info={"headers": {"cookie": [kaka]}})
         except UnAuthorizedClientScope as e:
             excp = e
         assert excp

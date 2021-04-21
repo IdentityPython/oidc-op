@@ -131,14 +131,21 @@ class Endpoint(object):
         self.allowed_targets = [self.name]
         self.client_verification_method = []
 
+    def parse_cookies(self, cookies, context):
+        res = {}
+        for name, val in cookies.items():
+            res[name] = context.cookie_handler.parse_cookie(val)
+        return res
+
     def parse_request(self,
                       request: Union[Message, dict, str],
-                      auth: Optional[Union[dict, str]] = None,
+                      http_info: Optional[dict] = None,
                       **kwargs):
         """
 
         :param request: The request the server got
-        :param auth: Client authentication information
+        :param http_info: HTTP information in connection with the request.
+            This is a dictionary with keys: headers, url, cookies.
         :param kwargs: extra keyword arguments
         :return:
         """
@@ -146,6 +153,13 @@ class Endpoint(object):
         LOGGER.info("Request: %s" % sanitize(request))
 
         _context = self.server_get("endpoint_context")
+
+        if http_info is None:
+            http_info = {}
+
+        _cookies = http_info.get("cookie")
+        if _cookies:
+            http_info["parsed_cookie"] = self.parse_cookies(_cookies, _context)
 
         if request:
             if isinstance(request, (dict, Message)):
@@ -172,7 +186,7 @@ class Endpoint(object):
         # Verify that the client is allowed to do this
         _client_id = ""
         try:
-            auth_info = self.client_authentication(req, auth, endpoint=self, **kwargs)
+            auth_info = self.client_authentication(req, http_info, endpoint=self, **kwargs)
         except UnknownOrNoAuthnMethod:
             # If there is no required client authentication method
             if not self.client_authn_method:
@@ -205,13 +219,15 @@ class Endpoint(object):
     def get_client_id_from_token(self, endpoint_context, token, request=None):
         return ""
 
-    def client_authentication(self, request: Message, auth: Optional[Union[dict, str]] = None,
+    def client_authentication(self,
+                              request: Message,
+                              http_info: Optional[dict] = None,
                               **kwargs):
         """
         Do client authentication
 
         :param request: Parsed request, a self.request_cls class instance
-        :param authn: Authorization info
+        :param http_info: HTTP headers, URL used and cookies.
         :return: client_id or raise an exception
         """
 
@@ -222,7 +238,7 @@ class Endpoint(object):
             authn_info = verify_client(
                 endpoint_context=self.server_get("endpoint_context"),
                 request=request,
-                authorization_info=auth,
+                http_info=http_info,
                 get_client_id_from_token=self.get_client_id_from_token,
                 **kwargs
             )
@@ -274,9 +290,13 @@ class Endpoint(object):
 
         return response_args
 
-    def process_request(self, request: Optional[Union[Message, dict]] = None, **kwargs):
+    def process_request(self,
+                        request: Optional[Union[Message, dict]] = None,
+                        http_info: Optional[dict] = None,
+                        **kwargs):
         """
 
+        :param http_info: Information on the HTTP request
         :param request: The request, can be in a number of formats
         :return: Arguments for the do_response method
         """

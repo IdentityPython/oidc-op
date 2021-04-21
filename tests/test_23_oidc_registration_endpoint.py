@@ -7,6 +7,7 @@ from oidcmsg.oidc import RegistrationResponse
 import pytest
 import responses
 
+from oidcop.cookie_handler import CookieHandler
 from oidcop.id_token import IDToken
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.registration import Registration
@@ -22,6 +23,11 @@ KEYDEFS = [
 
 KEYJAR = init_key_jar(key_defs=KEYDEFS)
 JWKS = KEYJAR.export_jwks_as_json()
+
+COOKIE_KEYDEFS = [
+    {"type": "oct", "kid": "sig", "use": ["sig"]},
+    {"type": "oct", "kid": "enc", "use": ["enc"]},
+]
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -79,6 +85,14 @@ class TestEndpoint(object):
                     "urn:ietf:params:oauth:grant-type:jwt-bearer",
                     "refresh_token",
                 ],
+            },
+            "cookie_handler": {
+                "class": CookieHandler,
+                "kwargs": {
+                    "keys": {
+                        "key_defs": COOKIE_KEYDEFS
+                    }
+                }
             },
             "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
             "id_token": {"class": IDToken},

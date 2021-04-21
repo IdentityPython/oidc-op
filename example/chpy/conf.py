@@ -128,14 +128,8 @@ CONFIG = {
                 'kwargs': {'user': 'diana'}
                 }
             ],
-        'cookie_dealer': {
+        'cookie_handler': {
             'symkey': 'ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch',
-            'cookie': {
-                'name': 'oidc_op',
-                'domain': "127.0.0.1",
-                'path': '/',
-                'max_age': 3600
-                }
             },
         'post_logout_page': "https://{}:{}/post_logout.html".format(DOMAIN,
                                                                     PORT)

@@ -103,16 +103,16 @@ normally the authorization element of the HTTP header.
       'response_placement': 'body'
     }
 
-response
-    MUST be present
-http_headers
-    MAY be present
 cookie
     MAY be present
+http_headers
+    MAY be present
+http_response
+    Already clear and formatted HTTP response
+response
+    MUST be present
 response_placement
     If absent defaults to the endpoints response_placement parameter value or
     if that is also missing 'url'
 redirect_location
     Where to send a redirect
-http_response
-    Already clear and formatted HTTP response

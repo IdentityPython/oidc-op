@@ -332,9 +332,12 @@ class TestEndpoint(object):
         access_token = self._mint_access_token(grant, session_id, code, 1)
 
         # switch to another endpoint context instance
-        _req = self.endpoint[2].parse_request(
-            {}, auth="Bearer {}".format(access_token.value)
-        )
+        http_info = {
+            "headers": {
+                "authorization": "Bearer {}".format(access_token.value)
+            }
+        }
+        _req = self.endpoint[2].parse_request({}, http_info=http_info)
 
         assert set(_req.keys()) == {"client_id", "access_token"}
 
@@ -346,9 +349,12 @@ class TestEndpoint(object):
 
         self._dump_restore(1, 2)
 
-        _req = self.endpoint[2].parse_request(
-            {}, auth="Bearer {}".format(access_token.value)
-        )
+        http_info = {
+            "headers": {
+                "authorization": "Bearer {}".format(access_token.value)
+            }
+        }
+        _req = self.endpoint[2].parse_request({}, http_info=http_info)
         args = self.endpoint[2].process_request(_req)
         assert args
 
@@ -363,7 +369,13 @@ class TestEndpoint(object):
 
         self._dump_restore(2,1)
 
-        _req = self.endpoint[1].parse_request({}, auth="Bearer {}".format(access_token.value))
+        http_info = {
+            "headers": {
+                "authorization": "Bearer {}".format(access_token.value)
+            }
+        }
+
+        _req = self.endpoint[1].parse_request({}, http_info=http_info)
 
         args = self.endpoint[1].process_request(_req)
         assert set(args.keys()) == {"error", "error_description"}
@@ -392,9 +404,13 @@ class TestEndpoint(object):
 
         self._dump_restore(2,1)
 
-        _req = self.endpoint[1].parse_request(
-            {}, auth="Bearer {}".format(access_token.value)
-        )
+        http_info = {
+            "headers": {
+                "authorization": "Bearer {}".format(access_token.value)
+            }
+        }
+
+        _req = self.endpoint[1].parse_request({}, http_info=http_info)
         args = self.endpoint[1].process_request(_req)
         assert args
 
@@ -415,9 +431,13 @@ class TestEndpoint(object):
 
         self._dump_restore(2,1)
 
-        _req = self.endpoint[1].parse_request(
-            {}, auth="Bearer {}".format(access_token.value)
-        )
+        http_info = {
+            "headers": {
+                "authorization": "Bearer {}".format(access_token.value)
+            }
+        }
+
+        _req = self.endpoint[1].parse_request({}, http_info=http_info)
         args = self.endpoint[1].process_request(_req)
         assert args
         res = self.endpoint[1].do_response(request=_req, **args)
@@ -446,9 +466,13 @@ class TestEndpoint(object):
 
         self._dump_restore(2,1)
 
-        _req = self.endpoint[1].parse_request(
-            {}, auth="Bearer {}".format(access_token.value)
-        )
+        http_info = {
+            "headers": {
+                "authorization": "Bearer {}".format(access_token.value)
+            }
+        }
+
+        _req = self.endpoint[1].parse_request({}, http_info=http_info)
         args = self.endpoint[1].process_request(_req)
         assert set(args["response_args"].keys()) == {
             "sub",

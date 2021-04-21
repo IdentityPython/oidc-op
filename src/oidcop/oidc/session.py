@@ -1,5 +1,7 @@
 import json
 import logging
+from typing import Optional
+from typing import Union
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -23,7 +25,6 @@ from oidcmsg.oidc.session import EndSessionRequest
 
 from oidcop import rndstr
 from oidcop.client_authn import UnknownOrNoAuthnMethod
-from oidcop.cookie import append_cookie
 from oidcop.endpoint import Endpoint
 from oidcop.endpoint_context import add_path
 from oidcop.oauth2.authorization import verify_uri
@@ -218,12 +219,15 @@ class Session(Endpoint):
         self.clean_sessions([sid])
         return res
 
-    def process_request(self, request=None, cookie=None, **kwargs):
+    def process_request(self,
+                        request: Optional[Union[Message, dict]] = None,
+                        http_info: Optional[dict] = None,
+                        **kwargs):
         """
         Perform user logout
 
         :param request:
-        :param cookie:
+        :param http_info:
         :param kwargs:
         :return:
         """
@@ -235,26 +239,30 @@ class Session(Endpoint):
                 raise InvalidRequest(
                     "If post_logout_redirect_uri then id_token_hint is a MUST"
                 )
-        _cookie_name = _context.cookie_name["session"]
-        try:
-            part = _context.cookie_dealer.get_cookie_value(
-                cookie, cookie_name=_cookie_name
-            )
-        except IndexError:
-            raise InvalidRequest("Cookie error")
-        except (KeyError, AttributeError):
-            part = None
+        _cookies = http_info.get("cookie")
+        _session_info = None
 
-        if part:
-            # value is a base64 encoded JSON document
-            _cookie_info = json.loads(as_unicode(b64d(as_bytes(part[0]))))
-            logger.debug("Cookie info: {}".format(_cookie_info))
+        if _cookies:
+            _cookie_name = _context.cookie_handler.name["session"]
             try:
-                _session_info = _mngr.get_session_info(_cookie_info["sid"],
-                                                       grant=True)
-            except KeyError:
-                raise ValueError("Can't find any corresponding session")
-        else:
+                _cookie_infos = _context.cookie_handler.parse_cookie(
+                    cookies=_cookies, name=_cookie_name
+                )
+            except IndexError:
+                raise InvalidRequest("Cookie error")
+            except (KeyError, AttributeError):
+                _cookie_infos = []
+
+            if _cookie_infos:
+                # value is a JSON document
+                _cookie_info = json.loads(_cookie_infos[0]["value"])
+                logger.debug("Cookie info: {}".format(_cookie_info))
+                try:
+                    _session_info = _mngr.get_session_info(_cookie_info["sid"], grant=True)
+                except KeyError:
+                    raise ValueError("Can't find any corresponding session")
+
+        if _session_info is None:
             logger.debug("No relevant cookie")
             raise ValueError("Missing cookie")
 
@@ -317,7 +325,7 @@ class Session(Endpoint):
         )
         return {"redirect_location": location}
 
-    def parse_request(self, request, auth=None, **kwargs):
+    def parse_request(self, request, http_info=None, **kwargs):
         """
 
         :param request:
@@ -331,7 +339,7 @@ class Session(Endpoint):
 
         # Verify that the client is allowed to do this
         try:
-            auth_info = self.client_authentication(request, auth, **kwargs)
+            auth_info = self.client_authentication(request, http_info, **kwargs)
         except UnknownOrNoAuthnMethod:
             pass
         else:
@@ -355,7 +363,7 @@ class Session(Endpoint):
                 pass
             else:
                 if _ith.jws_header["alg"] not in _context.provider_info[
-                    "id_token_signing_alg_values_supported"]:
+                        "id_token_signing_alg_values_supported"]:
                     raise JWSException("Unsupported signing algorithm")
 
         return request
@@ -388,17 +396,10 @@ class Session(Endpoint):
 
     def kill_cookies(self):
         _context = self.server_get("endpoint_context")
-        _dealer = _context.cookie_dealer
-        _kakor = append_cookie(
-            _dealer.create_cookie(
-                "none",
-                typ="session",
-                ttl=0,
-                cookie_name=_context.cookie_name["session_management"],
-            ),
-            _dealer.create_cookie(
-                "none", typ="session", ttl=0, cookie_name=_context.cookie_name["session"]
-            ),
-        )
-
-        return _kakor
+        _handler = _context.cookie_handler
+        return [_handler.create_cookie(value="none", typ="session",
+                                       name=_handler.name["session_management"],
+                                       expire=-1),
+                _handler.create_cookie(value="none", typ="session",
+                                       name=_handler.name["session"],
+                                       expire=-1)]

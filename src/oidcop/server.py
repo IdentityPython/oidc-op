@@ -59,13 +59,13 @@ class Server(ImpExp):
                  conf: dict,
                  keyjar: Optional[KeyJar] = None,
                  cwd: Optional[str] = "",
-                 cookie_dealer: Optional[Any] = None,
+                 cookie_handler: Optional[Any] = None,
                  httpc: Optional[Any] = None
                  ):
         ImpExp.__init__(self)
         self.conf = conf
         self.endpoint_context = EndpointContext(conf=conf, keyjar=keyjar, cwd=cwd,
-                                                cookie_dealer=cookie_dealer, httpc=httpc)
+                                                cookie_handler=cookie_handler, httpc=httpc)
         self.endpoint_context.authz = self.do_authz()
         self.endpoint_context.idtoken = self.do_id_token()
         self.do_authentication(self.endpoint_context)

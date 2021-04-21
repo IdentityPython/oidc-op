@@ -4,7 +4,6 @@ import sys
 import traceback
 from urllib.parse import urlparse
 
-import werkzeug
 from cryptojwt import as_unicode
 from flask import Blueprint
 from flask import current_app
@@ -16,6 +15,7 @@ from flask.helpers import send_from_directory
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+import werkzeug
 
 from oidcop.exception import FailedAuthentication
 from oidcop.exception import InvalidClient
@@ -28,13 +28,11 @@ oidc_op_views = Blueprint('oidc_rp', __name__, url_prefix='')
 
 
 def _add_cookie(resp, cookie_spec):
-    for key, _morsel in cookie_spec.items():
-        kwargs = {'value': _morsel.value}
-        for param in ['expires', 'path', 'comment', 'domain', 'max-age',
-                      'secure',
-                      'version']:
-            if _morsel[param]:
-                kwargs[param] = _morsel[param]
+    for key, val in cookie_spec.items():
+        kwargs = {'value': val.value}
+        for param in ['expires', 'max-age']:
+            if param in val:
+                kwargs[param] = val[param]
         resp.set_cookie(key, **kwargs)
 
 
@@ -197,38 +195,36 @@ def session_endpoint():
         current_app.server.server_get("endpoint", 'session'))
 
 
+IGNORE = ["cookie", "user-agent"]
+
+
 def service_endpoint(endpoint):
     _log = current_app.srv_config.logger
     _log.info('At the "{}" endpoint'.format(endpoint.name))
 
-    try:
-        authn = request.headers['Authorization']
-    except KeyError:
-        pr_args = {}
-    else:
-        pr_args = {'auth': authn}
-
-    pr_args["http_info"] = {
+    http_info = {
+        "headers": {k: v for k, v in request.headers.items(lower=True) if k not in IGNORE},
         "method": request.method,
         "url": request.url,
-        "headers": request.headers
-        }
+        # name is not unique
+        "cookie": [{"name": k, "value": v} for k, v in request.cookies.items()]
+    }
 
     if request.method == 'GET':
         try:
-            req_args = endpoint.parse_request(request.args.to_dict(), **pr_args)
+            req_args = endpoint.parse_request(request.args.to_dict(), http_info=http_info)
         except (InvalidClient, UnknownClient) as err:
             _log.error(err)
             return make_response(json.dumps({
                 'error': 'unauthorized_client',
                 'error_description': str(err)
-                }), 400)
+            }), 400)
         except Exception as err:
             _log.error(err)
             return make_response(json.dumps({
                 'error': 'invalid_request',
                 'error_description': str(err)
-                }), 400)
+            }), 400)
     else:
         if request.data:
             if isinstance(request.data, str):
@@ -238,7 +234,7 @@ def service_endpoint(endpoint):
         else:
             req_args = dict([(k, v) for k, v in request.form.items()])
         try:
-            req_args = endpoint.parse_request(req_args, **pr_args)
+            req_args = endpoint.parse_request(req_args, http_info=http_info)
         except Exception as err:
             _log.error(err)
             err_msg = ResponseMessage(error='invalid_request', error_description=str(err))
@@ -249,16 +245,10 @@ def service_endpoint(endpoint):
         return make_response(req_args.to_json(), 400)
 
     try:
-        if request.cookies:
-            _log.debug(request.cookies)
-            kwargs = {'cookie': request.cookies}
-        else:
-            kwargs = {}
-
         if isinstance(endpoint, Token):
-            args = endpoint.process_request(AccessTokenRequest(**req_args), **kwargs)
+            args = endpoint.process_request(AccessTokenRequest(**req_args), http_info=http_info)
         else:
-            args = endpoint.process_request(req_args, **kwargs)
+            args = endpoint.process_request(req_args, http_info=http_info)
     except Exception as err:
         message = traceback.format_exception(*sys.exc_info())
         _log.error(message)
