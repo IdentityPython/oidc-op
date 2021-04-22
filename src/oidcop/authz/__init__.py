@@ -26,6 +26,9 @@ class AuthzHandling(object):
         else:
             _usage_rules = {}
 
+        if not client_id:
+            return _usage_rules
+
         try:
             _per_client = self.server_get("endpoint_context").cdb[client_id]["token_usage_rules"]
         except KeyError:
@@ -51,8 +54,12 @@ class AuthzHandling(object):
         except KeyError:
             return {}
 
-    def __call__(self, session_id: str, request: Union[dict, Message],
-                 resources: Optional[list] = None) -> Grant:
+    def __call__(
+            self,
+            session_id: str,
+            request: Union[dict, Message],
+            resources: Optional[list] = None
+    ) -> Grant:
         args = self.grant_config.copy()
 
         scope = request.get("scope")
@@ -73,6 +80,8 @@ class AuthzHandling(object):
         for key, val in args.items():
             if key == "expires_in":
                 grant.set_expires_at(val)
+            elif key == "usage_rules":
+                setattr(grant, key, self.usage_rules(request.get("client_id")))
             else:
                 setattr(grant, key, val)
 

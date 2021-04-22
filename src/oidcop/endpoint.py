@@ -131,10 +131,8 @@ class Endpoint(object):
         self.allowed_targets = [self.name]
         self.client_verification_method = []
 
-    def parse_cookies(self, cookies, context):
-        res = {}
-        for name, val in cookies.items():
-            res[name] = context.cookie_handler.parse_cookie(val)
+    def parse_cookies(self, cookies, context, name):
+        res = context.cookie_handler.parse_cookie(name, cookies)
         return res
 
     def parse_request(self,
@@ -159,7 +157,9 @@ class Endpoint(object):
 
         _cookies = http_info.get("cookie")
         if _cookies:
-            http_info["parsed_cookie"] = self.parse_cookies(_cookies, _context)
+            if self.name == "authorization":
+                name = _context.cookie_handler.name["session"]
+                http_info["parsed_cookie"] = self.parse_cookies(_cookies, _context, name)
 
         if request:
             if isinstance(request, (dict, Message)):

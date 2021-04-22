@@ -28,19 +28,20 @@ oidc_op_views = Blueprint('oidc_rp', __name__, url_prefix='')
 
 
 def _add_cookie(resp, cookie_spec):
-    for key, val in cookie_spec.items():
-        kwargs = {'value': val.value}
-        for param in ['expires', 'max-age']:
-            if param in val:
-                kwargs[param] = val[param]
-        resp.set_cookie(key, **kwargs)
+    kwargs = {'value': cookie_spec["value"]}
+    for param in ['expires', 'max-age']:
+        if param in cookie_spec:
+            kwargs[param] = cookie_spec[param]
+    kwargs["path"] = "/"
+    resp.set_cookie(cookie_spec["name"], **kwargs)
 
 
 def add_cookie(resp, cookie_spec):
     if isinstance(cookie_spec, list):
         for _spec in cookie_spec:
             _add_cookie(resp, _spec)
-
+    elif isinstance(cookie_spec, dict):
+        _add_cookie(resp, cookie_spec)
 
 @oidc_op_views.route('/static/<path:path>')
 def send_js(path):

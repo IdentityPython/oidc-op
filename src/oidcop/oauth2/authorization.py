@@ -506,7 +506,7 @@ class Authorization(Endpoint):
                 _max_age = max_age(request)
 
             identity, _ts = authn.authenticated_as(
-                cookie, authorization=_auth_info, max_age=_max_age, client_id=client_id
+                client_id, cookie, authorization=_auth_info, max_age=_max_age
             )
         except (NoSuchAuthentication, TamperAllert):
             identity = None
@@ -541,7 +541,7 @@ class Authorization(Endpoint):
         _session_id = ""
 
         # To authenticate or Not
-        if identity is None:  # No!
+        if not identity:  # No!
             logger.info("No active authentication")
             logger.debug(
                 "Known clients: {}".format(list(_context.cdb.keys()))

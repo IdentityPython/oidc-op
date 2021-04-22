@@ -270,7 +270,7 @@ class NoAuthn(UserAuthnMethod):
         self.user = user
         self.fail = None
 
-    def authenticated_as(self, cookie=None, authorization="", client_id="", **kwargs):
+    def authenticated_as(self, client_id="", cookie=None, authorization="", **kwargs):
         """
 
         :param cookie: A list of Cookie information
