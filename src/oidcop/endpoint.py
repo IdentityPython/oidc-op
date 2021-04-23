@@ -1,5 +1,6 @@
 import logging
 from typing import Callable
+from typing import List
 from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
@@ -8,6 +9,7 @@ from oidcmsg.exception import MissingRequiredAttribute
 from oidcmsg.exception import MissingRequiredValue
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
+from oidcop.endpoint_context import EndpointContext
 
 from oidcop import sanitize
 from oidcop.client_authn import UnknownOrNoAuthnMethod
@@ -131,7 +133,7 @@ class Endpoint(object):
         self.allowed_targets = [self.name]
         self.client_verification_method = []
 
-    def parse_cookies(self, cookies, context, name):
+    def parse_cookies(self, cookies: List[dict], context: EndpointContext , name: str):
         res = context.cookie_handler.parse_cookie(name, cookies)
         return res
 
@@ -154,12 +156,6 @@ class Endpoint(object):
 
         if http_info is None:
             http_info = {}
-
-        _cookies = http_info.get("cookie")
-        if _cookies:
-            if self.name == "authorization":
-                name = _context.cookie_handler.name["session"]
-                http_info["parsed_cookie"] = self.parse_cookies(_cookies, _context, name)
 
         if request:
             if isinstance(request, (dict, Message)):
@@ -214,9 +210,12 @@ class Endpoint(object):
         LOGGER.info("Parsed and verified request: %s" % sanitize(req))
 
         # Do any endpoint specific parsing
-        return self.do_post_parse_request(req, _client_id, **kwargs)
+        return self.do_post_parse_request(request=req, client_id=_client_id, **kwargs)
 
-    def get_client_id_from_token(self, endpoint_context, token, request=None):
+    def get_client_id_from_token(self,
+                                 endpoint_context: EndpointContext,
+                                 token: str,
+                                 request: Optional[Union[Message, dict]] = None):
         return ""
 
     def client_authentication(self,
@@ -262,7 +261,10 @@ class Endpoint(object):
 
         return authn_info
 
-    def do_post_parse_request(self, request, client_id="", **kwargs):
+    def do_post_parse_request(self,
+                              request: Message,
+                              client_id: Optional[str] = "",
+                              **kwargs) -> Message:
         _context = self.server_get("endpoint_context")
         for meth in self.post_parse_request:
             if isinstance(request, self.error_cls):
@@ -272,7 +274,10 @@ class Endpoint(object):
             )
         return request
 
-    def do_pre_construct(self, response_args, request, **kwargs):
+    def do_pre_construct(self,
+                         response_args: dict,
+                         request: Optional[Union[Message, dict]] = None,
+                         **kwargs) -> dict:
         _context = self.server_get("endpoint_context")
         for meth in self.pre_construct:
             response_args = meth(
@@ -281,7 +286,10 @@ class Endpoint(object):
 
         return response_args
 
-    def do_post_construct(self, response_args, request, **kwargs):
+    def do_post_construct(self,
+                          response_args: Union[Message, dict],
+                          request: Optional[Union[Message, dict]] = None,
+                          **kwargs) -> dict:
         _context = self.server_get("endpoint_context")
         for meth in self.post_construct:
             response_args = meth(

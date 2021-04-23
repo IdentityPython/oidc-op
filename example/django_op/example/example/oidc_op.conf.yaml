@@ -71,7 +71,7 @@ op:
       backchannel_logout_session_supported: True
       check_session_iframe: https://127.0.0.1:5000/check_session_iframe
     id_token:
-      class: oidcendpoint.id_token.IDToken
+      class: oidcop.id_token.IDToken
       kwargs:
         default_claims:
           email:
@@ -98,7 +98,7 @@ op:
       code:
         lifetime: 600
       token:
-        class: oidcendpoint.jwt_token.JWTToken
+        class: oidcop.jwt_token.JWTToken
         lifetime: 3600
         add_claims:
           - email
@@ -119,32 +119,32 @@ op:
     endpoint:
       webfinger:
         path: '.well-known/webfinger'
-        class: oidcendpoint.oidc.discovery.Discovery
+        class: oidcop.oidc.discovery.Discovery
         kwargs:
           # TODO: optionally manage discovery service authn
           client_authn_method: null
       provider_info:
         path: ".well-known/openid-configuration"
-        class: oidcendpoint.oidc.provider_config.ProviderConfiguration
+        class: oidcop.oidc.provider_config.ProviderConfiguration
         kwargs:
           # TODO: optionally manage openid-configuration authn
           client_authn_method: null
       registration:
           path: registration
-          class: oidcendpoint.oidc.registration.Registration
+          class: oidcop.oidc.registration.Registration
           kwargs:
             # TODO: make a authn method for 'client_authn_method'
             client_authn_method: null
             client_secret_expiration_time: 432000
       registration_api:
           path: registration_api
-          class: oidcendpoint.oidc.read_registration.RegistrationRead
+          class: oidcop.oidc.read_registration.RegistrationRead
           kwargs:
             client_authn_method:
               - bearer_header
       introspection:
           path: introspection
-          class: oidcendpoint.oauth2.introspection.Introspection
+          class: oidcop.oauth2.introspection.Introspection
           kwargs:
             client_authn_method:
               client_secret_post: ClientSecretPost
@@ -152,13 +152,13 @@ op:
             - username
       authorization:
           path: authorization
-          class: oidcendpoint.oidc.authorization.Authorization
+          class: oidcop.oidc.authorization.Authorization
           kwargs:
             # TODO: make a authn method for 'client_authn_method'
             client_authn_method: null
       token:
           path: token
-          class: oidcendpoint.oidc.token.AccessToken
+          class: oidcop.oidc.token.AccessToken
           kwargs:
             client_authn_method:
               - client_secret_post
@@ -167,10 +167,10 @@ op:
               - private_key_jwt
       userinfo:
           path: userinfo
-          class: oidcendpoint.oidc.userinfo.UserInfo
+          class: oidcop.oidc.userinfo.UserInfo
       end_session:
           path: session
-          class: oidcendpoint.oidc.session.Session
+          class: oidcop.oidc.session.Session
           kwargs:
               logout_verify_url: verify_logout
               post_logout_uri_path: post_logout
@@ -190,7 +190,7 @@ op:
             updated_at: get_oidc_lastlogin
     authentication:
       user:
-        acr: oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
+        acr: oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
         class: oidc_op.users.UserPassDjango
         kwargs:
           # this would override web resource where credentials will be POSTed
@@ -199,7 +199,7 @@ op:
           template: oidc_login.html
 
           # args1:
-            # class: oidcendpoint.util.JSONDictDB
+            # class: oidcop.util.JSONDictDB
             # kwargs:
               # args1_1: data/oidc_op/things.json
 
@@ -208,12 +208,12 @@ op:
           user_label: "Nickname"
           passwd_label: "Secret sauce"
       #anon:
-        #acr: oidcendpoint.user_authn.authn_context.UNSPECIFIED
-        #class: oidcendpoint.user_authn.user.NoAuthn
+        #acr: oidcop.user_authn.authn_context.UNSPECIFIED
+        #class: oidcop.user_authn.user.NoAuthn
         #kwargs:
           #user: thatusername
     cookie_dealer:
-      class: oidcendpoint.cookie.CookieDealer
+      class: oidcop.cookie.CookieDealer
       kwargs:
         sign_jwk: data/oidc_op/private/cookie_sign_jwk.json
         sign_alg: 'SHA256'
@@ -227,16 +227,16 @@ op:
             path: /
             max_age: 3600
     login_hint2acrs:
-      class: oidcendpoint.login_hint.LoginHint2Acrs
+      class: oidcop.login_hint.LoginHint2Acrs
       kwargs:
         scheme_map:
           email:
-            - oidcendpoint.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
+            - oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
 
     # this adds PKCE support as mandatory - disable if needed
     add_on:
       pkce:
-        function: oidcendpoint.oidc.add_on.pkce.add_pkce_support
+        function: oidcop.oidc.add_on.pkce.add_pkce_support
         kwargs:
           essential: True
           code_challenge_method:

@@ -6,8 +6,8 @@ from urllib.parse import urlparse
 
 import cherrypy
 from cryptojwt.key_jar import init_key_jar
-from oidcendpoint.cookie import CookieDealer
-from oidcendpoint.endpoint_context import EndpointContext
+from oidcop.cookie_handler import CookieHandler
+from oidcop.endpoint_context import EndpointContext
 
 from .provider import OpenIDProvider
 
@@ -82,11 +82,10 @@ if __name__ == '__main__':
 
     _kj = init_key_jar(owner=_server_info_config['issuer'], **_jwks_config)
 
-    cookie_dealer = CookieDealer(**_server_info_config['cookie_dealer'])
+    cookie_handler = CookieHandler(**_server_info_config['cookie_handler'])
 
     endpoint_context = EndpointContext(config.CONFIG['server_info'], keyjar=_kj,
-                                       cwd=folder, cookie_dealer=cookie_dealer)
-    cookie_dealer.endpoint_context = endpoint_context
+                                       cwd=folder, cookie_handler=cookie_handler)
 
     for endp in endpoint_context.endpoint.values():
         p = urlparse(endp.endpoint_path)

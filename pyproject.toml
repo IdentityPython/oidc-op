@@ -17,13 +17,11 @@ url = "https://github.com/IdentityPython/oidc-op"
 license = "Apache-2.0"
 classifiers =[
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License".
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent"
 ]
+
 [options]
 package_dir = "src"
 packages = "find:"
 python= "^3.6"
-
-[options.packages.find]
-where = "src"

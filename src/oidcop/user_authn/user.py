@@ -11,12 +11,12 @@ import warnings
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptojwt.jwt import JWT
-from oidcendpoint.session import unpack_session_key
 
 from oidcop.exception import FailedAuthentication
 from oidcop.exception import ImproperlyConfigured
 from oidcop.exception import InvalidCookieSign
 from oidcop.exception import OnlyForTestingWarning
+from oidcop.session import unpack_session_key
 from oidcop.util import instantiate
 
 __author__ = "Roland Hedberg"
