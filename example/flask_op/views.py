@@ -263,7 +263,8 @@ def service_endpoint(endpoint):
     if 'http_response' in args:
         return make_response(args['http_response'], 200)
 
-    return do_response(endpoint, req_args, **args)
+    response = do_response(endpoint, req_args, **args)
+    return response
 
 
 @oidc_op_views.errorhandler(werkzeug.exceptions.BadRequest)
@@ -324,8 +325,11 @@ def rp_logout():
                               postLogoutRedirectUri=_info['redirect_uri'])
     else:
         res = redirect(_info['redirect_uri'])
+
+        # rohe are you sure that _kakor is the right word? :)
         _kakor = _endp.kill_cookies()
-        _add_cookie(res, _kakor)
+        for cookie in _kakor:
+            _add_cookie(res, cookie)
 
     return res
 
