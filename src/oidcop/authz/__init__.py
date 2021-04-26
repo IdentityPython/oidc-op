@@ -90,7 +90,7 @@ class AuthzHandling(object):
         else:
             grant.resources = resources
 
-        # This is where user consent should be handled
+        # After this is where user consent should be handled
         for interface in ["userinfo", "introspection", "id_token", "access_token"]:
             grant.claims[interface] = self.server_get("endpoint_context").claims_interface.get_claims(
                 session_id=session_id, scopes=request["scope"], usage=interface

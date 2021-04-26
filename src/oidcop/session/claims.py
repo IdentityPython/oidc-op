@@ -4,7 +4,6 @@ from typing import Union
 
 from oidcmsg.oidc import OpenIDSchema
 
-from oidcop.exception import ServiceError
 from oidcop.scopes import convert_scopes2claims
 from oidcop.session import unpack_session_key
 
@@ -34,10 +33,9 @@ class ClaimsInterface:
         self.server_get = server_get
 
     def authorization_request_claims(self, session_id: str, usage: Optional[str] = "") -> dict:
-        if usage in ["id_token", "userinfo"]:
-            _grant = self.server_get("endpoint_context").session_manager.get_grant(session_id)
-            if "claims" in _grant.authorization_request:
-                return _grant.authorization_request["claims"].get(usage, {})
+        _grant = self.server_get("endpoint_context").session_manager.get_grant(session_id)
+        if "claims" in _grant.authorization_request:
+            return _grant.authorization_request["claims"].get(usage, {})
 
         return {}
 
@@ -62,12 +60,12 @@ class ClaimsInterface:
         # which endpoint module configuration to get the base claims from
         module = None
         if usage == "userinfo":
-            module = self.server_get("endpoint","userinfo")
+            module = self.server_get("endpoint", "userinfo")
         elif usage == "id_token":
             if _context.idtoken:
                 module = _context.idtoken
         elif usage == "introspection":
-            module = self.server_get("endpoint","introspection")
+            module = self.server_get("endpoint", "introspection")
         elif usage == "access_token":
             try:
                 module = _context.session_manager.token_handler["access_token"]
@@ -112,8 +110,8 @@ class ClaimsInterface:
 
     def get_claims_all_usage(self, session_id: str, scopes: str) -> dict:
         _claims = {}
-        for usage in ["userinfo", "introspection", "id_token", "token"]:
-            _claims.update(self.get_claims(session_id, scopes, usage))
+        for usage in ["userinfo", "introspection", "id_token", "access_token"]:
+            _claims[usage] = self.get_claims(session_id, scopes, usage)
         return _claims
 
     def get_user_claims(self, user_id: str, claims_restriction: dict) -> dict:

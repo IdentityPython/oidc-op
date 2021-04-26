@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import List
 from typing import Optional
 from typing import Union
 from urllib.parse import unquote
@@ -479,7 +480,13 @@ class Authorization(Endpoint):
                                     user_id=user_id, client_id=request["client_id"],
                                     token_usage_rules=_token_usage_rules)
 
-    def setup_auth(self, request, redirect_uri, cinfo, cookie, acr=None, **kwargs):
+    def setup_auth(self,
+                   request: Optional[Union[Message, dict]],
+                   redirect_uri: str,
+                   cinfo: dict,
+                   cookie: List[dict] = None,
+                   acr: str = None,
+                   **kwargs):
         """
 
         :param request: The authorization/authentication request
@@ -808,8 +815,8 @@ class Authorization(Endpoint):
 
         _cookie_info = _context.new_cookie(
             name=_context.cookie_handler.name["session"],
-            sid= session_id,
-            state= request.get("state")
+            sid=session_id,
+            state=request.get("state")
         )
 
         response_info["cookie"] = [_cookie_info]
@@ -959,47 +966,13 @@ class AllowedAlgorithms:
             raise ValueError("Not allowed '%s' algorithm used", alg)
 
 
-def re_authenticate(request, authn):
-    return False
+def re_authenticate(request, authn) -> bool:
+    """
+    This is where you can demand reauthentication even though the authentication in use
+    is still valid.
 
-# class Authorization(authorization.Authorization):
-#     request_cls = oauth2.AuthorizationRequest
-#     response_cls = oauth2.AuthorizationResponse
-#     error_cls = oauth2.AuthorizationErrorResponse
-#     request_format = "urlencoded"
-#     response_format = "urlencoded"
-#     response_placement = "url"
-#     endpoint_name = "authorization_endpoint"
-#     name = "authorization"
-#     default_capabilities = {
-#         "claims_parameter_supported": True,
-#         "request_parameter_supported": True,
-#         "request_uri_parameter_supported": True,
-#         "response_types_supported": ["code", "token", "code token"],
-#         "response_modes_supported": ["query", "fragment", "form_post"],
-#         "request_object_signing_alg_values_supported": None,
-#         "request_object_encryption_alg_values_supported": None,
-#         "request_object_encryption_enc_values_supported": None,
-#         "grant_types_supported": ["authorization_code", "implicit"],
-#         "scopes_supported": [],
-#     }
-#
-#     def __init__(self, endpoint_context, **kwargs):
-#         authorization.Authorization.__init__(self, endpoint_context, **kwargs)
-#         # self.pre_construct.append(self._pre_construct)
-#         self.post_parse_request.append(self._do_request_uri)
-#         self.post_parse_request.append(self._post_parse_request)
-#         # Has to be done elsewhere. To make sure things happen in order.
-#         # self.scopes_supported = available_scopes(endpoint_context)
-#
-#     def setup_client_session(self, user_id: str, request: dict) -> str:
-#         _mngr = self.endpoint_context.session_manager
-#         client_id = request['client_id']
-#
-#         client_info = ClientSessionInfo(
-#             authorization_request=request,
-#             sub=_mngr.sub_func['public'](user_id, salt=_mngr.salt)
-#         )
-#
-#         _mngr.set([user_id, client_id], client_info)
-#         return session_key(user_id, client_id)
+    :param request:
+    :param authn:
+    :return:
+    """
+    return False

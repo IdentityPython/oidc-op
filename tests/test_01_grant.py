@@ -1,7 +1,6 @@
 from cryptojwt.key_jar import build_keyjar
 import pytest
 
-from oidcop.endpoint_context import EndpointContext
 from oidcop.server import Server
 from oidcop.session import session_key
 from oidcop.session.grant import Grant
@@ -62,7 +61,8 @@ def test_access_code():
 
 def test_access_token():
     code = AuthorizationCode('authorization_code', value="ABCD")
-    token = SessionToken('access_token', value="1234", based_on=code.id, usage_rules={"max_usage": 2})
+    token = SessionToken('access_token', value="1234", based_on=code.id,
+                         usage_rules={"max_usage": 2})
     assert token.issued_at
     assert token.type == "access_token"
     assert token.value == "1234"
