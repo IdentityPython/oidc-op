@@ -198,7 +198,8 @@ class CookieHandler():
                             value: str,
                             typ: Optional[str] = "",
                             timestamp: Optional[Union[int, str]] = "",
-                            max_age: Optional[int] = 0) -> dict:
+                            max_age: Optional[int] = 0,
+                            **kwargs) -> dict:
         """
         Create and return information to put in a cookie
 

@@ -397,9 +397,12 @@ class Session(Endpoint):
     def kill_cookies(self):
         _context = self.server_get("endpoint_context")
         _handler = _context.cookie_handler
-        return [_handler.create_cookie(value="none",
-                                       name=_handler.name["session_management"],
-                                       expire=-1),
-                _handler.create_cookie(value="none",
-                                       name=_handler.name["session"],
-                                       expire=-1)]
+        session_mngmnt = _handler.make_cookie_content(
+                                value="none",
+                                name=_handler.name["session_management"],
+                                expire=-1)
+        session = _handler.make_cookie_content(
+                                value="none",
+                                name=_handler.name["session"],
+                                expire=-1)
+        return [session_mngmnt, session]
