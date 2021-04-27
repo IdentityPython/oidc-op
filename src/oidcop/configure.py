@@ -1,4 +1,5 @@
 """Configuration management for IDP"""
+import ast
 import json
 import logging
 import os
@@ -89,3 +90,6 @@ class Configuration:
         elif filename.endswith(".json"):
             _str = open(filename).read()
             return cls(json.loads(_str), base_path, item_paths)
+        elif filename.endswith(".py"):
+            _str = open(filename).read()
+            return cls(ast.literal_eval(_str), base_path, item_paths)
