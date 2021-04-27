@@ -1,8 +1,9 @@
 from cryptojwt.key_jar import build_keyjar
+from oidcmsg.oidc import AuthorizationRequest
 import pytest
 
+from oidcop.authn_event import create_authn_event
 from oidcop.server import Server
-from oidcop.session import session_key
 from oidcop.session.grant import Grant
 from oidcop.session.grant import TOKEN_MAP
 from oidcop.session.grant import find_token
@@ -44,8 +45,16 @@ conf = {
     },
 }
 
-SERVER = Server(conf=conf)
-ENDPOINT_CONTEXT = SERVER.server_get("endpoint_context")
+USER_ID = "diana"
+
+AREQ = AuthorizationRequest(
+    response_type="code",
+    client_id="client_1",
+    redirect_uri="http://example.com/authz",
+    scope=["openid"],
+    state="state000",
+    nonce="nonce",
+)
 
 
 def test_access_code():
@@ -88,276 +97,325 @@ TOKEN_HANDLER = {
 }
 
 
-def test_mint_token():
-    grant = Grant()
-
-    code = grant.mint_token("user_id;;client_id;;grant_id",
-                            endpoint_context=ENDPOINT_CONTEXT,
-                            token_type="authorization_code",
-                            token_handler=TOKEN_HANDLER["authorization_code"])
-
-    access_token = grant.mint_token(
-        "user_id;;client_id;;grant_id",
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="access_token",
-        token_handler=TOKEN_HANDLER["access_token"],
-        based_on=code,
-        scope=["openid", "foo", "bar"]
-    )
-
-    assert access_token.scope == ["openid", "foo", "bar"]
-
-
-SESSION_ID = session_key('user_id', 'client_id', 'grant.id')
-
-
-def test_grant():
-    grant = Grant()
-    code = grant.mint_token(SESSION_ID, endpoint_context=ENDPOINT_CONTEXT,
-                            token_type="authorization_code",
-                            token_handler=TOKEN_HANDLER["authorization_code"])
-
-    access_token = grant.mint_token(
-        SESSION_ID,
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="access_token",
-        token_handler=TOKEN_HANDLER["access_token"],
-        based_on=code)
-
-    refresh_token = grant.mint_token(
-        SESSION_ID,
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="refresh_token",
-        token_handler=TOKEN_HANDLER["refresh_token"],
-        based_on=code)
-
-    grant.revoke_token()
-    assert code.revoked is True
-    assert access_token.revoked is True
-    assert refresh_token.revoked is True
-
-
-def test_get_token():
-    grant = Grant()
-    code = grant.mint_token(SESSION_ID, endpoint_context=ENDPOINT_CONTEXT,
-                            token_type="authorization_code",
-                            token_handler=TOKEN_HANDLER["authorization_code"])
-
-    access_token = grant.mint_token(
-        SESSION_ID,
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="access_token",
-        token_handler=TOKEN_HANDLER["access_token"],
-        based_on=code,
-        scope=["openid", "foo", "bar"]
-    )
-
-    _code = grant.get_token(code.value)
-    assert _code.id == code.id
-
-    _token = grant.get_token(access_token.value)
-    assert _token.id == access_token.id
-    assert set(_token.scope) == {"openid", "foo", "bar"}
-
-
-def test_grant_revoked_based_on():
-    grant = Grant()
-    code = grant.mint_token(SESSION_ID,
-                            endpoint_context=ENDPOINT_CONTEXT,
-                            token_type="authorization_code",
-                            token_handler=TOKEN_HANDLER["authorization_code"])
-
-    access_token = grant.mint_token(
-        SESSION_ID,
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="access_token",
-        token_handler=TOKEN_HANDLER["access_token"],
-        based_on=code)
-
-    refresh_token = grant.mint_token(
-        SESSION_ID,
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="refresh_token",
-        token_handler=TOKEN_HANDLER["refresh_token"],
-        based_on=code)
-
-    code.register_usage()
-    if code.max_usage_reached():
-        grant.revoke_token(based_on=code.value)
-
-    assert code.is_active() is False
-    assert access_token.is_active() is False
-    assert refresh_token.is_active() is False
-
-
-def test_revoke():
-    grant = Grant()
-    code = grant.mint_token(SESSION_ID,
-                            endpoint_context=ENDPOINT_CONTEXT,
-                            token_type="authorization_code",
-                            token_handler=TOKEN_HANDLER["authorization_code"])
-
-    access_token = grant.mint_token(
-        SESSION_ID,
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="access_token",
-        token_handler=TOKEN_HANDLER["access_token"],
-        based_on=code)
-
-    grant.revoke_token(based_on=code.value)
-
-    assert code.is_active() is True
-    assert access_token.is_active() is False
-
-    access_token_2 = grant.mint_token(
-        SESSION_ID,
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="access_token",
-        token_handler=TOKEN_HANDLER["access_token"],
-        based_on=code)
-
-    grant.revoke_token(value=code.value, recursive=True)
-
-    assert code.is_active() is False
-    assert access_token_2.is_active() is False
-
-
-def test_json_conversion():
-    grant = Grant()
-    code = grant.mint_token(SESSION_ID,
-                            endpoint_context=ENDPOINT_CONTEXT,
-                            token_type="authorization_code",
-                            token_handler=TOKEN_HANDLER["authorization_code"])
-
-    grant.mint_token(
-        SESSION_ID,
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="access_token",
-        token_handler=TOKEN_HANDLER["access_token"],
-        based_on=code)
-
-    _item = grant.dump()
-
-    _grant_copy = Grant().load(_item)
-
-    assert len(_grant_copy.issued_token) == 2
-
-    tt = {"code": 0, "access_token": 0}
-    for token in _grant_copy.issued_token:
-        if token.type == "authorization_code":
-            tt["code"] += 1
-        if token.type == "access_token":
-            tt["access_token"] += 1
-
-    assert tt == {"code": 1, "access_token": 1}
-
-
-def test_json_no_token_map():
-    grant = Grant(token_map={})
-    with pytest.raises(ValueError):
-        grant.mint_token(SESSION_ID,
-                         endpoint_context=ENDPOINT_CONTEXT,
-                         token_type="authorization_code",
-                         token_handler=TOKEN_HANDLER["authorization_code"])
-
-
 class MyToken(SessionToken):
     pass
 
 
-TOKEN_HANDLER["my_token"] = DefaultToken("my_token", typ="M")
+class TestGrant():
+    @pytest.fixture(autouse=True)
+    def create_session_manager(self):
+        self.server = Server(conf=conf)
+        self.endpoint_context = self.server.server_get("endpoint_context")
 
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+        if sector_identifier:
+            authz_req = auth_req.copy()
+            authz_req["sector_identifier_uri"] = sector_identifier
+        else:
+            authz_req = auth_req
 
-def test_json_custom_token_map():
-    token_map = TOKEN_MAP.copy()
-    token_map["my_token"] = MyToken
+        client_id = authz_req['client_id']
+        ae = create_authn_event(USER_ID)
+        return self.server.endpoint_context.session_manager.create_session(ae, authz_req, USER_ID,
+                                                                           client_id=client_id,
+                                                                           sub_type=sub_type)
 
-    grant = Grant(token_map=token_map)
-    code = grant.mint_token(SESSION_ID,
-                            endpoint_context=ENDPOINT_CONTEXT,
-                            token_type="authorization_code",
-                            token_handler=TOKEN_HANDLER["authorization_code"])
+    def test_mint_token(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
 
-    grant.mint_token(
-        SESSION_ID,
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="access_token",
-        token_handler=TOKEN_HANDLER["access_token"],
-        based_on=code)
+        code = grant.mint_token(session_id,
+                                endpoint_context=self.endpoint_context,
+                                token_type="authorization_code",
+                                token_handler=TOKEN_HANDLER["authorization_code"])
 
-    grant.mint_token(
-        SESSION_ID,
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="my_token",
-        token_handler=TOKEN_HANDLER["my_token"])
+        access_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code,
+            scope=["openid", "foo", "bar"]
+        )
 
-    _jstr = grant.dump()
+        assert access_token.scope == ["openid", "foo", "bar"]
 
-    _grant_copy = Grant().load(_jstr)
+    def test_grant(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+        code = grant.mint_token(session_id, endpoint_context=self.endpoint_context,
+                                token_type="authorization_code",
+                                token_handler=TOKEN_HANDLER["authorization_code"])
 
-    assert len(_grant_copy.issued_token) == 3
+        access_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code)
 
-    tt = {k: 0 for k, v in grant.token_map.items()}
+        refresh_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="refresh_token",
+            token_handler=TOKEN_HANDLER["refresh_token"],
+            based_on=code)
 
-    for token in _grant_copy.issued_token:
-        for _type in tt.keys():
-            if token.type == _type:
-                tt[_type] += 1
+        grant.revoke_token()
+        assert code.revoked is True
+        assert access_token.revoked is True
+        assert refresh_token.revoked is True
 
-    assert tt == {
-        'access_token': 1, 'authorization_code': 1,
-        'my_token': 1, 'refresh_token': 0
-    }
+    def test_get_token(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+        code = grant.mint_token(session_id, endpoint_context=self.endpoint_context,
+                                token_type="authorization_code",
+                                token_handler=TOKEN_HANDLER["authorization_code"])
 
+        access_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code,
+            scope=["openid", "foo", "bar"]
+        )
 
-def test_get_spec():
-    grant = Grant(scope=["openid", "email", "address"],
-                  claims={"userinfo": {"given_name": None, "email": None}},
-                  resources=["https://api.example.com"]
-                  )
+        _code = grant.get_token(code.value)
+        assert _code.id == code.id
 
-    code = grant.mint_token(SESSION_ID,
-                            endpoint_context=ENDPOINT_CONTEXT,
-                            token_type="authorization_code",
-                            token_handler=TOKEN_HANDLER["authorization_code"])
+        _token = grant.get_token(access_token.value)
+        assert _token.id == access_token.id
+        assert set(_token.scope) == {"openid", "foo", "bar"}
 
-    access_token = grant.mint_token(
-        SESSION_ID,
-        endpoint_context=ENDPOINT_CONTEXT,
-        token_type="access_token",
-        token_handler=TOKEN_HANDLER["access_token"],
-        based_on=code,
-        scope=["openid", "email", "eduperson"],
-        claims={
+    def test_grant_revoked_based_on(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+        code = grant.mint_token(session_id,
+                                endpoint_context=self.endpoint_context,
+                                token_type="authorization_code",
+                                token_handler=TOKEN_HANDLER["authorization_code"])
+
+        access_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code)
+
+        refresh_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="refresh_token",
+            token_handler=TOKEN_HANDLER["refresh_token"],
+            based_on=code)
+
+        code.register_usage()
+        if code.max_usage_reached():
+            grant.revoke_token(based_on=code.value)
+
+        assert code.is_active() is False
+        assert access_token.is_active() is False
+        assert refresh_token.is_active() is False
+
+    def test_revoke(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+        code = grant.mint_token(session_id,
+                                endpoint_context=self.endpoint_context,
+                                token_type="authorization_code",
+                                token_handler=TOKEN_HANDLER["authorization_code"])
+
+        access_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code)
+
+        grant.revoke_token(based_on=code.value)
+
+        assert code.is_active() is True
+        assert access_token.is_active() is False
+
+        access_token_2 = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code)
+
+        grant.revoke_token(value=code.value, recursive=True)
+
+        assert code.is_active() is False
+        assert access_token_2.is_active() is False
+
+    def test_json_conversion(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+        code = grant.mint_token(session_id,
+                                endpoint_context=self.endpoint_context,
+                                token_type="authorization_code",
+                                token_handler=TOKEN_HANDLER["authorization_code"])
+
+        grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code)
+
+        _item = grant.dump()
+
+        _grant_copy = Grant().load(_item)
+
+        assert len(_grant_copy.issued_token) == 2
+
+        tt = {"code": 0, "access_token": 0}
+        for token in _grant_copy.issued_token:
+            if token.type == "authorization_code":
+                tt["code"] += 1
+            if token.type == "access_token":
+                tt["access_token"] += 1
+
+        assert tt == {"code": 1, "access_token": 1}
+
+    def test_json_no_token_map(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+        grant.token_map={}
+        with pytest.raises(ValueError):
+            grant.mint_token(session_id,
+                             endpoint_context=self.endpoint_context,
+                             token_type="authorization_code",
+                             token_handler=TOKEN_HANDLER["authorization_code"])
+
+    def test_json_custom_token_map(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+
+        token_map = TOKEN_MAP.copy()
+        token_map["my_token"] = MyToken
+        grant.token_map=token_map
+        code = grant.mint_token(session_id,
+                                endpoint_context=self.endpoint_context,
+                                token_type="authorization_code",
+                                token_handler=TOKEN_HANDLER["authorization_code"])
+
+        grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code)
+
+        grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="my_token",
+            token_handler= DefaultToken("my_token", typ="M")
+        )
+
+        _jstr = grant.dump()
+
+        _grant_copy = Grant().load(_jstr)
+
+        assert len(_grant_copy.issued_token) == 3
+
+        tt = {k: 0 for k, v in grant.token_map.items()}
+
+        for token in _grant_copy.issued_token:
+            for _type in tt.keys():
+                if token.type == _type:
+                    tt[_type] += 1
+
+        assert tt == {
+            'access_token': 1, 'authorization_code': 1,
+            'my_token': 1, 'refresh_token': 0
+        }
+
+    def test_get_spec(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+
+        grant.scope=["openid", "email", "address"]
+        grant.claims={"userinfo": {"given_name": None, "email": None}}
+        grant.resources=["https://api.example.com"]
+
+        code = grant.mint_token(session_id,
+                                endpoint_context=self.endpoint_context,
+                                token_type="authorization_code",
+                                token_handler=TOKEN_HANDLER["authorization_code"])
+
+        access_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code,
+            scope=["openid", "email", "eduperson"],
+            claims={
+                "userinfo": {
+                    "given_name": None,
+                    "eduperson_affiliation": None
+                }
+            }
+        )
+
+        spec = grant.get_spec(access_token)
+        assert set(spec.keys()) == {"scope", "claims", "resources"}
+        assert spec["scope"] == ["openid", "email", "eduperson"]
+        assert spec["claims"] == {
             "userinfo": {
                 "given_name": None,
                 "eduperson_affiliation": None
             }
         }
-    )
+        assert spec["resources"] == ["https://api.example.com"]
 
-    spec = grant.get_spec(access_token)
-    assert set(spec.keys()) == {"scope", "claims", "resources"}
-    assert spec["scope"] == ["openid", "email", "eduperson"]
-    assert spec["claims"] == {
-        "userinfo": {
-            "given_name": None,
-            "eduperson_affiliation": None
-        }
-    }
-    assert spec["resources"] == ["https://api.example.com"]
+    def test_get_usage_rules(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
 
+        grant.scope=["openid", "email", "address"]
+        grant.claims={"userinfo": {"given_name": None, "email": None}}
+        grant.resources=["https://api.example.com"]
 
-def test_get_usage_rules():
-    grant = Grant(scope=["openid", "email", "address"],
-                  claims={"userinfo": {"given_name": None, "email": None}},
-                  resources=["https://api.example.com"]
-                  )
+        # Default usage rules
+        self.endpoint_context.cdb["client_id"] = {}
+        rules = get_usage_rules("access_token", self.endpoint_context, grant, "client_id")
+        assert rules == {'supports_minting': [], 'expires_in': 3600}
 
-    # Default usage rules
-    ENDPOINT_CONTEXT.cdb["client_id"] = {}
-    rules = get_usage_rules("access_token", ENDPOINT_CONTEXT, grant, "client_id")
-    assert rules == {'supports_minting': [], 'expires_in': 3600}
-
-    # client specific usage rules
-    ENDPOINT_CONTEXT.cdb["client_id"] = {"access_token": {"expires_in": 600}}
+        # client specific usage rules
+        self.endpoint_context.cdb["client_id"] = {"access_token": {"expires_in": 600}}

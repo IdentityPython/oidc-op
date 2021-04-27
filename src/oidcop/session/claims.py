@@ -34,7 +34,7 @@ class ClaimsInterface:
 
     def authorization_request_claims(self, session_id: str, usage: Optional[str] = "") -> dict:
         _grant = self.server_get("endpoint_context").session_manager.get_grant(session_id)
-        if "claims" in _grant.authorization_request:
+        if _grant.authorization_request and "claims" in _grant.authorization_request:
             return _grant.authorization_request["claims"].get(usage, {})
 
         return {}
@@ -75,12 +75,12 @@ class ClaimsInterface:
         if module:
             base_claims = module.kwargs.get("base_claims", {})
         else:
-            base_claims = {}
+            return {}
 
         user_id, client_id, grant_id = unpack_session_key(session_id)
 
         # Can there be per client specification of which claims to use.
-        if module and module.kwargs.get("enable_claims_per_client"):
+        if module.kwargs.get("enable_claims_per_client"):
             claims = self._get_client_claims(client_id, usage)
         else:
             claims = {}
@@ -88,7 +88,7 @@ class ClaimsInterface:
         claims.update(base_claims)
 
         # Scopes can in some cases equate to set of claims, is that used here ?
-        if module and module.kwargs.get("add_claims_by_scope"):
+        if module.kwargs.get("add_claims_by_scope"):
             if scopes:
                 _scopes = _context.scopes_handler.filter_scopes(
                     client_id, _context, scopes
@@ -124,7 +124,7 @@ class ClaimsInterface:
         if claims_restriction:
             # Get all possible claims
             user_info = self.server_get("endpoint_context").userinfo(user_id, client_id=None)
-            # Filter out the once that can be returned
+            # Filter out the claims that can be returned
             return {k: user_info.get(k) for k, v in claims_restriction.items() if
                     claims_match(user_info.get(k), v)}
         else:

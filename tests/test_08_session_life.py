@@ -75,9 +75,7 @@ class TestSession():
         }
         server = Server(conf)
         self.endpoint_context = server.endpoint_context
-        token_handler = factory(self.endpoint_context, **conf["token_handler_args"])
-
-        self.session_manager = SessionManager(handler=token_handler)
+        self.session_manager = self.endpoint_context.session_manager
 
     def auth(self):
         # Start with an authentication request

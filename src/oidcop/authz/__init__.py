@@ -20,7 +20,7 @@ class AuthzHandling(object):
         self.grant_config = grant_config or {}
         self.kwargs = kwargs
 
-    def usage_rules(self, client_id):
+    def usage_rules(self, client_id: Optional[str] = ""):
         if "usage_rules" in self.grant_config:
             _usage_rules = copy.deepcopy(self.grant_config["usage_rules"])
         else:
@@ -39,6 +39,8 @@ class AuthzHandling(object):
                     _pc = _per_client.get(_token_type)
                     if _pc:
                         _rule.update(_pc)
+                    elif _pc == {}:
+                        _usage_rules[_token_type] = {}
                 for _token_type, _rule in _per_client.items():
                     if _token_type not in _usage_rules:
                         _usage_rules[_token_type] = _rule
@@ -60,22 +62,12 @@ class AuthzHandling(object):
             request: Union[dict, Message],
             resources: Optional[list] = None
     ) -> Grant:
-        args = self.grant_config.copy()
-
-        scope = request.get("scope")
-        if scope:
-            args["scope"] = scope
-
-        claims = request.get("claims")
-        if claims:
-            if isinstance(request, Message):
-                claims = claims.to_dict()
-            args["claims"] = claims
-
         session_info = self.server_get("endpoint_context").session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
+
+        args = self.grant_config.copy()
 
         for key, val in args.items():
             if key == "expires_in":
@@ -91,10 +83,11 @@ class AuthzHandling(object):
             grant.resources = resources
 
         # After this is where user consent should be handled
-        for interface in ["userinfo", "introspection", "id_token", "access_token"]:
-            grant.claims[interface] = self.server_get("endpoint_context").claims_interface.get_claims(
-                session_id=session_id, scopes=request["scope"], usage=interface
-            )
+        scopes = request.get("scope", [])
+        grant.scope = scopes
+        grant.claims = self.server_get("endpoint_context").claims_interface.get_claims_all_usage(
+                session_id=session_id, scopes=scopes)
+
         return grant
 
 

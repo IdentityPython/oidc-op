@@ -1,10 +1,18 @@
+import os
+
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac
 import pytest
 
 from oidcop.authn_event import create_authn_event
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
+
+
+def full_path(local_file):
+    return os.path.join(BASEDIR, local_file)
+
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -73,25 +81,9 @@ conf = {
             "kwargs": {}
         }
     },
-    "authentication": {
-        "anon": {
-            "acr": INTERNETPROTOCOLPASSWORD,
-            "class": "oidcop.user_authn.user.NoAuthn",
-            "kwargs": {"user": "diana"},
-        }
-    },
-    "id_token": {
-        "class": "oidcop.id_token.IDToken",
-        "kwargs": {
-            "default_claims": {
-                "email": {
-                    "essential": True
-                },
-                "email_verified": {
-                    "essential": True
-                }
-            }
-        }
+    "userinfo": {
+        "class": 'oidcop.user_info.UserInfo',
+        "kwargs": {"db_file": full_path("users.json")},
     }
 }
 
@@ -130,26 +122,6 @@ class TestEndpoint(object):
         return self.session_manager.create_session(ae, authz_req, self.user_id,
                                                    client_id=client_id,
                                                    sub_type=sub_type)
-
-    def _mint_code(self, grant, session_id):
-        # Constructing an authorization code is now done
-        return grant.mint_token(
-            session_id=session_id,
-            endpoint_context=self.endpoint_context,
-            token_type="authorization_code",
-            token_handler=self.session_manager.token_handler["code"],
-            expires_at=time_sans_frac() + 300  # 5 minutes from now
-        )
-
-    def _mint_access_token(self, grant, session_id, token_ref):
-        return grant.mint_token(
-            session_id=session_id,
-            endpoint_context=self.endpoint_context,
-            token_type="access_token",
-            token_handler=self.session_manager.token_handler["access_token"],
-            expires_at=time_sans_frac() + 900,  # 15 minutes from now
-            based_on=token_ref  # Means the token (tok) was used to mint this token
-        )
 
     def test_authorization_request_id_token_claims(self):
         session_id = self._create_session(AREQ)
@@ -340,3 +312,42 @@ class TestEndpoint(object):
         assert set(claims["userinfo"].keys()) == {'email', 'name'}
         assert set(claims["introspection"].keys()) == {'address', 'sub'}
         assert set(claims["access_token"].keys()) == set()
+
+    def test_get_user_claims(self):
+        self.endpoint_context.idtoken.kwargs = {
+            "base_claims": {
+                "email": None,
+                "email_verified": None
+            }
+        }
+
+        self.server.server_get("endpoint", "userinfo").kwargs = {
+            "enable_claims_per_client": True,
+        }
+        self.endpoint_context.cdb["client_1"]["userinfo_claims"] = ["name", "email"]
+
+        self.server.server_get("endpoint", "introspection").kwargs = {
+            "add_claims_by_scope": True
+        }
+
+        self.endpoint_context.session_manager.token_handler["access_token"].kwargs = {}
+
+        session_id = self._create_session(AREQ)
+        claims_restriction = self.claims_interface.get_claims_all_usage(session_id,
+                                                                        ['openid', 'address'])
+
+        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["userinfo"])
+        assert _claims == {'name': 'Diana Krall', 'email': 'diana@example.org'}
+
+        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["id_token"])
+        assert _claims == {'email_verified': False, 'email': 'diana@example.org'}
+
+        _claims = self.claims_interface.get_user_claims(USER_ID,
+                                                        claims_restriction["introspection"])
+        # Note that sub is not a user claim
+        assert _claims == {
+            'address': {'country': 'Sweden', 'locality': 'Umeå', 'postal_code': 'SE-90187',
+                        'street_address': 'Umeå Universitet'}}
+
+        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["access_token"])
+        assert _claims == {}

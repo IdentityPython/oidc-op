@@ -3,8 +3,8 @@ from oidcmsg.time_util import time_sans_frac
 import pytest
 
 from oidcop.authn_event import AuthnEvent
+from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
-from oidcop.endpoint_context import EndpointContext
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.token import Token
 from oidcop.server import Server
@@ -38,6 +38,8 @@ KEYDEFS = [
 ]
 
 DUMMY_SESSION_ID = session_key('user_id', 'client_id', 'grant.id')
+
+USER_ID = "diana"
 
 
 class TestSessionManager:
@@ -91,12 +93,23 @@ class TestSessionManager:
         server = Server(conf)
         self.server = server
         self.endpoint_context = server.endpoint_context
-        token_handler = factory(server.get_endpoint_context, **conf["token_handler_args"])
-
-        self.session_manager = SessionManager(handler=token_handler)
+        self.session_manager = server.endpoint_context.session_manager
         self.authn_event = AuthnEvent(uid="uid",
                                       valid_until=time_sans_frac() + 1,
                                       authn_info="authn_class_ref")
+
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+        if sector_identifier:
+            authz_req = auth_req.copy()
+            authz_req["sector_identifier_uri"] = sector_identifier
+        else:
+            authz_req = auth_req
+
+        client_id = authz_req['client_id']
+        ae = create_authn_event(USER_ID)
+        return self.server.endpoint_context.session_manager.create_session(ae, authz_req, USER_ID,
+                                                                           client_id=client_id,
+                                                                           sub_type=sub_type)
 
     @pytest.mark.parametrize("sub_type, sector_identifier", [
         ("pairwise", "https://all.example.com"),
@@ -198,22 +211,27 @@ class TestSessionManager:
         assert code.max_usage_reached() is False
 
     def test_code_usage(self):
-        grant = Grant()
+        session_id = self._create_session(AUTH_REQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+
         assert grant.issued_token == []
         assert grant.is_active() is True
 
-        code = self._mint_token('authorization_code', grant, DUMMY_SESSION_ID)
+        code = self._mint_token('authorization_code', grant, session_id)
         assert isinstance(code, AuthorizationCode)
         assert code.is_active()
         assert len(grant.issued_token) == 1
 
         assert code.usage_rules["supports_minting"] == ['access_token', 'refresh_token']
-        access_token = self._mint_token('access_token', grant, DUMMY_SESSION_ID, code)
+        access_token = self._mint_token('access_token', grant, session_id, code)
         assert isinstance(access_token, AccessToken)
         assert access_token.is_active()
         assert len(grant.issued_token) == 2
 
-        refresh_token = self._mint_token('refresh_token', grant, DUMMY_SESSION_ID, code)
+        refresh_token = self._mint_token('refresh_token', grant, session_id, code)
         assert isinstance(refresh_token, RefreshToken)
         assert refresh_token.is_active()
         assert len(grant.issued_token) == 3
@@ -229,17 +247,16 @@ class TestSessionManager:
         assert access_token.revoked == True
         assert refresh_token.revoked == True
 
-    def test_add_grant(self):
-        self.session_manager.create_session(authn_event=self.authn_event,
-                                            auth_req=AUTH_REQ,
-                                            user_id='diana',
-                                            client_id="client_1")
+    def test_check_grant(self):
+        session_id = self.session_manager.create_session(authn_event=self.authn_event,
+                                                         auth_req=AUTH_REQ,
+                                                         user_id='diana',
+                                                         client_id="client_1",
+                                                         scopes=["openid", "phoe"]
+                                                         )
 
-        grant = self.session_manager.add_grant(
-            user_id="diana", client_id="client_1",
-            scope=["openid", "phoe"],
-            claims={"userinfo": {"given_name": None}})
-
+        _session_info = self.session_manager.get_session_info(session_id=session_id, grant=True)
+        grant = _session_info["grant"]
         assert grant.scope == ["openid", "phoe"]
 
         _grant = self.session_manager.get(['diana', 'client_1', grant.id])
@@ -247,16 +264,16 @@ class TestSessionManager:
         assert _grant.scope == ["openid", "phoe"]
 
     def test_find_token(self):
-        self.session_manager.create_session(authn_event=self.authn_event,
-                                            auth_req=AUTH_REQ,
-                                            user_id='diana',
-                                            client_id="client_1")
+        session_id = self.session_manager.create_session(authn_event=self.authn_event,
+                                                         auth_req=AUTH_REQ,
+                                                         user_id='diana',
+                                                         client_id="client_1")
 
-        grant = self.session_manager.add_grant(user_id="diana",
-                                               client_id="client_1")
+        _info = self.session_manager.get_session_info(session_id=session_id, grant=True)
+        grant = _info["grant"]
 
-        code = self._mint_token('authorization_code', grant, DUMMY_SESSION_ID)
-        access_token = self._mint_token('access_token', grant, DUMMY_SESSION_ID, code)
+        code = self._mint_token('authorization_code', grant, session_id)
+        access_token = self._mint_token('access_token', grant, session_id, code)
 
         _session_key = session_key('diana', 'client_1', grant.id)
         _token = self.session_manager.find_token(_session_key, access_token.value)
@@ -278,15 +295,11 @@ class TestSessionManager:
         assert authn_event["authn_info"] == "authn_class_ref"
 
     def test_get_client_session_info(self):
-        self.session_manager.create_session(authn_event=self.authn_event,
-                                            auth_req=AUTH_REQ,
-                                            user_id='diana',
-                                            client_id="client_1")
+        _session_id = self.session_manager.create_session(authn_event=self.authn_event,
+                                                          auth_req=AUTH_REQ,
+                                                          user_id='diana',
+                                                          client_id="client_1")
 
-        grant = self.session_manager.add_grant(user_id="diana",
-                                               client_id="client_1")
-
-        _session_id = session_key('diana', 'client_1', grant.id)
         csi = self.session_manager.get_client_session_info(_session_id)
 
         assert isinstance(csi, ClientSessionInfo)

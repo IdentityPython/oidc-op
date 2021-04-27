@@ -209,9 +209,9 @@ class TestEndpoint(object):
 
     def test_do_response(self):
         session_id = self._create_session(AUTH_REQ)
-        grant = self.endpoint.server_get("endpoint_context").authz(session_id, AUTH_REQ)
+
+        grant = self.session_manager.get_grant(session_id)
         grant.usage_rules["access_token"] = {"supports_minting": ["access_token"]}
-        self.session_manager[session_id] = grant
 
         grant_user_id = "https://frontend.example.com/resource"
         backend = "https://backend.example.com"

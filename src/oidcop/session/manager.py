@@ -272,17 +272,11 @@ class SessionManager(Database):
 
     def get_authorization_request(self, session_id):
         res = self.get_session_info(session_id=session_id, authorization_request=True)
-        if isinstance(res, SessionToken):
-            return res.authorization_request
-        else:
-            return res["authorization_request"]
+        return res["authorization_request"]
 
     def get_authentication_event(self, session_id):
         res = self.get_session_info(session_id=session_id, authentication_event=True)
-        if isinstance(res, SessionToken):
-            return res.authentication_event
-        else:
-            return res["authentication_event"]
+        return res["authentication_event"]
 
     def revoke_client_session(self, session_id: str):
         """
@@ -338,7 +332,7 @@ class SessionManager(Database):
                          client_session_info: bool = False,
                          grant: bool = False,
                          authentication_event: bool = False,
-                         authorization_request: bool = False) -> Union[SessionToken, dict]:
+                         authorization_request: bool = False) -> dict:
         """
         Returns information connected to a session.
 
@@ -391,7 +385,7 @@ class SessionManager(Database):
                                   grant: bool = False,
                                   authentication_event: bool = False,
                                   authorization_request: bool = False
-                                  ) -> SessionToken:
+                                  ) -> dict:
         _token_info = self.token_handler.info(token_value)
         return self.get_session_info(_token_info["sid"],
                                      user_session_info=user_session_info,

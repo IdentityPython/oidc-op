@@ -733,8 +733,10 @@ class Authorization(Endpoint):
                     return {"response_args": resp, "fragment_enc": fragment_enc}
 
                 aresp["id_token"] = id_token
-                _mngr.update([_sinfo["user_id"], _sinfo["client_id"]],
-                             {"id_token": id_token})
+                # _id = uuid.uuid4().hex
+                grant.issued_token.append(id_token)
+                # _mngr.update([_sinfo["user_id"], _sinfo["client_id"]],
+                #              {"id_token": id_token})
                 handled_response_type.append("id_token")
 
             not_handled = rtype.difference(handled_response_type)

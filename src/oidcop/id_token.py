@@ -269,7 +269,7 @@ class IDToken(object):
 
         lifetime = self.kwargs.get("lifetime")
 
-        return self.sign_encrypt(
+        id_token = self.sign_encrypt(
             session_id,
             client_id,
             sign=True,
@@ -277,3 +277,5 @@ class IDToken(object):
             extra_claims=xargs,
             **kwargs
         )
+
+        return id_token
