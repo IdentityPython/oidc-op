@@ -65,10 +65,12 @@ class Configuration:
         if _key_args is not None:
             self.session_key = init_key(**_key_args)
             # self.op['server_info']['password'] = self.session_key
-            self.logger.debug("Set server password to %s", self.session_key)
+            self.logger.debug(f"Set server password to {self.session_key}")
 
         # templates and Jinja environment
-        self.template_dir = os.path.abspath(conf.get('template_dir', 'templates'))
+        self.template_dir = os.path.abspath(
+            conf.get('template_dir', 'templates')
+        )
 
         # server info
         self.domain = conf.get("domain")
@@ -77,7 +79,10 @@ class Configuration:
             _pre = conf.get(param)
             if _pre:
                 if '{domain}' in _pre:
-                    setattr(self, param, _pre.format(domain=self.domain, port=self.port))
+                    setattr(
+                        self, param,
+                        _pre.format(domain=self.domain, port=self.port)
+                    )
                 else:
                     setattr(self, param, _pre)
 
