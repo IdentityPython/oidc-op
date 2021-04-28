@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class Unical_AccountsConfig(AppConfig):
-    name = 'unical_accounts'
+class AccountsConfig(AppConfig):
+    name = 'accounts'
     verbose_name = "Autenticazione e Autorizzazione Utenti"

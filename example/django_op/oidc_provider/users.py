@@ -4,32 +4,29 @@ from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
 
-from oidcendpoint.util import instantiate
-from oidcendpoint.user_authn.user import (create_signed_jwt,
-                                          verify_signed_jwt)
-from oidcendpoint.user_authn.user import UserAuthnMethod
+from oidcop.user_authn.user import (create_signed_jwt, LABELS)
+from oidcop.user_authn.user import UserAuthnMethod
 
 
 class UserPassDjango(UserAuthnMethod):
     """
-    see oidcendpoint.authn_context
-        oidcendpoint.endpoint_context
+    see oidcop.authn_context
+        oidcop.endpoint_context
         https://docs.djangoproject.com/en/2.2/ref/templates/api/#rendering-a-context
     """
 
     # TODO: get this though settings conf
     url_endpoint = "/verify/user_pass_django"
 
-
     def __init__(self,
                  # template_handler=render_to_string,
                  template="oidc_login.html",
-                 endpoint_context=None, verify_endpoint='', **kwargs):
+                 server_get=None, verify_endpoint='', **kwargs):
         """
         template_handler is only for backwards compatibility
         it will be always replaced by Django's default
         """
-        super(UserPassDjango, self).__init__(endpoint_context=endpoint_context)
+        super(UserPassDjango, self).__init__(server_get=server_get)
 
         self.kwargs = kwargs
         self.kwargs.setdefault("page_header", "Log in")
@@ -50,9 +47,8 @@ class UserPassDjango(UserAuthnMethod):
         self.action = verify_endpoint or self.url_endpoint
         self.kwargs['action'] = self.action
 
-
     def __call__(self, **kwargs):
-        _ec = self.endpoint_context
+        _ec = self.server_get('endpoint_context')
         # Stores information need afterwards in a signed JWT that then
         # appears as a hidden input in the form
         jws = create_signed_jwt(_ec.issuer, _ec.keyjar, **kwargs)
@@ -62,13 +58,9 @@ class UserPassDjango(UserAuthnMethod):
         _kwargs = self.kwargs.copy()
         for attr in ['policy', 'tos', 'logo']:
             _uri = '{}_uri'.format(attr)
-            try:
-                _kwargs[_uri] = kwargs[_uri]
-            except KeyError:
-                pass
-            else:
-                _label = '{}_label'.format(attr)
-                _kwargs[_label] = LABELS[_uri]
+            _kwargs[_uri] = kwargs.get(_uri)
+            _label = '{}_label'.format(attr)
+            _kwargs[_label] = LABELS[_uri]
 
         return self.template_handler(self.template, _kwargs)
 
@@ -76,7 +68,8 @@ class UserPassDjango(UserAuthnMethod):
         username = kwargs["username"]
         password = kwargs["password"]
 
-        user = authenticate(username=username, password=password)
+        user = authenticate(username=username,
+                            password=password)
 
         if username:
             return user
@@ -112,18 +105,21 @@ class UserInfo(object):
             for key, restr in user_info_claims.items():
                 if key in self.claims_map:
                     # manage required and optional: TODO extends this approach
-                    if not hasattr(user, self.claims_map[key]) and restr == {"essential": True}:
+                    if not hasattr(user, self.claims_map.get(key)) and \
+                            restr == {"essential": True}:
                         missing.append(key)
                         continue
                     else:
                         optional.append(key)
                     #
                     uattr = getattr(user, self.claims_map[key], None)
-                    if not uattr: continue
+                    if not uattr:
+                        continue
                     result[key] = uattr() if callable(uattr) else uattr
             return result
 
-    def __call__(self, user_id, client_id, user_info_claims=None, **kwargs):
+    def __call__(self, user_id, client_id,
+                 user_info_claims=None, **kwargs):
         """
         user_id = username
         client_id = client id, ex: 'mHwpZsDeWo5g'
@@ -133,10 +129,7 @@ class UserInfo(object):
             # Todo: raise exception here, this wouldn't be possible.
             return {}
 
-        try:
-            return self.filter(user, user_info_claims)
-        except KeyError:
-            return {}
+        return self.filter(user, user_info_claims)
 
     def search(self, **kwargs):
         for uid, args in self.db.items():

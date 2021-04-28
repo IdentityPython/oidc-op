@@ -25,6 +25,6 @@ urlpatterns = [
 urlpatterns += static(settings.STATIC_URL,
                       document_root=settings.STATIC_ROOT)
 
-if 'oidc_op' in settings.INSTALLED_APPS:
-    import oidc_op.urls
-    urlpatterns += path('', include((oidc_op.urls, 'oidc_op',))),
+if 'oidc_provider' in settings.INSTALLED_APPS:
+    import oidc_provider.urls
+    urlpatterns += path('', include((oidc_provider.urls, 'oidc_op',))),
