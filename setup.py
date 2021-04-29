@@ -66,6 +66,7 @@ setup(
     install_requires=[
         "oidcmsg>=1.3.0",
         "pyyaml",
+        "jinja2"
     ],
     zip_safe=False,
     cmdclass={'test': PyTest},

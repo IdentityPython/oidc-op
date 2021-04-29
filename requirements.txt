@@ -1,2 +1,3 @@
 oidcmsg>=1.3.0
 pyyaml
+jinja2
