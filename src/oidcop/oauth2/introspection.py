@@ -83,9 +83,11 @@ class Introspection(Endpoint):
         except UnknownToken:
             return {"response_args": _resp}
 
-        _token = _context.session_manager.find_token(_session_info["session_id"], request_token)
+        _token = _context.session_manager.find_token(
+            _session_info["session_id"], request_token)
 
-        _info = self._introspect(_token, _session_info["client_id"], _session_info["grant"])
+        _info = self._introspect(
+            _token, _session_info["client_id"], _session_info["grant"])
         if _info is None:
             return {"response_args": _resp}
 
@@ -99,7 +101,8 @@ class Introspection(Endpoint):
         _resp.update(_info)
         _resp.weed()
 
-        _claims_restriction = _session_info["grant"].claims.get("introspection")
+        _claims_restriction = _session_info["grant"].claims.get(
+            "introspection")
         if _claims_restriction:
             user_info = _context.claims_interface.get_user_claims(
                 _session_info["user_id"], _claims_restriction)

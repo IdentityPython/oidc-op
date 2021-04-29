@@ -115,7 +115,8 @@ class AccessTokenHelper(TokenEndpointHelper):
                 error="invalid_request", error_description="Missing code"
             )
 
-        _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
+        _session_info = _mngr.get_session_info_by_token(
+            _access_code, grant=True)
         grant = _session_info["grant"]
 
         code = grant.get_token(_access_code)
@@ -217,7 +218,8 @@ class AccessTokenHelper(TokenEndpointHelper):
         if "client_id" not in request:  # Optional for access token request
             request["client_id"] = _auth_req["client_id"]
 
-        logger.debug("%s: %s" % (request.__class__.__name__, sanitize(request)))
+        logger.debug("%s: %s" %
+                     (request.__class__.__name__, sanitize(request)))
 
         return request
 
@@ -233,7 +235,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
             )
 
         token_value = req["refresh_token"]
-        _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+        _session_info = _mngr.get_session_info_by_token(
+            token_value, grant=True)
         token = _mngr.find_token(_session_info["session_id"], token_value)
 
         _grant = _session_info["grant"]
@@ -250,7 +253,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
         }
 
         if access_token.expires_at:
-            _resp["expires_in"] = access_token.expires_at - utc_time_sans_frac()
+            _resp["expires_in"] = access_token.expires_at - \
+                utc_time_sans_frac()
 
         _mints = token.usage_rules.get("supports_minting")
         if "refresh_token" in _mints:
@@ -300,12 +304,14 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         _mngr = _context.session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["refresh_token"])
+            _session_info = _mngr.get_session_info_by_token(
+                request["refresh_token"])
         except KeyError:
             logger.error("Access Code invalid")
             return self.error_cls(error="invalid_grant")
 
-        token = _mngr.find_token(_session_info["session_id"], request["refresh_token"])
+        token = _mngr.find_token(
+            _session_info["session_id"], request["refresh_token"])
 
         if not isinstance(token, RefreshToken):
             return self.error_cls(
@@ -336,7 +342,8 @@ class Token(Endpoint):
     response_placement = "body"
     endpoint_name = "token_endpoint"
     name = "token"
-    default_capabilities = {"token_endpoint_auth_signing_alg_values_supported": None}
+    default_capabilities = {
+        "token_endpoint_auth_signing_alg_values_supported": None}
 
     def __init__(self, server_get, new_refresh_token=False, **kwargs):
         Endpoint.__init__(self, server_get, **kwargs)
@@ -381,7 +388,8 @@ class Token(Endpoint):
             try:
                 self.helper[grant_type] = grant_class(self, _conf)
             except Exception as e:
-                raise ProcessError(f"Failed to initialize class {grant_class}: {e}")
+                raise ProcessError(
+                    f"Failed to initialize class {grant_class}: {e}")
 
     def _post_parse_request(self, request: Union[Message, dict],
                             client_id: Optional[str] = "", **kwargs):

@@ -4,7 +4,6 @@ import json
 import logging
 import time
 from random import random
-from urllib.parse import parse_qs
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
@@ -110,7 +109,7 @@ def comb_uri(args):
     request_uris = args.get('request_uris')
     if request_uris:
         val = []
-        for base,frag in request_uris:
+        for base, frag in request_uris:
             if frag:
                 val.append('{}#{}'.format(base, frag))
             else:
@@ -234,7 +233,8 @@ class Registration(Endpoint):
                             )
                         if not _k:
                             logger.warning(
-                                'Lacking support for "{}"'.format(request[item])
+                                'Lacking support for "{}"'.format(
+                                    request[item])
                             )
                             del _cinfo[item]
 
@@ -246,7 +246,8 @@ class Registration(Endpoint):
 
         # if it can't load keys because the URL is false it will
         # just silently fail. Waiting for better times.
-        _context.keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
+        _context.keyjar.load_keys(
+            client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
         n_keys = 0
         for kb in _context.keyjar.get(client_id, []):
             n_keys += len(kb.keys())
@@ -323,7 +324,8 @@ class Registration(Endpoint):
         except Exception as err:
             logger.error(err)
             # res = None
-            raise InvalidSectorIdentifier("Couldn't read from sector_identifier_uri")
+            raise InvalidSectorIdentifier(
+                "Couldn't read from sector_identifier_uri")
 
         try:
             si_redirects = json.loads(res.text)
@@ -416,7 +418,8 @@ class Registration(Endpoint):
         if set_secret:
             client_secret = self.add_client_secret(_cinfo, client_id, _context)
 
-        logger.debug("Stored client info in CDB under cid={}".format(client_id))
+        logger.debug(
+            "Stored client info in CDB under cid={}".format(client_id))
 
         _context.cdb[client_id] = _cinfo
         _cinfo = self.do_client_registration(
@@ -438,7 +441,8 @@ class Registration(Endpoint):
         if client_secret:
             _context.keyjar.add_symmetric(client_id, str(client_secret))
 
-        logger.debug("Stored updated client info in CDB under cid={}".format(client_id))
+        logger.debug(
+            "Stored updated client info in CDB under cid={}".format(client_id))
         logger.debug("ClientInfo: {}".format(_cinfo))
         _context.cdb[client_id] = _cinfo
 
@@ -453,7 +457,8 @@ class Registration(Endpoint):
 
     def process_request(self, request=None, new_id=True, set_secret=True, **kwargs):
         try:
-            reg_resp = self.client_registration_setup(request, new_id, set_secret)
+            reg_resp = self.client_registration_setup(
+                request, new_id, set_secret)
         except Exception as err:
             logger.error('client_registration_setup: %s', request)
             return ResponseMessage(
@@ -466,7 +471,7 @@ class Registration(Endpoint):
             _context = self.server_get("endpoint_context")
             _cookie = _context.new_cookie(
                 name=_context.cookie_handler.name["register"],
-                client_id= reg_resp["client_id"]
+                client_id=reg_resp["client_id"]
             )
 
             return {"response_args": reg_resp, "cookie": _cookie}

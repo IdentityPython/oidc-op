@@ -124,16 +124,18 @@ class Endpoint(object):
         elif self.default_capabilities:
             _methods = self.default_capabilities.get("client_authn_method")
             if _methods:
-                self.client_authn_method = client_auth_setup(_methods, server_get)
+                self.client_authn_method = client_auth_setup(
+                    _methods, server_get)
 
-        self.endpoint_info = construct_endpoint_info(self.default_capabilities, **kwargs)
+        self.endpoint_info = construct_endpoint_info(
+            self.default_capabilities, **kwargs)
 
         # This is for matching against aud in JWTs
         # By default the endpoint's endpoint URL is an allowed target
         self.allowed_targets = [self.name]
         self.client_verification_method = []
 
-    def parse_cookies(self, cookies: List[dict], context: EndpointContext , name: str):
+    def parse_cookies(self, cookies: List[dict], context: EndpointContext, name: str):
         res = context.cookie_handler.parse_cookie(name, cookies)
         return res
 
@@ -182,7 +184,8 @@ class Endpoint(object):
         # Verify that the client is allowed to do this
         _client_id = ""
         try:
-            auth_info = self.client_authentication(req, http_info, endpoint=self, **kwargs)
+            auth_info = self.client_authentication(
+                req, http_info, endpoint=self, **kwargs)
         except UnknownOrNoAuthnMethod:
             # If there is no required client authentication method
             if not self.client_authn_method:
@@ -407,12 +410,14 @@ class Endpoint(object):
                         resp = _response.request(kwargs["return_uri"])
                 else:
                     raise ValueError(
-                        "Don't know where that is: '{}".format(self.response_placement)
+                        "Don't know where that is: '{}".format(
+                            self.response_placement)
                     )
 
         if content_type:
             try:
-                http_headers = set_content_type(kwargs["http_headers"], content_type)
+                http_headers = set_content_type(
+                    kwargs["http_headers"], content_type)
             except KeyError:
                 http_headers = [("Content-type", content_type)]
         else:

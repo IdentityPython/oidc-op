@@ -26,6 +26,7 @@ class Database(ImpExp):
     parameter = {
         "db": DLDict
     }
+
     def __init__(self):
         ImpExp.__init__(self)
         self.db = DLDict()
@@ -96,7 +97,8 @@ class Database(ImpExp):
                         return client_session_info
 
                     if grant_id not in client_session_info.subordinate:
-                        raise ValueError('No such grant for that user and client')
+                        raise ValueError(
+                            'No such grant for that user and client')
                     else:
                         try:
                             return self.db[session_key(uid, client_id, grant_id)]
@@ -120,13 +122,15 @@ class Database(ImpExp):
                         if grant_id:
                             if grant_id in _client_info.subordinate:
                                 try:
-                                    self.db.__delitem__(session_key(uid, client_id, grant_id))
+                                    self.db.__delitem__(
+                                        session_key(uid, client_id, grant_id))
                                 except KeyError:
                                     pass
                                 _client_info.subordinate.remove(grant_id)
                         else:
                             for grant_id in _client_info.subordinate:
-                                self.db.__delitem__(session_key(uid, client_id, grant_id))
+                                self.db.__delitem__(
+                                    session_key(uid, client_id, grant_id))
                             _client_info.subordinate = []
 
                         if len(_client_info.subordinate) == 0:

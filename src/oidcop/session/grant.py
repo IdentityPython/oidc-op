@@ -1,4 +1,3 @@
-import json
 from typing import Optional
 from uuid import uuid1
 
@@ -15,7 +14,6 @@ from oidcop.session.token import Item
 from oidcop.session.token import RefreshToken
 from oidcop.session.token import SessionToken
 from oidcop.token import Token as TokenHandler
-from oidcop.util import importer
 
 
 class GrantMessage(ImpExp):

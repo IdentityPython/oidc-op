@@ -37,7 +37,8 @@ class DPOPAccessTokenHelper(AccessTokenHelper):
                 error="invalid_request", error_description="Missing code"
             )
 
-        _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
+        _session_info = _mngr.get_session_info_by_token(
+            _access_code, grant=True)
         grant = _session_info["grant"]
 
         code = grant.get_token(_access_code)
@@ -131,7 +132,8 @@ class DPOPRefreshTokenHelper(RefreshTokenHelper):
             )
 
         token_value = req["refresh_token"]
-        _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+        _session_info = _mngr.get_session_info_by_token(
+            token_value, grant=True)
         token = _mngr.find_token(_session_info["session_id"], token_value)
 
         _grant = _session_info["grant"]
@@ -154,7 +156,8 @@ class DPOPRefreshTokenHelper(RefreshTokenHelper):
         }
 
         if access_token.expires_at:
-            _resp["expires_in"] = access_token.expires_at - utc_time_sans_frac()
+            _resp["expires_in"] = access_token.expires_at - \
+                utc_time_sans_frac()
 
         _mints = token.usage_rules.get("supports_minting")
         if "refresh_token" in _mints:

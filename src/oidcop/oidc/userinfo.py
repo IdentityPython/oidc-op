@@ -47,7 +47,8 @@ class UserInfo(Endpoint):
         self.allowed_targets.append("")
 
     def get_client_id_from_token(self, endpoint_context, token, request=None):
-        _info = endpoint_context.session_manager.get_session_info_by_token(token)
+        _info = endpoint_context.session_manager.get_session_info_by_token(
+            token)
         return _info["client_id"]
 
     def do_response(self, response_args: Optional[Union[Message, dict]] = None,
@@ -166,7 +167,8 @@ class UserInfo(Endpoint):
 
         # Verify that the client is allowed to do this
         try:
-            auth_info = self.client_authentication(request, http_info, **kwargs)
+            auth_info = self.client_authentication(
+                request, http_info, **kwargs)
         except (ValueError, UnknownToken) as e:
             return self.error_cls(
                 error="invalid_token", error_description=e.args[0]

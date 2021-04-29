@@ -30,7 +30,8 @@ class AuthzHandling(object):
             return _usage_rules
 
         try:
-            _per_client = self.server_get("endpoint_context").cdb[client_id]["token_usage_rules"]
+            _per_client = self.server_get(
+                "endpoint_context").cdb[client_id]["token_usage_rules"]
         except KeyError:
             pass
         else:
@@ -86,7 +87,7 @@ class AuthzHandling(object):
         scopes = request.get("scope", [])
         grant.scope = scopes
         grant.claims = self.server_get("endpoint_context").claims_interface.get_claims_all_usage(
-                session_id=session_id, scopes=scopes)
+            session_id=session_id, scopes=scopes)
 
         return grant
 
@@ -95,7 +96,8 @@ class Implicit(AuthzHandling):
     def __call__(self, session_id: str, request: Union[dict, Message],
                  resources: Optional[list] = None) -> Grant:
         args = self.grant_config.copy()
-        grant = self.server_get("endpoint_context").session_manager.get_grant(session_id=session_id)
+        grant = self.server_get("endpoint_context").session_manager.get_grant(
+            session_id=session_id)
         for arg, val in args:
             setattr(grant, arg, val)
         return grant

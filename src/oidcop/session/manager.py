@@ -2,7 +2,6 @@ import hashlib
 import logging
 from typing import List
 from typing import Optional
-from typing import Union
 import uuid
 
 from oidcmsg.oauth2 import AuthorizationRequest
@@ -262,20 +261,24 @@ class SessionManager(Database):
         elif user_id and client_id:
             pass
         else:
-            raise AttributeError("Must have session_id or user_id and client_id")
+            raise AttributeError(
+                "Must have session_id or user_id and client_id")
 
         c_info = self.get([user_id, client_id])
 
-        self.subordinate_ = [self.get([user_id, client_id, gid]) for gid in c_info.subordinate]
+        self.subordinate_ = [self.get([user_id, client_id, gid])
+                             for gid in c_info.subordinate]
         _grants = self.subordinate_
         return [g.authentication_event for g in _grants]
 
     def get_authorization_request(self, session_id):
-        res = self.get_session_info(session_id=session_id, authorization_request=True)
+        res = self.get_session_info(
+            session_id=session_id, authorization_request=True)
         return res["authorization_request"]
 
     def get_authentication_event(self, session_id):
-        res = self.get_session_info(session_id=session_id, authentication_event=True)
+        res = self.get_session_info(
+            session_id=session_id, authentication_event=True)
         return res["authentication_event"]
 
     def revoke_client_session(self, session_id: str):
@@ -321,7 +324,8 @@ class SessionManager(Database):
         elif user_id and client_id:
             pass
         else:
-            raise AttributeError("Must have session_id or user_id and client_id")
+            raise AttributeError(
+                "Must have session_id or user_id and client_id")
 
         _csi = self.get([user_id, client_id])
         return [self.get([user_id, client_id, gid]) for gid in _csi.subordinate]

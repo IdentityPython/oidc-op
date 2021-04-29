@@ -140,7 +140,8 @@ class DefaultToken(Token):
         :param token: A token
         :return: dictionary with info about the token
         """
-        _res = dict(zip(["_id", "type", "sid", "exp"], self.split_token(token)))
+        _res = dict(zip(["_id", "type", "sid", "exp"],
+                        self.split_token(token)))
         if _res["type"] != self.type:
             raise WrongTokenType(_res["type"])
         else:

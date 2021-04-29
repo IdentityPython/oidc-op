@@ -89,18 +89,21 @@ class Session(Endpoint):
     def __init__(self, server_get, **kwargs):
         _csi = kwargs.get("check_session_iframe")
         if _csi and not _csi.startswith("http"):
-            kwargs["check_session_iframe"] = add_path(server_get("endpoint_context").issuer, _csi)
+            kwargs["check_session_iframe"] = add_path(
+                server_get("endpoint_context").issuer, _csi)
         Endpoint.__init__(self, server_get, **kwargs)
         self.iv = as_bytes(rndstr(24))
 
     def _encrypt_sid(self, sid):
-        encrypter = AES_GCMEncrypter(key=as_bytes(self.server_get("endpoint_context").symkey))
+        encrypter = AES_GCMEncrypter(key=as_bytes(
+            self.server_get("endpoint_context").symkey))
         enc_msg = encrypter.encrypt(as_bytes(sid), iv=self.iv)
         return as_unicode(b64e(enc_msg))
 
     def _decrypt_sid(self, enc_msg):
         _msg = b64d(as_bytes(enc_msg))
-        encrypter = AES_GCMEncrypter(key=as_bytes(self.server_get("endpoint_context").symkey))
+        encrypter = AES_GCMEncrypter(key=as_bytes(
+            self.server_get("endpoint_context").symkey))
         ctx, tag = split_ctx_and_tag(_msg)
         return as_unicode(encrypter.decrypt(as_bytes(ctx), iv=self.iv, tag=as_bytes(tag)))
 
@@ -135,7 +138,8 @@ class Session(Endpoint):
         except KeyError:
             alg = _context.provider_info["id_token_signing_alg_values_supported"][0]
 
-        _jws = JWT(_context.keyjar, iss=_context.issuer, lifetime=86400, sign_alg=alg)
+        _jws = JWT(_context.keyjar, iss=_context.issuer,
+                   lifetime=86400, sign_alg=alg)
         _jws.with_jti = True
         _logout_token = _jws.pack(payload=payload, recv=cinfo["client_id"])
 
@@ -171,7 +175,8 @@ class Session(Endpoint):
                 # Construct an IFrame
                 _sid = session_key(_user_id, _client_id)
                 _rel_sid.append(_sid)
-                _spec = do_front_channel_logout_iframe(_cdb[_client_id], _iss, _sid)
+                _spec = do_front_channel_logout_iframe(
+                    _cdb[_client_id], _iss, _sid)
                 if _spec:
                     fc_iframes[_client_id] = _spec
 
@@ -192,7 +197,8 @@ class Session(Endpoint):
             else:
                 alg = self.kwargs["signing_alg"]
 
-            sign_keys = self.server_get("endpoint_context").keyjar.get_signing_key(alg2keytype(alg))
+            sign_keys = self.server_get(
+                "endpoint_context").keyjar.get_signing_key(alg2keytype(alg))
             _info = _jwt.verify_compact(keys=sign_keys, sigalg=alg)
             return _info
         else:
@@ -212,7 +218,8 @@ class Session(Endpoint):
                 res["blu"] = {_client_id: _spec}
         elif "frontchannel_logout_uri" in _cdb[_client_id]:
             # Construct an IFrame
-            _spec = do_front_channel_logout_iframe(_cdb[_client_id], _context.issuer, sid)
+            _spec = do_front_channel_logout_iframe(
+                _cdb[_client_id], _context.issuer, sid)
             if _spec:
                 res["flu"] = {_client_id: _spec}
 
@@ -258,7 +265,8 @@ class Session(Endpoint):
                 _cookie_info = json.loads(_cookie_infos[0]["value"])
                 logger.debug("Cookie info: {}".format(_cookie_info))
                 try:
-                    _session_info = _mngr.get_session_info(_cookie_info["sid"], grant=True)
+                    _session_info = _mngr.get_session_info(
+                        _cookie_info["sid"], grant=True)
                 except KeyError:
                     raise ValueError("Can't find any corresponding session")
 
@@ -281,7 +289,7 @@ class Session(Endpoint):
         else:
             _aud = []
 
-        _cinfo = _context.cdb[_session_info["client_id"]]
+        _context.cdb[_session_info["client_id"]]
 
         # verify that the post_logout_redirect_uri if present are among the ones
         # registered
@@ -290,9 +298,11 @@ class Session(Endpoint):
             _uri = request["post_logout_redirect_uri"]
         except KeyError:
             if _context.issuer.endswith("/"):
-                _uri = "{}{}".format(_context.issuer, self.kwargs["post_logout_uri_path"])
+                _uri = "{}{}".format(
+                    _context.issuer, self.kwargs["post_logout_uri_path"])
             else:
-                _uri = "{}/{}".format(_context.issuer, self.kwargs["post_logout_uri_path"])
+                _uri = "{}/{}".format(_context.issuer,
+                                      self.kwargs["post_logout_uri_path"])
             plur = False
         else:
             plur = True
@@ -339,7 +349,8 @@ class Session(Endpoint):
 
         # Verify that the client is allowed to do this
         try:
-            auth_info = self.client_authentication(request, http_info, **kwargs)
+            auth_info = self.client_authentication(
+                request, http_info, **kwargs)
         except UnknownOrNoAuthnMethod:
             pass
         else:
@@ -388,7 +399,8 @@ class Session(Endpoint):
                 if res.status_code < 300:
                     logger.info("Logged out from {}".format(_cid))
                 elif res.status_code in [501, 504]:
-                    logger.info("Got a %s which is acceptable", res.status_code)
+                    logger.info("Got a %s which is acceptable",
+                                res.status_code)
                 elif res.status_code >= 400:
                     logger.info("failed to logout from {}".format(_cid))
 
@@ -398,11 +410,11 @@ class Session(Endpoint):
         _context = self.server_get("endpoint_context")
         _handler = _context.cookie_handler
         session_mngmnt = _handler.make_cookie_content(
-                                value="none",
-                                name=_handler.name["session_management"],
-                                expire=-1)
+            value="none",
+            name=_handler.name["session_management"],
+            expire=-1)
         session = _handler.make_cookie_content(
-                                value="none",
-                                name=_handler.name["session"],
-                                expire=-1)
+            value="none",
+            name=_handler.name["session"],
+            expire=-1)
         return [session_mngmnt, session]

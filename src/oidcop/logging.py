@@ -38,7 +38,7 @@ def configure_logging(debug: bool = False, config: dict = None,
         config_source = 'dictionary'
     elif filename is not None and os.path.exists(filename):
         with open(filename, "rt") as file:
-            config_dict = yaml.load(file)
+            config_dict = yaml.safe_load(file)
         config_source = 'file'
     else:
         config_dict = LOGGING_DEFAULT

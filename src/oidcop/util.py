@@ -10,7 +10,8 @@ from oidcop.exception import OidcEndpointError
 
 logger = logging.getLogger(__name__)
 
-OAUTH2_NOCACHE_HEADERS = [("Pragma", "no-cache"), ("Cache-Control", "no-store")]
+OAUTH2_NOCACHE_HEADERS = [("Pragma", "no-cache"),
+                          ("Cache-Control", "no-store")]
 
 
 def modsplit(s):
@@ -60,7 +61,8 @@ def build_endpoints(conf, server_get, issuer):
         kwargs = spec.get("kwargs", {})
 
         if isinstance(spec["class"], str):
-            _instance = importer(spec["class"])(server_get=server_get, **kwargs)
+            _instance = importer(spec["class"])(
+                server_get=server_get, **kwargs)
         else:
             _instance = spec["class"](server_get=server_get, **kwargs)
 
@@ -77,7 +79,8 @@ def build_endpoints(conf, server_get, issuer):
             try:
                 _instance.endpoint_info[_instance.endpoint_name] = _instance.full_path
             except TypeError:
-                _instance.endpoint_info = {_instance.endpoint_name: _instance.full_path}
+                _instance.endpoint_info = {
+                    _instance.endpoint_name: _instance.full_path}
 
         endpoint[_instance.name] = _instance
 
@@ -186,7 +189,8 @@ def allow_refresh_token(endpoint_context):
     if refresh_token_handler and _token_supported:
         return True
     elif refresh_token_handler:
-        logger.warning("Refresh Token handler available but grant type not supported")
+        logger.warning(
+            "Refresh Token handler available but grant type not supported")
     elif _token_supported:
         logger.error(
             "refresh_token grant type to be supported but no refresh_token handler available"

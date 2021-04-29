@@ -25,7 +25,9 @@ class RegistrationRead(Endpoint):
         return ""
 
     def process_request(self, request=None, **kwargs):
-        _cli_info = self.server_get("endpoint_context").cdb[request["client_id"]]
-        args = { k: v for k, v in _cli_info.items() if k in RegistrationResponse.c_param}
+        _cli_info = self.server_get(
+            "endpoint_context").cdb[request["client_id"]]
+        args = {k: v for k, v in _cli_info.items(
+        ) if k in RegistrationResponse.c_param}
         comb_uri(args)
         return {"response_args": RegistrationResponse(**args)}
