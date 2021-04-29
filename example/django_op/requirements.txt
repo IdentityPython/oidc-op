@@ -1,3 +1,10 @@
-Django>=2.2.4
+Django>3.1,<4.0
 oidcop
 gunicorn
+filelock
+
+git+https://github.com/IdentityPython/JWTConnect-Python-CryptoJWT
+git+https://github.com/IdentityPython/JWTConnect-Python-OidcMsg
+git+https://github.com/IdentityPython/JWTConnect-Python-OidcService
+git+https://github.com/IdentityPython/oidcendpoint.git
+git+https://github.com/IdentityPython/JWTConnect-Python-OidcRP

@@ -31,7 +31,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    'unical_accounts',
+    'accounts',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -40,9 +40,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'oidc_op',
+    'oidc_provider',
 
 ]
+
+if 'oidc_provider' in INSTALLED_APPS:
+    from . oidc_provider_settings import OIDCOP_CONF
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -85,7 +90,7 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = "unical_accounts.User"
+AUTH_USER_MODEL = "accounts.User"
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
 
@@ -109,13 +114,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
 
@@ -125,14 +126,12 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'data/static')
 
-OIDCENDPOINT_CONFIG = 'example/oidc_op.conf.yaml'
-
 # LOGGING
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'default': {
+        'verbose': {
             # exact format is not important, this is the minimum information
             'format': '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
         },
@@ -153,30 +152,59 @@ LOGGING = {
         },
         'console': {
             'formatter': 'detailed',
-            'level': 'INFO',
+            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
         },
     },
     'loggers': {
+        'django_test': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
         'django': {
             'handlers': ['console', 'mail_admins'],
             'level': 'ERROR',
-            'propagate': False,
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['mail_admins'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        # 'django.server': {
+            # 'handlers': ['console'],
+            # 'level': 'INFO',
+            # 'propagate': False,
+        # },
+        'oidc_provider': {
+            'handlers': ['console', 'mail_admins'],
+            'level': 'DEBUG',
+            'propagate': True,
         },
         'oidc_op': {
             'handlers': ['console', 'mail_admins'],
             'level': 'DEBUG',
             'propagate': False,
         },
-        'oidcendpoint': {
-            'handlers': ['console', 'mail_admins'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'oidcmsg': {
-            'handlers': ['console', 'mail_admins'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
+        # 'oidcop.endpoint_context': {
+            # 'handlers': ['console', 'mail_admins'],
+            # 'level': 'DEBUG',
+            # 'propagate': False,
+        # },
+        # 'oidcop.sso_db': {
+            # 'handlers': ['console', 'mail_admins'],
+            # 'level': 'DEBUG',
+            # 'propagate': False,
+        # },
+        # 'oidcop.session': {
+            # 'handlers': ['console', 'mail_admins'],
+            # 'level': 'DEBUG',
+            # 'propagate': False,
+        # },
+        # 'oidcmsg': {
+            # 'handlers': ['console', 'mail_admins'],
+            # 'level': 'INFO',
+            # 'propagate': False,
+        # },
     }
 }
