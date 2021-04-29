@@ -43,7 +43,7 @@ jobs:
 
     - name: Test with Django tests
       run: |
-        pytest --cov=src/oidc_op tests/
+        pytest --cov=oidcop tests/
     - name: Bandit Security Scan
       run: |
         bandit --skip B105,B106,B107 -r src/oidcop/
