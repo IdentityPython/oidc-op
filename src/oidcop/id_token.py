@@ -44,7 +44,9 @@ def include_session_id(endpoint_context, client_id, where):
 
     # Does the client support back-channel logout ?
     try:
-        _val = endpoint_context.cdb[client_id]["{}channel_logout_uri".format(where)]
+        endpoint_context.cdb[client_id][
+            "{}channel_logout_uri".format(where)
+        ]
     except KeyError:
         return False
 
@@ -78,7 +80,8 @@ def get_sign_and_encrypt_algorithms(
 
     if encrypt:
         try:
-            args["enc_alg"] = client_info["%s_encrypted_response_alg" % payload_type]
+            args["enc_alg"] = client_info["%s_encrypted_response_alg" %
+                                          payload_type]
         except KeyError:
             try:
                 args["enc_alg"] = endpoint_context.jwx_def["encryption_alg"][
@@ -92,7 +95,8 @@ def get_sign_and_encrypt_algorithms(
                     args["enc_alg"] = _supported[0]
 
         try:
-            args["enc_enc"] = client_info["%s_encrypted_response_enc" % payload_type]
+            args["enc_enc"] = client_info["%s_encrypted_response_enc" %
+                                          payload_type]
         except KeyError:
             try:
                 args["enc_enc"] = endpoint_context.jwx_def["encryption_enc"][
@@ -119,7 +123,8 @@ class IDToken(object):
         self.server_get = server_get
         self.kwargs = kwargs
         self.scope_to_claims = None
-        self.provider_info = construct_endpoint_info(self.default_capabilities, **kwargs)
+        self.provider_info = construct_endpoint_info(
+            self.default_capabilities, **kwargs)
 
     def payload(
             self,

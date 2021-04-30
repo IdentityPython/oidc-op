@@ -68,7 +68,8 @@ class DPoPProof(Message):
             if "jwk" in _jwt.headers:
                 _pub_key = key_from_jwk_dict(_jwt.headers["jwk"])
                 _pub_key.deserialize()
-                _info = _jws.verify_compact(keys=[_pub_key], sigalg=_jwt.headers["alg"])
+                _info = _jws.verify_compact(
+                    keys=[_pub_key], sigalg=_jwt.headers["alg"])
                 for k, v in _jwt.headers.items():
                     self[k] = v
 
@@ -125,7 +126,8 @@ def post_parse_request(request, client_id, endpoint_context, **kwargs):
 
 def token_args(endpoint_context, client_id, token_args: Optional[dict] = None):
     if "dpop.jkt" in endpoint_context.cdb[client_id]:
-        token_args.update({"cnf": {"jkt": endpoint_context.cdb[client_id]["dpop_jkt"]}})
+        token_args.update(
+            {"cnf": {"jkt": endpoint_context.cdb[client_id]["dpop_jkt"]}})
 
     return token_args
 
@@ -159,10 +161,8 @@ class DPoPClientAuth(ClientAuthnMethod):
 
     def verify(self, authorization_info, **kwargs):
         client_info = basic_authn(authorization_info)
-        _context= self.server_get("endpoint_context")
+        _context = self.server_get("endpoint_context")
         if _context.cdb[client_info["id"]]["client_secret"] == client_info["secret"]:
             return {"client_id": client_info["id"]}
         else:
             raise AuthnFailure()
-
-

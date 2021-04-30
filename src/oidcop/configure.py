@@ -13,9 +13,9 @@ from oidcop.logging import configure_logging
 from oidcop.utils import load_yaml_config
 
 try:
-    from secrets import token_urlsafe as rnd_token
+    pass
 except ImportError:
-    from oidcop import rndstr as rnd_token
+    pass
 
 DEFAULT_ITEM_PATHS = {
     "webserver": ['server_key', 'server_cert'],

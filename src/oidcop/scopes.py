@@ -45,7 +45,8 @@ def convert_scopes2claims(scopes, allowed_claims=None, map=None):
     else:
         for scope in scopes:
             try:
-                claims = {name: None for name in map[scope] if name in allowed_claims}
+                claims = {
+                    name: None for name in map[scope] if name in allowed_claims}
                 res.update(claims)
             except KeyError:
                 continue

@@ -113,7 +113,8 @@ class Authorization(authorization.Authorization):
         if sub_type and sub_type == "pairwise":
             sector_identifier_uri = _client_info.get("sector_identifier_uri")
             if sector_identifier_uri is None:
-                sector_identifier_uri = host_component(_client_info["redirect_uris"][0])
+                sector_identifier_uri = host_component(
+                    _client_info["redirect_uris"][0])
 
             client_info = ClientSessionInfo(
                 authorization_request=request,

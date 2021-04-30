@@ -51,7 +51,8 @@ class UserSessionInfo(SessionInfo):
         SessionInfo.__init__(self, **kwargs)
         self.type = "UserSessionInfo"
         self.user_id = kwargs.get("user_id", "")
-        self.extra_args = {k: v for k, v in kwargs.items() if k not in self.parameter}
+        self.extra_args = {k: v for k,
+                           v in kwargs.items() if k not in self.parameter}
 
 
 class ClientSessionInfo(SessionInfo):
@@ -64,7 +65,8 @@ class ClientSessionInfo(SessionInfo):
         SessionInfo.__init__(self, **kwargs)
         self.type = "ClientSessionInfo"
         self.client_id = kwargs.get("client_id", "")
-        self.extra_args = {k: v for k, v in kwargs.items() if k not in self.parameter}
+        self.extra_args = {k: v for k,
+                           v in kwargs.items() if k not in self.parameter}
 
     def find_grant_and_token(self, val: str) -> Tuple[Grant, SessionToken]:
         for grant in self.subordinate:

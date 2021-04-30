@@ -28,7 +28,8 @@ class TokenHandler(ImpExp):
             self, access_token_handler=None, code_handler=None, refresh_token_handler=None
     ):
         ImpExp.__init__(self)
-        self.handler = {"code": code_handler, "access_token": access_token_handler}
+        self.handler = {"code": code_handler,
+                        "access_token": access_token_handler}
 
         self.handler_order = ["code", "access_token"]
 
@@ -137,11 +138,13 @@ def factory(server_get, code=None, token=None, refresh=None, jwks_def=None, **kw
 
     if code:
         _add_passwd(kj, code, "code")
-        args["code_handler"] = init_token_handler(server_get, code, TTYPE["code"])
+        args["code_handler"] = init_token_handler(
+            server_get, code, TTYPE["code"])
 
     if token:
         _add_passwd(kj, token, "token")
-        args["access_token_handler"] = init_token_handler(server_get, token, TTYPE["token"])
+        args["access_token_handler"] = init_token_handler(
+            server_get, token, TTYPE["token"])
 
     if refresh is not None:
         _add_passwd(kj, refresh, "refresh")

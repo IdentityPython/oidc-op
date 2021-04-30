@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 # USAGE = Literal["userinfo", "id_token", "introspection"]
 
-IGNORE = ["error", "error_description", "error_uri", "_claim_names", "_claim_sources"]
+IGNORE = ["error", "error_description",
+          "error_uri", "_claim_names", "_claim_sources"]
 STANDARD_CLAIMS = [c for c in OpenIDSchema.c_param.keys() if c not in IGNORE]
 
 
@@ -33,14 +34,16 @@ class ClaimsInterface:
         self.server_get = server_get
 
     def authorization_request_claims(self, session_id: str, usage: Optional[str] = "") -> dict:
-        _grant = self.server_get("endpoint_context").session_manager.get_grant(session_id)
+        _grant = self.server_get(
+            "endpoint_context").session_manager.get_grant(session_id)
         if _grant.authorization_request and "claims" in _grant.authorization_request:
             return _grant.authorization_request["claims"].get(usage, {})
 
         return {}
 
     def _get_client_claims(self, client_id, usage):
-        client_info = self.server_get("endpoint_context").cdb.get(client_id, {})
+        client_info = self.server_get(
+            "endpoint_context").cdb.get(client_id, {})
         client_claims = client_info.get("{}_claims".format(usage), {})
         if isinstance(client_claims, list):
             client_claims = {k: None for k in client_claims}
@@ -94,7 +97,8 @@ class ClaimsInterface:
                     client_id, _context, scopes
                 )
 
-                _claims = convert_scopes2claims(_scopes, map=_context.scope2claims)
+                _claims = convert_scopes2claims(
+                    _scopes, map=_context.scope2claims)
                 claims.update(_claims)
 
         # Bring in claims specification from the authorization request
@@ -123,7 +127,8 @@ class ClaimsInterface:
         """
         if claims_restriction:
             # Get all possible claims
-            user_info = self.server_get("endpoint_context").userinfo(user_id, client_id=None)
+            user_info = self.server_get(
+                "endpoint_context").userinfo(user_id, client_id=None)
             # Filter out the claims that can be returned
             return {k: user_info.get(k) for k, v in claims_restriction.items() if
                     claims_match(user_info.get(k), v)}

@@ -104,7 +104,8 @@ class ClientSecretBasic(ClientAuthnMethod):
         client_info = basic_authn(authorization_token)
 
         if (
-                self.server_get("endpoint_context").cdb[client_info["id"]]["client_secret"]
+                self.server_get(
+                    "endpoint_context").cdb[client_info["id"]]["client_secret"]
                 == client_info["secret"]
         ):
             return {"client_id": client_info["id"]}
@@ -131,7 +132,8 @@ class ClientSecretPost(ClientSecretBasic):
 
     def verify(self, request, **kwargs):
         if (
-                self.server_get("endpoint_context").cdb[request["client_id"]]["client_secret"]
+                self.server_get(
+                    "endpoint_context").cdb[request["client_id"]]["client_secret"]
                 == request["client_secret"]
         ):
             return {"client_id": request["client_id"]}
@@ -204,7 +206,8 @@ class JWSAuthnMethod(ClientAuthnMethod):
             )
             _secret = _context.cdb[ca_jwt["iss"]].get("client_secret")
             if _secret and keys[0].key != as_bytes(_secret):
-                raise AttributeError("Oct key used for signing not client_secret")
+                raise AttributeError(
+                    "Oct key used for signing not client_secret")
         else:
             if key_type == "client_secret":
                 raise AttributeError("Wrong key type")
@@ -250,7 +253,8 @@ class ClientSecretJWT(JWSAuthnMethod):
     tag = "client_secret_jwt"
 
     def verify(self, request=None, **kwargs):
-        res = JWSAuthnMethod.verify(self, request, key_type="client_secret", **kwargs)
+        res = JWSAuthnMethod.verify(
+            self, request, key_type="client_secret", **kwargs)
         # Verify that a HS alg was used
         res["method"] = self.tag
         return res
@@ -264,7 +268,8 @@ class PrivateKeyJWT(JWSAuthnMethod):
     tag = "private_key_jwt"
 
     def verify(self, request=None, **kwargs):
-        res = JWSAuthnMethod.verify(self, request, key_type="private_key", **kwargs)
+        res = JWSAuthnMethod.verify(
+            self, request, key_type="private_key", **kwargs)
         # Verify that an RS or ES alg was used ?
         res["method"] = self.tag
         return res
@@ -368,7 +373,8 @@ def verify_client(
                 )
             except Exception as err:
                 logger.warning(
-                    "Verifying auth using {} failed: {}".format(_method.tag, err)
+                    "Verifying auth using {} failed: {}".format(
+                        _method.tag, err)
                 )
             else:
                 if "method" not in auth_info:
@@ -377,7 +383,8 @@ def verify_client(
 
     if not auth_info:
         if None in _methods:
-            auth_info = {"method": "none", "client_id": request.get("client_id")}
+            auth_info = {"method": "none",
+                         "client_id": request.get("client_id")}
         else:
             return auth_info
 
@@ -390,12 +397,12 @@ def verify_client(
     _token = auth_info.get("token")
 
     if client_id:
-        if not client_id in endpoint_context.cdb:
+        if client_id not in endpoint_context.cdb:
             raise UnknownClient("Unknown Client ID")
 
         _cinfo = endpoint_context.cdb[client_id]
         if isinstance(_cinfo, str):
-            if not _cinfo in endpoint_context.cdb:
+            if _cinfo not in endpoint_context.cdb:
                 raise UnknownClient("Unknown Client ID")
 
         if not valid_client_info(_cinfo):
@@ -406,7 +413,8 @@ def verify_client(
         # store what authn method was used
         if auth_info.get("method"):
             _request_type = request.__class__.__name__
-            _used_authn_method = endpoint_context.cdb[client_id].get("auth_method")
+            _used_authn_method = endpoint_context.cdb[client_id].get(
+                "auth_method")
             if _used_authn_method:
                 endpoint_context.cdb[client_id]["auth_method"][
                     _request_type

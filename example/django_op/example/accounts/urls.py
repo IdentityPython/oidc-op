@@ -16,11 +16,11 @@ Including another URLconf
 from django.urls import path
 from .views import *
 
-app_name="unical_accounts"
+app_name="accounts"
 
 urlpatterns = [
 
     # url(r'^login/$', Login, name='login'),
     # path('logout', Logout, name='logout'),
-    
+
 ]

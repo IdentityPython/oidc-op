@@ -18,6 +18,7 @@ def load_yaml_config(file_name):
         c = yaml.safe_load(fp)
     return c
 
+
 def yaml_to_py_stream(file_name):
     d = load_yaml_config(file_name)
     fstream = io.StringIO()

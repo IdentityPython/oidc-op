@@ -18,7 +18,8 @@ from oidcop.util import build_endpoints
 
 
 def do_endpoints(conf, server_get):
-    endpoints = build_endpoints(conf["endpoint"], server_get=server_get, issuer=conf["issuer"])
+    endpoints = build_endpoints(
+        conf["endpoint"], server_get=server_get, issuer=conf["issuer"])
 
     _cap = conf.get("capabilities", {})
 
@@ -73,7 +74,8 @@ class Server(ImpExp):
         self.endpoint = do_endpoints(conf, self.server_get)
         _cap = get_capabilities(conf, self.endpoint)
 
-        self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
+        self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(
+            _cap)
         self.endpoint_context.do_add_on(endpoints=self.endpoint)
 
         self.endpoint_context.session_manager = create_session_manager(
@@ -87,11 +89,13 @@ class Server(ImpExp):
 
             self.client_authn_method = []
             if _methods:
-                _endpoint.client_authn_method = client_auth_setup(_methods, self.server_get)
+                _endpoint.client_authn_method = client_auth_setup(
+                    _methods, self.server_get)
             elif _methods is not None:  # [] or '' or something not None but regarded as nothing.
                 _endpoint.client_authn_method = [None]  # Ignore default value
             elif _endpoint.default_capabilities:
-                _methods = _endpoint.default_capabilities.get("client_authn_method")
+                _methods = _endpoint.default_capabilities.get(
+                    "client_authn_method")
                 if _methods:
                     _endpoint.client_authn_method = client_auth_setup(
                         auth_set=_methods, server_get=self.server_get)
@@ -100,9 +104,11 @@ class Server(ImpExp):
 
         _token_endp = self.endpoint.get("token")
         if _token_endp:
-            _token_endp.allow_refresh = allow_refresh_token(self.endpoint_context)
+            _token_endp.allow_refresh = allow_refresh_token(
+                self.endpoint_context)
 
-        self.endpoint_context.claims_interface = ClaimsInterface(server_get=self.server_get)
+        self.endpoint_context.claims_interface = ClaimsInterface(
+            server_get=self.server_get)
 
     def server_get(self, what, *arg):
         _func = getattr(self, "get_{}".format(what), None)

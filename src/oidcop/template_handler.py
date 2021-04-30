@@ -3,7 +3,7 @@ class TemplateHandler(object):
         pass
 
     def render(self, template, **kwargs):
-        raise NotImplemented()
+        raise NotImplementedError()
 
 
 class Jinja2TemplateHandler(TemplateHandler):

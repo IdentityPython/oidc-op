@@ -1,7 +1,6 @@
 import base64
 import hashlib
 from http.cookies import SimpleCookie
-import json
 import logging
 import os
 import time
@@ -11,15 +10,12 @@ from typing import Union
 from urllib.parse import urlparse
 
 from cryptography.exceptions import InvalidTag
-from cryptojwt import b64d
 from cryptojwt.exception import VerificationError
 from cryptojwt.jwe.aes import AES_GCMEncrypter
 from cryptojwt.jwe.utils import split_ctx_and_tag
 from cryptojwt.jwk.hmac import SYMKey
 from cryptojwt.jws.hmac import HMACSigner
 from cryptojwt.key_jar import init_key_jar
-from cryptojwt.utils import as_bytes
-from cryptojwt.utils import as_unicode
 from oidcmsg import time_util
 from oidcmsg.time_util import epoch_in_a_while
 
@@ -128,7 +124,8 @@ class CookieHandler():
             encrypter = AES_GCMEncrypter(key=self.enc_key.key)
             iv = os.urandom(12)
             if mac:
-                msg = lv_pack(payload, timestamp, base64.b64encode(mac).decode("utf-8"))
+                msg = lv_pack(payload, timestamp,
+                              base64.b64encode(mac).decode("utf-8"))
             else:
                 msg = lv_pack(payload, timestamp)
 
@@ -142,7 +139,8 @@ class CookieHandler():
                 base64.b64encode(tag),
             ]
         else:
-            cookie_payload = [bytes_timestamp, bytes_load, base64.b64encode(mac)]
+            cookie_payload = [bytes_timestamp,
+                              bytes_load, base64.b64encode(mac)]
 
         return (b"|".join(cookie_payload)).decode("utf-8")
 
@@ -167,7 +165,7 @@ class CookieHandler():
             else:
                 raise VerificationError()
         elif len(parts) == 4:
-            b_timestamp = parts[0]
+            parts[0]
             iv = base64.b64decode(parts[1])
             ciphertext = base64.b64decode(parts[2])
             tag = base64.b64decode(parts[3])
@@ -251,9 +249,11 @@ class CookieHandler():
         res = []
         for _cookie in cookies:
             if _cookie["name"] == name:
-                payload, timestamp = self._ver_dec_content(_cookie['value'].split("|"))
+                payload, timestamp = self._ver_dec_content(
+                    _cookie['value'].split("|"))
                 value, typ = payload.split("::")
-                res.append({"value": value, "type": typ, "timestamp": timestamp})
+                res.append({"value": value, "type": typ,
+                            "timestamp": timestamp})
         return res
 
 

@@ -141,7 +141,8 @@ class AccessToken(SessionToken):
 class AuthorizationCode(SessionToken):
     def set_defaults(self):
         if "supports_minting" not in self.usage_rules:
-            self.usage_rules['supports_minting'] = ["access_token", "refresh_token"]
+            self.usage_rules['supports_minting'] = [
+                "access_token", "refresh_token"]
 
         self.usage_rules['max_usage'] = 1
 
@@ -149,7 +150,8 @@ class AuthorizationCode(SessionToken):
 class RefreshToken(SessionToken):
     def set_defaults(self):
         if "supports_minting" not in self.usage_rules:
-            self.usage_rules['supports_minting'] = ["access_token", "refresh_token"]
+            self.usage_rules['supports_minting'] = [
+                "access_token", "refresh_token"]
 
 
 SHORT_TYPE_NAME = {

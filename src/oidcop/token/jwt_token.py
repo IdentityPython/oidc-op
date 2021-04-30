@@ -22,12 +22,12 @@ class JWTToken(Token):
     def __init__(
             self,
             typ,
-            keyjar: KeyJar =None,
+            keyjar: KeyJar = None,
             issuer: str = None,
             aud: Optional[list] = None,
             alg: str = "ES256",
             lifetime: int = 300,
-            server_get: Callable =None,
+            server_get: Callable = None,
             token_type: str = "Bearer",
             **kwargs
     ):
@@ -114,5 +114,5 @@ class JWTToken(Token):
         return is_expired(_payload["exp"], when)
 
     def gather_args(self, sid, sdb, udb):
-        _sinfo = sdb[sid]
+        sdb[sid]
         return {}

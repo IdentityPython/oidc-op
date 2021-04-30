@@ -59,7 +59,7 @@ class UserAuthnMethod(object):
         :param kwargs:
         :return:
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def authenticated_as(self, client_id, cookie=None, **kwargs):
         if cookie is None:
@@ -73,7 +73,7 @@ class UserAuthnMethod(object):
         Callback to verify user input
         :return: username of the authenticated user
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def unpack_token(self, token):
         return verify_signed_jwt(token=token, keyjar=self.server_get("endpoint_context").keyjar)
@@ -125,7 +125,8 @@ def verify_signed_jwt(token, keyjar, allowed_sign_algs=None):
     return verifier.unpack(token)
 
 
-LABELS = {"tos_uri": "Terms of Service", "policy_uri": "Service policy", "logo_uri": ""}
+LABELS = {"tos_uri": "Terms of Service",
+          "policy_uri": "Service policy", "logo_uri": ""}
 
 
 class UserPassJinja2(UserAuthnMethod):
