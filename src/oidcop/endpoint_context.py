@@ -216,7 +216,7 @@ class EndpointContext(OidcContext):
             if _func:
                 _func()
 
-        for item in ["userinfo", "login_hint_lookup", "login_hint2acrs"]:
+        for item in ["login_hint_lookup", "login_hint2acrs"]:
             _func = getattr(self, "do_{}".format(item), None)
             if _func:
                 _func()
