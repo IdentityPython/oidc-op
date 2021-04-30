@@ -1,5 +1,3 @@
-.. _oidcop_conf:
-
 ========================
 Configuration directives
 ========================

@@ -241,7 +241,8 @@ class SymKeyAuthn(UserAuthnMethod):
         self.symkey = symkey
         self.ttl = ttl
 
-    def authenticated_as(self, client_id, cookie=None, authorization="", **kwargs):
+    def authenticated_as(
+            self, client_id, cookie=None, authorization="", **kwargs):
         """
 
         :param cookie: A HTTP Cookie

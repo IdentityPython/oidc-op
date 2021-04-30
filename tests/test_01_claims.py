@@ -131,7 +131,6 @@ class TestEndpoint(object):
 
     def test_authorization_request_id_token_claims_2(self):
         session_id = self._create_session(AREQ_2)
-
         claims = self.claims_interface.authorization_request_claims(session_id, "id_token")
         assert claims
         assert set(claims.keys()) == {"nickname"}
