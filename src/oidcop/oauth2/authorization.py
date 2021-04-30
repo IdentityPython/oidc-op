@@ -347,9 +347,9 @@ class Authorization(Endpoint):
                         raise ValueError("Got a request_uri I can not resolve")
 
             # Do I support request_uri ?
-            _supported = endpoint_context.provider_info.get(
-                "request_uri_parameter_supported", True
-            )
+            if endpoint_context.provider_info.get("request_uri_parameter_supported", True) is False:
+                raise ServiceError("Some on is using request_uri which I'm not supporting")
+
             _registered = endpoint_context.cdb[client_id].get("request_uris")
             # Not registered should be handled else where
             if _registered:
