@@ -265,6 +265,9 @@ An example::
 httpc_params
 ------------
 
+Parameters submitted to the web client (python requests).
+In this case the TLS certificate will not be verified, to be intended exclusively for development purposes
+
 Example ::
 
     "httpc_params": {
@@ -341,6 +344,41 @@ An example::
           }
         }
       },
+
+-----
+authz
+-----
+
+This configuration section refers to the authorization/authentication endpoint behaviour.
+Scopes bound to an access token are strictly related to grant management, as part of what that endpoint does.
+Regarding grant authorization we should have something like the following example.
+
+If you omit this section from the configuration (thus using some sort of default profile)
+you'll have an Implicit grant authorization that leads granting nothing.
+Add the below to your configuration and you'll see things changing.
+
+
+An example::
+
+      "authz": {
+        "class": "oidcop.authz.AuthzHandling",
+        "kwargs": {
+            "grant_config": {
+                "usage_rules": {
+                    "authorization_code": {
+                        "supports_minting": ["access_token", "refresh_token", "id_token"],
+                        "max_usage": 1
+                    },
+                    "access_token": {},
+                    "refresh_token": {
+                        "supports_minting": ["access_token", "refresh_token"]
+                    }
+                },
+                "expires_in": 43200
+            }
+        }
+      },
+
 
 -----------
 session_key

@@ -158,7 +158,7 @@ might normally ask the user for usage consent and then base the construction
 of the grant on that consent.
 
 If an authorization server can act as a Security Token Service (STS) as
-defined by https://tools.ietf.org/html/draft-ietf-oauth-token-exchange-16
+defined by `Token Exchange [RFC-8693] <https://tools.ietf.org/html/rfc8693>`_
 then no user is involved. In the context of session management the STS is
 equivalent to a user.
 
