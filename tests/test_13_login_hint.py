@@ -38,7 +38,7 @@ def test_login_hint2acrs():
 
 def test_server_login_hint_lookup():
     configuration = create_from_config_file(OPConfiguration, full_path("op_config.json"),
-                                            domain="127.0.0.1", port=443)
+                                            base_path=BASEDIR, domain="127.0.0.1", port=443)
 
     server = Server(configuration)
     assert server.endpoint_context.login_hint_lookup("tel:0907865000") == "diana"
