@@ -2,8 +2,8 @@ import hashlib
 import hmac
 import json
 import logging
+import secrets
 import time
-from random import random
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
@@ -84,7 +84,7 @@ def verify_url(url, urlset):
 
 
 def secret(seed, sid):
-    msg = "{}{:.6f}{}".format(time.time(), random(), sid).encode("utf-8")
+    msg = "{}{}{}".format(time.time(), secrets.token_urlsafe(16), sid).encode("utf-8")
     csum = hmac.new(as_bytes(seed), msg, hashlib.sha224)
     return csum.hexdigest()
 
