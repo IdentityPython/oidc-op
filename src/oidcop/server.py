@@ -1,8 +1,12 @@
 from typing import Any
 from typing import Optional
+from typing import Union
 
 from cryptojwt import KeyJar
 from oidcmsg.impexp import ImpExp
+from oidcop.endpoint_context import init_user_info
+
+from oidcop.configure import OPConfiguration
 
 from oidcop import authz
 from oidcop.client_authn import client_auth_setup
@@ -57,7 +61,7 @@ class Server(ImpExp):
     }
 
     def __init__(self,
-                 conf: dict,
+                 conf: Union[dict, OPConfiguration],
                  keyjar: Optional[KeyJar] = None,
                  cwd: Optional[str] = "",
                  cookie_handler: Optional[Any] = None,
@@ -82,6 +86,8 @@ class Server(ImpExp):
             self.server_get, self.endpoint_context.th_args,
             sub_func=self.endpoint_context._sub_func)
         self.endpoint_context.do_userinfo()
+        # Must be done after userinfo
+        self.do_login_hint_lookup()
 
         for endpoint_name, endpoint_conf in self.endpoint.items():
             _endpoint = self.endpoint[endpoint_name]
@@ -156,3 +162,19 @@ class Server(ImpExp):
                 target.endpoint_to_authn_method[method.action] = method
             except AttributeError:
                 pass
+
+    def do_login_hint_lookup(self):
+        _conf = self.conf.get("login_hint_lookup")
+        if _conf:
+            _userinfo = None
+            _kwargs = _conf.get("kwargs")
+            if _kwargs:
+                _userinfo_conf = _kwargs.get("userinfo")
+                if _userinfo_conf:
+                    _userinfo = init_user_info(_userinfo_conf, self.endpoint_context.cwd)
+
+            if _userinfo is None:
+                _userinfo = self.endpoint_context.userinfo
+
+            self.endpoint_context.login_hint_lookup = init_service(_conf)
+            self.endpoint_context.login_hint_lookup.userinfo = _userinfo

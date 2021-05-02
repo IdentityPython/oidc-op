@@ -2,12 +2,14 @@ import json
 import logging
 from typing import Any
 from typing import Optional
+from typing import Union
 
 from cryptojwt import KeyJar
 from cryptojwt.utils import as_bytes
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from oidcmsg.context import OidcContext
+from oidcop.configure import OPConfiguration
 import requests
 
 from oidcop import rndstr
@@ -115,7 +117,7 @@ class EndpointContext(OidcContext):
 
     def __init__(
             self,
-            conf: dict,
+            conf: Union[dict, OPConfiguration],
             keyjar: Optional[KeyJar] = None,
             cwd: Optional[str] = "",
             cookie_handler: Optional[Any] = None,
@@ -196,15 +198,14 @@ class EndpointContext(OidcContext):
                 self.template_handler = Jinja2TemplateHandler(_loader)
 
         # self.setup = {}
-        jwks_uri_path = conf["keys"]["uri_path"]
+        _keys_conf = conf.get("keys")
+        if _keys_conf:
+            jwks_uri_path = _keys_conf["uri_path"]
 
-        try:
             if self.issuer.endswith("/"):
                 self.jwks_uri = "{}{}".format(self.issuer, jwks_uri_path)
             else:
                 self.jwks_uri = "{}/{}".format(self.issuer, jwks_uri_path)
-        except KeyError:
-            pass
 
         for item in [
             "cookie_handler",
@@ -216,7 +217,7 @@ class EndpointContext(OidcContext):
             if _func:
                 _func()
 
-        for item in ["login_hint_lookup", "login_hint2acrs"]:
+        for item in ["login_hint2acrs"]:
             _func = getattr(self, "do_{}".format(item), None)
             if _func:
                 _func()
@@ -229,7 +230,7 @@ class EndpointContext(OidcContext):
         if _cnf:
             self.httpc_params = get_http_params(_cnf)
         else:  # Backward compatibility
-            self.httpc_params = {"verify": conf.get("verify_ssl")}
+            self.httpc_params = {"verify": conf.get("verify_ssl", True)}
 
         self.set_scopes_handler()
         self.dev_auth_db = None
@@ -249,8 +250,9 @@ class EndpointContext(OidcContext):
             self.scopes_handler = Scopes()
 
     def do_add_on(self, endpoints):
-        if self.conf.get("add_on"):
-            for spec in self.conf["add_on"].values():
+        _add_on_conf = self.conf.get("add_on")
+        if _add_on_conf:
+            for spec in _add_on_conf.values():
                 if isinstance(spec["function"], str):
                     _func = importer(spec["function"])
                 else:
@@ -264,22 +266,6 @@ class EndpointContext(OidcContext):
             self.login_hint2acrs = init_service(_conf)
         else:
             self.login_hint2acrs = None
-
-    def do_login_hint_lookup(self):
-        _conf = self.conf.get("login_hint_lookup")
-        if _conf:
-            _userinfo = None
-            _kwargs = _conf.get("kwargs")
-            if _kwargs:
-                _userinfo_conf = _kwargs.get("userinfo")
-                if _userinfo_conf:
-                    _userinfo = init_user_info(_userinfo_conf, self.cwd)
-
-            if _userinfo is None:
-                _userinfo = self.userinfo
-
-            self.login_hint_lookup = init_service(_conf)
-            self.login_hint_lookup.userinfo = _userinfo
 
     def do_userinfo(self):
         _conf = self.conf.get("userinfo")

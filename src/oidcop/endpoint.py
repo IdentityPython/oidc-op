@@ -183,24 +183,13 @@ class Endpoint(object):
 
         # Verify that the client is allowed to do this
         _client_id = ""
-        try:
-            auth_info = self.client_authentication(
-                req, http_info, endpoint=self, **kwargs)
-        except UnknownOrNoAuthnMethod:
-            # If there is no required client authentication method
-            if not self.client_authn_method:
-                try:
-                    _client_id = req["client_id"]
-                except KeyError:
-                    _client_id = ""
-            else:
-                raise
+        auth_info = self.client_authentication(req, http_info, endpoint=self, **kwargs)
+
+        if "client_id" in auth_info:
+            req["client_id"] = auth_info["client_id"]
+            _client_id = auth_info["client_id"]
         else:
-            if "client_id" in auth_info:
-                req["client_id"] = auth_info["client_id"]
-                _client_id = auth_info["client_id"]
-            else:
-                _client_id = req.get("client_id")
+            _client_id = req.get("client_id")
 
         keyjar = _context.keyjar
 
@@ -236,22 +225,13 @@ class Endpoint(object):
         if "endpoint" not in kwargs:
             kwargs["endpoint"] = self
 
-        try:
-            authn_info = verify_client(
-                endpoint_context=self.server_get("endpoint_context"),
-                request=request,
-                http_info=http_info,
-                get_client_id_from_token=self.get_client_id_from_token,
-                **kwargs
-            )
-        except (UnknownOrNoAuthnMethod, UnknownToken):
-            if self.client_authn_method is None:
-                return {}
-            else:
-                if "none" in self.client_authn_method:
-                    return {}
-                else:
-                    raise
+        authn_info = verify_client(
+            endpoint_context=self.server_get("endpoint_context"),
+            request=request,
+            http_info=http_info,
+            get_client_id_from_token=self.get_client_id_from_token,
+            **kwargs
+        )
 
         LOGGER.debug("authn_info: %s", authn_info)
         if (
@@ -372,7 +352,7 @@ class Endpoint(object):
             if content_type is None:
                 if self.response_format == "json":
                     content_type = "application/json"
-                elif self.request_format in ["jws", "jwe", "jose"]:
+                elif self.response_format in ["jws", "jwe", "jose"]:
                     content_type = "application/jose"
                 else:
                     content_type = "application/x-www-form-urlencoded"
@@ -386,18 +366,16 @@ class Endpoint(object):
                     if self.response_format == "json":
                         content_type = "application/json; charset=utf-8"
                         resp = _response.to_json()
-                    elif self.request_format in ["jws", "jwe", "jose"]:
+                    elif self.response_format in ["jws", "jwe", "jose"]:
                         content_type = "application/jose; charset=utf-8"
                         resp = _response
                     else:
                         content_type = "application/x-www-form-urlencoded"
                         resp = _response.to_urlencoded()
                 elif self.response_placement == "url":
-                    # content_type = 'application/x-www-form-urlencoded'
-                    content_type = ""
-                    try:
-                        fragment_enc = kwargs["fragment_enc"]
-                    except KeyError:
+                    content_type = 'application/x-www-form-urlencoded'
+                    fragment_enc = kwargs.get("fragment_enc")
+                    if not fragment_enc:
                         _ret_type = kwargs.get("return_type")
                         if _ret_type:
                             fragment_enc = fragment_encoding(_ret_type)

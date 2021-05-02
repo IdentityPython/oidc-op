@@ -76,19 +76,6 @@ class CookieHandler():
         else:
             self.name = name
 
-    def _formated_expiration_time(self, timeout):
-        """
-        Return an expiration time
-
-        :param timeout: When
-        :return: A timeout date
-        """
-        if timeout == "now":
-            return time_util.instant(self.time_format)
-        else:
-            # validity time should match lifetime of assertions
-            return time_util.in_a_while(minutes=timeout, time_format=self.time_format)
-
     def _sign_enc_payload(self,
                           payload: str,
                           timestamp: Optional[Union[int, str]] = 0
@@ -165,7 +152,6 @@ class CookieHandler():
             else:
                 raise VerificationError()
         elif len(parts) == 4:
-            parts[0]
             iv = base64.b64decode(parts[1])
             ciphertext = base64.b64decode(parts[2])
             tag = base64.b64decode(parts[3])
@@ -273,11 +259,3 @@ def compute_session_state(opbs, salt, client_id, redirect_uri):
     rp_origin_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
     session_str = client_id + " " + rp_origin_url + " " + opbs + " " + salt
     return hashlib.sha256(session_str.encode("utf-8")).hexdigest() + "." + salt
-
-
-def create_session_cookie(name, opbs, **kwargs):
-    cookie = SimpleCookie()
-    cookie[name] = opbs
-    for key, value in kwargs.items():
-        cookie[name][key] = value
-    return cookie
