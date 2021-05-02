@@ -3,6 +3,12 @@ Configuration directives
 ========================
 
 ------
+issuer
+------
+
+The issuer ID of the OP, a unique value in URI format.
+
+------
 add_on
 ------
 
@@ -65,8 +71,7 @@ capabilities
 ------------
 
 This covers most of the basic functionality of the OP. The key words are the
-same as defined in
-https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata .
+same as defined in `OIDC Discovery <https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata>`_.
 A couple of things are defined else where. Like the endpoints, issuer id,
 jwks_uri and the authentication methods at the token endpoint.
 
@@ -293,13 +298,6 @@ An example::
               "essential": true
             }}}},
 
-
-------
-issuer
-------
-
-The issuer ID of the OP.
-
 ----
 keys
 ----
@@ -468,3 +466,23 @@ An example::
         }
       }
 
+This is somethig that can be customized.
+For example in a django project we would use something like
+the following (see `example/django_op/oidc_provider`):
+
+      "userinfo": {
+        "class": "oidc_provider.users.UserInfo",
+        "kwargs": {
+            # map claims to django user attributes here:
+            "claims_map": {
+                "phone_number": "telephone",
+                "family_name": "last_name",
+                "given_name": "first_name",
+                "email": "email",
+                "verified_email": "email",
+                "gender": "gender",
+                "birthdate": "get_oidc_birthdate",
+                "updated_at": "get_oidc_lastlogin"
+            }
+        }
+      }
