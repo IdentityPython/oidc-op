@@ -169,7 +169,9 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         if "openid" in _authn_req["scope"]:
             try:
-                _idtoken = _context.idtoken.make(_session_info["session_id"])
+                _idtoken = _context.idtoken.make(
+                    _session_info["session_id"]
+                )
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 resp = self.error_cls(

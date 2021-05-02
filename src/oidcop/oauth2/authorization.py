@@ -317,7 +317,6 @@ class Authorization(Endpoint):
     def mint_token(self, token_type, grant, session_id, based_on=None):
         self.server_get("endpoint_context").session_manager
         usage_rules = grant.usage_rules.get(token_type, {})
-
         token = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.server_get("endpoint_context"),
@@ -332,8 +331,9 @@ class Authorization(Endpoint):
         if _exp_in:
             token.expires_at = utc_time_sans_frac() + _exp_in
 
-        self.server_get("endpoint_context").session_manager.set(unpack_session_key(session_id),
-                                                                grant)
+        self.server_get("endpoint_context").session_manager.set(
+            unpack_session_key(session_id), grant
+        )
 
         return token
 
@@ -519,7 +519,6 @@ class Authorization(Endpoint):
                 _max_age = 0
             else:
                 _max_age = max_age(request)
-
             identity, _ts = authn.authenticated_as(
                 client_id, cookie, authorization=_auth_info, max_age=_max_age
             )
@@ -668,7 +667,6 @@ class Authorization(Endpoint):
 
     def create_authn_response(self, request: Union[dict, Message], sid: str) -> dict:
         """
-
         :param request:
         :param sid:
         :return:
@@ -848,7 +846,6 @@ class Authorization(Endpoint):
         :param kwargs: possible other parameters
         :return: A redirect to the redirect_uri of the client
         """
-
         try:
             resp_info = self.post_authentication(request, session_id, **kwargs)
         except Exception as err:
