@@ -55,7 +55,7 @@ An example::
             "db": {
               "class": "oidcop.util.JSONDictDB",
               "kwargs": {
-                "json_path": "passwd.json"
+                "filename": "passwd.json"
               }
             },
             "page_header": "Testing log in",
