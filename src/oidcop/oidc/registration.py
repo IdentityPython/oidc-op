@@ -117,7 +117,7 @@ def comb_uri(args):
         args['request_uris'] = val
 
 
-def random_client_id(length:int=16, reserved:list=[]):
+def random_client_id(length:int=16, reserved:list=[], **kwargs):
     # create new id och secret
     client_id = rndstr(16)
     # cdb client_id MUST be unique!
@@ -125,8 +125,6 @@ def random_client_id(length:int=16, reserved:list=[]):
         client_id = rndstr(16)
     return client_id
 
-def ciao(length:int=16, reserved:list=[]):
-    return 'suka'
 
 class Registration(Endpoint):
     request_cls = RegistrationRequest
@@ -404,14 +402,16 @@ class Registration(Endpoint):
             )
 
         _context = self.server_get("endpoint_context")
-        cid_generator = importer(
-            self.kwargs.get('client_id_generator',
-                            'oidcop.oidc.registration.random_client_id'
-            ),
-        )
-
         if new_id:
-            client_id = cid_generator(reserved=_context.cdb.keys())
+            if self.kwargs.get('client_id_generator'):
+                cid_generator = importer(
+                    self.kwargs['client_id_generator']['class']
+                )
+                cid_gen_kwargs = self.kwargs['client_id_generator'].get('kwargs', {})
+            else:
+                cid_generator = importer('oidcop.oidc.registration.random_client_id')
+                cid_gen_kwargs = {}
+            client_id = cid_generator(reserved=_context.cdb.keys(), **cid_gen_kwargs)
             if "client_id" in request:
                 del request["client_id"]
         else:
