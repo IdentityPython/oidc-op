@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import random
+import secrets
 import time
 
 from oidcop.endpoint import Endpoint
@@ -53,7 +54,7 @@ class TestCrypt(object):
 
     def test_crypt_with_b64(self):
         db = {}
-        msg = "secret{}{}".format(time.time(), random.random())
+        msg = "secret{}{}".format(time.time(), secrets.token_urlsafe(16))
         csum = hmac.new(msg.encode("utf-8"), digestmod=hashlib.sha224)
         txt = csum.digest()  # 28 bytes long, 224 bits
         db[txt] = "foobar"

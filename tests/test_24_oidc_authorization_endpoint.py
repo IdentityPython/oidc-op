@@ -23,14 +23,16 @@ import yaml
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.cookie_handler import CookieHandler
-from oidcop.exception import InvalidRequest
+from oidcop.endpoint_context import init_service
+from oidcop.endpoint_context import init_user_info
 from oidcop.exception import NoSuchAuthentication
 from oidcop.exception import RedirectURIError
+from oidcop.exception import ServiceError
 from oidcop.exception import ToOld
 from oidcop.exception import UnknownClient
 from oidcop.id_token import IDToken
 from oidcop.login_hint import LoginHint2Acrs
-from oidcop.oauth2.authorization import FORM_POST
+from oidcop.oauth2.authorization import authn_args_gather
 from oidcop.oauth2.authorization import get_uri
 from oidcop.oauth2.authorization import inputs
 from oidcop.oauth2.authorization import join_query
@@ -43,6 +45,8 @@ from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
+from oidcop.session import session_key
+from oidcop.session.grant import Grant
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_authn.authn_context import UNSPECIFIED
 from oidcop.user_authn.authn_context import init_method
@@ -691,44 +695,6 @@ class TestEndpoint(object):
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
         assert set(res.keys()) == {"args", "function"}
 
-    def test_response_mode_form_post(self):
-        request = {"response_mode": "form_post"}
-        info = {
-            "response_args": AuthorizationResponse(foo="bar"),
-            "return_uri": "https://example.com/cb",
-        }
-        info = self.endpoint.response_mode(request, **info)
-        assert set(info.keys()) == {
-            "response_args",
-            "return_uri",
-            "response_msg",
-            "content_type",
-            "response_placement",
-        }
-        assert info["response_msg"] == FORM_POST.format(
-            action="https://example.com/cb",
-            inputs='<input type="hidden" name="foo" value="bar"/>',
-        )
-
-    def test_do_response_code_form_post(self):
-        _req = AUTH_REQ_DICT.copy()
-        _req["response_mode"] = "form_post"
-        _pr_resp = self.endpoint.parse_request(_req)
-        _resp = self.endpoint.process_request(_pr_resp)
-        msg = self.endpoint.do_response(**_resp)
-        assert ("Content-type", "text/html") in msg["http_headers"]
-        assert "response_placement" in msg
-
-    def test_response_mode_fragment(self):
-        request = {"response_mode": "fragment"}
-        self.endpoint.response_mode(request, fragment_enc=True)
-
-        with pytest.raises(InvalidRequest):
-            self.endpoint.response_mode(request, fragment_enc=False)
-
-        info = self.endpoint.response_mode(request)
-        assert set(info.keys()) == {"fragment_enc"}
-
     def test_check_session_iframe(self):
         self.endpoint.server_get("endpoint_context").provider_info[
             "check_session_iframe"
@@ -835,6 +801,219 @@ class TestEndpoint(object):
 
         assert "__verified_request" in _req
 
+    def test_verify_response_type(self):
+        request = AuthorizationRequest(
+            client_id="client_id",
+            redirect_uri="https://rp.example.com/cb",
+            response_type=["id_token token"],
+            state="state",
+            nonce="nonce",
+            scope="openid",
+        )
+        client_info = {
+            "client_id": "client_id",
+            "redirect_uris": [("https://rp.example.com/cb", {})],
+            "id_token_signed_response_alg": "RS256",
+            "policy_uri": "https://example.com/policy.html"
+        }
+
+        assert self.endpoint.verify_response_type(request, client_info) is False
+
+        client_info["response_types"] = ["code", "code id_token", "id_token", "id_token token"]
+
+        assert self.endpoint.verify_response_type(request, client_info) is True
+
+    @pytest.mark.parametrize("exp_in", [360, "360", 0])
+    def test_mint_token_exp_at(self, exp_in):
+        grant = Grant()
+        grant.usage_rules = {
+            'authorization_code': {
+                "expires_in": exp_in
+            }
+        }
+
+        DUMMY_SESSION_ID = session_key('user_id', 'client_id', 'grant.id')
+
+        code = self.endpoint.mint_token('authorization_code', grant, DUMMY_SESSION_ID)
+        if exp_in in [360, "360"]:
+            assert code.expires_at
+        else:
+            assert code.expires_at == 0
+
+    def test_do_request_uri(self):
+        request = AuthorizationRequest(
+            redirect_uri="https://rp.example.com/cb",
+            request_uri="https://example.com/request",
+        )
+
+        orig_request = AuthorizationRequest(
+            client_id="client_id",
+            redirect_uri="https://rp.example.com/cb",
+            response_type=["id_token token"],
+            state="state",
+            nonce="nonce",
+            scope="openid",
+        )
+        _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
+        _jws = _jwt.pack(
+            orig_request.to_dict(),
+            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"]
+        )
+
+        endpoint_context = self.endpoint.server_get("endpoint_context")
+        endpoint_context.cdb["client_1"]["request_uris"] = [("https://example.com/request", {})]
+
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                "GET",
+                request['request_uri'],
+                body=_jws,
+                adding_headers={"Content-Type": "application/jose"},
+                status=200,
+            )
+
+            self.endpoint._do_request_uri(request, "client_1", endpoint_context)
+
+        request["request_uri"] = "https://example.com/request#1"
+
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                "GET",
+                request['request_uri'],
+                body=_jws,
+                adding_headers={"Content-Type": "application/jose"},
+                status=200,
+            )
+
+            self.endpoint._do_request_uri(request, "client_1", endpoint_context)
+
+        request["request_uri"] = "https://example.com/another"
+        with pytest.raises(ValueError):
+            self.endpoint._do_request_uri(request, "client_1", endpoint_context)
+
+        endpoint_context.provider_info["request_uri_parameter_supported"] = False
+        with pytest.raises(ServiceError):
+            self.endpoint._do_request_uri(request, "client_1", endpoint_context)
+
+    def test_post_parse_request(self):
+        endpoint_context = self.endpoint.server_get("endpoint_context")
+        msg = self.endpoint._post_parse_request(None, "client_1", endpoint_context)
+        assert "error" in msg
+
+        request = AuthorizationRequest(
+            client_id="client_X",
+            response_type=["code"],
+            state="state",
+            nonce="nonce",
+            scope="openid",
+        )
+
+        msg = self.endpoint._post_parse_request(request, "client_X", endpoint_context)
+        assert "error" in msg
+        assert msg["error_description"] == "unknown client"
+
+        request["client_id"] = "client_1"
+        endpoint_context.cdb['client_1']["redirect_uris"] = [('https://example.com/cb', ''),
+                                                             ('https://example.com/2nd_cb', '')]
+
+        msg = self.endpoint._post_parse_request(request, "client_1", endpoint_context)
+        assert "error" in msg
+        assert msg["error"] == "invalid_request"
+
+    @pytest.mark.parametrize("response_mode", ["form_post", "fragment", "query"])
+    def test_response_mode(self, response_mode):
+        request = AuthorizationRequest(
+            client_id="client_1",
+            response_type=["code"],
+            redirect_uri="https://example.com/cb",
+            state="state",
+            scope="openid",
+            response_mode=response_mode
+        )
+
+        response_args = AuthorizationResponse(
+            scope="openid",
+            code="abcdefghijklmnop"
+        )
+
+        if response_mode == "fragment":
+            info = self.endpoint.response_mode(request, response_args, request["redirect_uri"],
+                                               fragment_enc=True)
+        else:
+            info = self.endpoint.response_mode(request, response_args, request["redirect_uri"])
+
+        if response_mode == "form_post":
+            assert set(info.keys()) == {"response_msg", "content_type", "response_placement"}
+        elif response_mode == "fragment":
+            assert set(info.keys()) == {"response_args", "return_uri", "fragment_enc"}
+        elif response_mode == "query":
+            assert set(info.keys()) == {"response_args", "return_uri"}
+
+    def test_post_authentication(self):
+        request = AuthorizationRequest(
+            client_id="client_1",
+            response_type=["code"],
+            redirect_uri="https://example.com/cb",
+            state="state",
+            scope="openid"
+        )
+        session_id = self._create_session(request)
+        resp = self.endpoint.post_authentication(request, session_id)
+        assert resp
+
+    def test_do_request_user(self):
+        request = AuthorizationRequest(
+            client_id="client_id",
+            redirect_uri="https://rp.example.com/cb",
+            response_type=["id_token"],
+            state="state",
+            nonce="nonce",
+            scope="openid",
+        )
+        assert self.endpoint.do_request_user(request) == {}
+
+        # With login_hint
+        request["login_hint"] = "mail:diana@example.org"
+        assert self.endpoint.do_request_user(request) == {}
+
+        endpoint_context = self.endpoint.server_get("endpoint_context")
+        # userinfo
+        _userinfo = init_user_info({"class": "oidcop.user_info.UserInfo",
+                                    "kwargs": {"db_file": full_path("users.json")}}, "")
+        # login_hint
+        endpoint_context.login_hint_lookup = init_service(
+            {"class": "oidcop.login_hint.LoginHintLookup"}, None)
+        endpoint_context.login_hint_lookup.userinfo = _userinfo
+
+        # With login_hint and login_hint_lookup
+        assert self.endpoint.do_request_user(request) == {'req_user': 'diana'}
+
+
+def test_authn_args_gather_message():
+    request = AuthorizationRequest(
+        client_id="client_id",
+        redirect_uri="https://rp.example.com/cb",
+        response_type=["id_token"],
+        state="state",
+        nonce="nonce",
+        scope="openid",
+    )
+    client_info = {
+        "client_id": "client_id",
+        "redirect_uris": [("https://rp.example.com/cb", {})],
+        "id_token_signed_response_alg": "RS256",
+        "policy_uri": "https://example.com/policy.html"
+    }
+
+    args = authn_args_gather(request, INTERNETPROTOCOLPASSWORD, client_info)
+    assert set(args.keys()) == {'query', 'authn_class_ref', 'return_uri', 'policy_uri'}
+
+    args = authn_args_gather(request.to_dict(), INTERNETPROTOCOLPASSWORD, client_info)
+    assert set(args.keys()) == {'query', 'authn_class_ref', 'return_uri', 'policy_uri'}
+
+    with pytest.raises(ValueError):
+        authn_args_gather(request.to_urlencoded(), INTERNETPROTOCOLPASSWORD, client_info)
+
 
 def test_inputs():
     elems = inputs(dict(foo="bar", home="stead"))
@@ -884,7 +1063,7 @@ class TestUserAuthn(object):
                         "sym_key": "24AA/LR6HighEnergy",
                         "db": {
                             "class": JSONDictDB,
-                            "kwargs": {"json_path": full_path("passwd.json")},
+                            "kwargs": {"filename": full_path("passwd.json")},
                         },
                         "page_header": "Testing log in",
                         "submit_btn": "Get me in!",

@@ -114,7 +114,7 @@ CONFIG = {
                     'db': {
                         'class': JSONDictDB,
                         'kwargs':
-                            {'json_path': 'passwd.json'}
+                            {'filename': 'passwd.json'}
                         },
                     'page_header': "Testing log in",
                     'submit_btn': "Get me in!",

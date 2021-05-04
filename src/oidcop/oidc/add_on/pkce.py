@@ -1,9 +1,12 @@
 import hashlib
 import logging
+from typing import Dict
+from typing import List
 
 from cryptojwt.utils import b64e
 from oidcmsg.oauth2 import AuthorizationErrorResponse
 from oidcmsg.oidc import TokenErrorResponse
+from oidcop.endpoint import Endpoint
 
 LOGGER = logging.getLogger(__name__)
 
@@ -123,7 +126,7 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
     return request
 
 
-def add_pkce_support(endpoint, **kwargs):
+def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
     authn_endpoint = endpoint.get("authorization")
     if authn_endpoint is None:
         LOGGER.warning(

@@ -1,3 +1,4 @@
+import secrets
 import string
 from secrets import choice
 
@@ -26,10 +27,11 @@ def sanitize(txt):
 
 def rndstr(size=16):
     """
-    Returns a string of random ascii characters or digits
+    Returns a string of random url safe characters
 
     :param size: The length of the string
     :return: string
     """
-    chars = string.ascii_letters + string.digits
-    return "".join(choice(chars) for i in range(size))
+    return secrets.token_urlsafe(size)
+    # chars = string.ascii_letters + string.digits
+    # return "".join(choice(chars) for i in range(size))

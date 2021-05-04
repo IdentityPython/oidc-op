@@ -12,6 +12,7 @@ from oidcop.id_token import IDToken
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.registration import match_sp_sep
+from oidcop.oidc.registration import verify_url
 from oidcop.oidc.token import Token
 from oidcop.oidc.userinfo import UserInfo
 from oidcop.server import Server
@@ -40,7 +41,7 @@ RESPONSE_TYPES_SUPPORTED = [
     ["none"],
 ]
 
-msg = {
+MSG = {
     "application_type": "web",
     "redirect_uris": [
         "https://client.example.org/callback",
@@ -64,7 +65,7 @@ msg = {
     ],
 }
 
-CLI_REQ = RegistrationRequest(**msg)
+CLI_REQ = RegistrationRequest(**MSG)
 
 
 class TestEndpoint(object):
@@ -137,7 +138,7 @@ class TestEndpoint(object):
             "template_dir": "template",
         }
         server = Server(conf)
-        self.endpoint = server.server_get("endpoint","registration")
+        self.endpoint = server.server_get("endpoint", "registration")
 
     def test_parse(self):
         _req = self.endpoint.parse_request(CLI_REQ.to_json())
@@ -176,43 +177,43 @@ class TestEndpoint(object):
         _msg = json.loads(msg["response"])
         assert _msg
 
-    def test_register_unsupported_str(self):
-        _msg = msg.copy()
+    def test_register_unsupported_algo(self):
+        _msg = MSG.copy()
         _msg["id_token_signed_response_alg"] = "XYZ256"
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
 
     def test_register_unsupported_set(self):
-        _msg = msg.copy()
+        _msg = MSG.copy()
         _msg["grant_types"] = ["authorization_code", "external"]
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
 
     def test_register_post_logout_redirect_uri_with_fragment(self):
-        _msg = msg.copy()
+        _msg = MSG.copy()
         _msg["post_logout_redirect_uris"] = ["https://rp.example.com/pl#fragment"]
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_configuration_parameter"
 
     def test_register_redirect_uri_with_fragment(self):
-        _msg = msg.copy()
+        _msg = MSG.copy()
         _msg["post_logout_redirect_uris"] = ["https://rp.example.com/cb#fragment"]
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_configuration_parameter"
 
     def test_register_sector_identifier_uri(self):
-        _msg = msg.copy()
+        _msg = MSG.copy()
         _msg["sector_identifier_uri"] = "https://rp.example.com/si#fragment"
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_configuration_parameter"
 
     def test_register_alg_keys(self):
-        _msg = msg.copy()
+        _msg = MSG.copy()
         _msg["id_token_signed_response_alg"] = "RS256"
         _msg["userinfo_signed_response_alg"] = "ES256"
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
@@ -228,14 +229,14 @@ class TestEndpoint(object):
         assert "response_args" in _resp
 
     def test_register_custom_redirect_uri_web(self):
-        _msg = msg.copy()
+        _msg = MSG.copy()
         _msg["redirect_uris"] = ["custom://cb.example.com"]
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
         _resp = self.endpoint.process_request(request=_req)
         assert "error" in _resp
 
     def test_register_custom_redirect_uri_native(self):
-        _msg = msg.copy()
+        _msg = MSG.copy()
         _msg["redirect_uris"] = ["custom://cb.example.com"]
         _msg["application_type"] = "native"
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
@@ -253,7 +254,7 @@ class TestEndpoint(object):
     def test_sector_uri_missing_redirect_uri(self):
         _url = "https://github.com/sector"
 
-        _msg = msg.copy()
+        _msg = MSG.copy()
         _msg["redirect_uris"] = ["custom://cb.example.com"]
         _msg["application_type"] = "native"
         _msg["sector_identifier_uri"] = _url
@@ -272,7 +273,7 @@ class TestEndpoint(object):
             assert "error" in _resp
 
     def test_incorrect_request(self):
-        _msg = msg.copy()
+        _msg = MSG.copy()
         _msg["default_max_age"] = "five"
         with pytest.raises(ValueError):
             self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
@@ -291,6 +292,25 @@ class TestEndpoint(object):
             _resp = self.endpoint.process_request(request=_req)
         assert _resp
 
+    def test_policy_url(self):
+        _req = MSG.copy()
+        # This should be OK
+        _req["policy_uri"] = "https://client.example.org/policy.html"
+        _resp = self.endpoint.process_request(request=RegistrationRequest(**_req))
+        assert 'error' not in _resp
+        # This not so much
+        _req["policy_uri"] = "https://example.com/policy.html"
+        _resp = self.endpoint.process_request(request=RegistrationRequest(**_req))
+        assert 'error' in _resp
+
+    def test_register_request_uris_with_query_part(self):
+        _req = MSG.copy()
+        _req["request_uris"].append("https://example.com/ru?foo=bar")
+        del _req["jwks_uri"]
+        _resp = self.endpoint.process_request(request=RegistrationRequest(**_req))
+        assert "error" in _resp
+        assert _resp["error_description"] == 'request_uris contains query part'
+
 
 def test_match_sp_sep():
     assert match_sp_sep("foo bar", "bar foo")
@@ -302,3 +322,9 @@ def test_match_sp_sep():
     assert match_sp_sep(["foo", "bar", "exp"], "bar foo") is False
     assert match_sp_sep("foo bar exp", ["bar", "foo"]) is False
     assert match_sp_sep(["foo", "bar", "exp"], ["bar", "foo"]) is False
+
+
+def test_verify_url():
+    assert verify_url("https://example.com", [("https://example.com", {})])
+
+    assert verify_url("http://example.com", [("https://example.com", {})]) is False

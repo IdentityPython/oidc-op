@@ -376,6 +376,22 @@ class TestEndpoint(object):
         with pytest.raises(ValueError):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
+    def test_verify_uri_wrong_uri_type(self):
+        _context = self.endpoint.server_get("endpoint_context")
+        _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
+
+        request = {"redirect_uri": "https://rp.example.com/cb?foo=bob"}
+        with pytest.raises(ValueError):
+            verify_uri(_context, request, "post_logout_redirect_uri", "client_id")
+
+    def test_verify_uri_none_registered(self):
+        _context = self.endpoint.server_get("endpoint_context")
+        _context.cdb["client_id"] = {"post_logout_redirect_uri": [("https://rp.example.com/plrc", {})]}
+
+        request = {"redirect_uri": "https://rp.example.com/cb"}
+        with pytest.raises(ValueError):
+            verify_uri(_context, request, "redirect_uri", "client_id")
+
     def test_get_uri(self):
         _context = self.endpoint.server_get("endpoint_context")
         _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
@@ -588,8 +604,6 @@ class TestEndpoint(object):
         }
         info = self.endpoint.response_mode(request, **info)
         assert set(info.keys()) == {
-            "response_args",
-            "return_uri",
             "response_msg",
             "content_type",
             "response_placement",
@@ -607,7 +621,44 @@ class TestEndpoint(object):
             self.endpoint.response_mode(request, fragment_enc=False)
 
         info = self.endpoint.response_mode(request)
-        assert set(info.keys()) == {"fragment_enc"}
+        assert set(info.keys()) == {"return_uri", "response_args", "fragment_enc"}
+
+    def test_req_user(self):
+        request = AuthorizationRequest(
+            client_id="client_id",
+            redirect_uri="https://rp.example.com/cb",
+            response_type=["id_token"],
+            state="state",
+            nonce="nonce",
+            scope="openid"
+        )
+        redirect_uri = request["redirect_uri"]
+        cinfo = {
+            "client_id": "client_id",
+            "redirect_uris": [("https://rp.example.com/cb", {})],
+            "id_token_signed_response_alg": "RS256",
+        }
+        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None, req_user="adam")
+        assert 'function' in res
+
+    def test_req_user_no_prompt(self):
+        request = AuthorizationRequest(
+            client_id="client_id",
+            redirect_uri="https://rp.example.com/cb",
+            response_type=["id_token"],
+            state="state",
+            nonce="nonce",
+            scope="openid",
+            prompt="none"
+        )
+        redirect_uri = request["redirect_uri"]
+        cinfo = {
+            "client_id": "client_id",
+            "redirect_uris": [("https://rp.example.com/cb", {})],
+            "id_token_signed_response_alg": "RS256",
+        }
+        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None, req_user="adam")
+        assert 'error' in res
 
     # def test_sso(self):
     #     _pr_resp = self.endpoint.parse_request(AUTH_REQ_DICT)
@@ -649,3 +700,4 @@ def test_join_query():
     test_uri = ("https://rp.example.com/cb?", "foo=bar", "state=low")
     for i in test_uri:
         assert i in uri
+

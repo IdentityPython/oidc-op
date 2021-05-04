@@ -41,7 +41,7 @@ class TestUserAuthn(object):
                         "sym_key": "24AA/LR6HighEnergy",
                         "db": {
                             "class": JSONDictDB,
-                            "kwargs": {"json_path": full_path("passwd.json")},
+                            "kwargs": {"filename": full_path("passwd.json")},
                         },
                         "page_header": "Testing log in",
                         "submit_btn": "Get me in!",

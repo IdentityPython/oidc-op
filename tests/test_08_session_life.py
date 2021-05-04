@@ -1,16 +1,15 @@
 import os
 
-import pytest
 from cryptojwt.key_jar import init_key_jar
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.time_util import time_sans_frac
+import pytest
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
 from oidcop.client_authn import verify_client
-from oidcop.endpoint_context import EndpointContext
 from oidcop.id_token import IDToken
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -23,11 +22,6 @@ from oidcop.session import unpack_session_key
 from oidcop.session.grant import Grant
 from oidcop.session.info import ClientSessionInfo
 from oidcop.session.info import UserSessionInfo
-from oidcop.session.manager import SessionManager
-from oidcop.session.manager import public_id
-from oidcop.token import DefaultToken
-from oidcop.token.handler import TokenHandler
-from oidcop.token.handler import factory
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 
 
@@ -123,7 +117,7 @@ class TestSession():
             session_id=session_id,
             endpoint_context=self.endpoint_context,
             token_type='authorization_code',
-            token_handler= self.session_manager.token_handler["code"],
+            token_handler=self.session_manager.token_handler["code"],
             expires_at=time_sans_frac() + 300  # 5 minutes from now
         )
 

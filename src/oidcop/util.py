@@ -88,8 +88,8 @@ def build_endpoints(conf, server_get, issuer):
 
 
 class JSONDictDB(object):
-    def __init__(self, json_path):
-        with open(json_path, "r") as f:
+    def __init__(self, filename):
+        with open(filename, "r") as f:
             self._db = json.load(f)
 
     def __getitem__(self, item):

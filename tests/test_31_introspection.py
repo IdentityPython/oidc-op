@@ -291,6 +291,13 @@ class TestEndpoint:
 
         assert _resp
         assert set(_resp.keys()) == {"response_args"}
+        assert 'username' not in _resp["response_args"]
+
+        _resp = self.introspection_endpoint.process_request(_req, release=["username"])
+
+        assert _resp
+        assert set(_resp.keys()) == {"response_args"}
+        assert 'username' in _resp["response_args"]
 
     def test_do_response(self):
         access_token = self._get_access_token(AUTH_REQ)

@@ -18,6 +18,8 @@ from oidcmsg import oauth2
 from oidcmsg.exception import ParameterError
 from oidcmsg.exception import URIError
 from oidcmsg.message import Message
+from oidcmsg.oauth2 import AuthorizationRequest
+from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import verified_claim_name
 from oidcmsg.time_util import utc_time_sans_frac
 
@@ -25,6 +27,7 @@ from oidcop import rndstr
 from oidcop.authn_event import create_authn_event
 from oidcop.cookie_handler import compute_session_state
 from oidcop.endpoint import Endpoint
+from oidcop.endpoint_context import EndpointContext
 from oidcop.exception import InvalidRequest
 from oidcop.exception import NoSuchAuthentication
 from oidcop.exception import RedirectURIError
@@ -85,7 +88,10 @@ def max_age(request):
     return request.get(verified_request, {}).get("max_age") or request.get("max_age", 0)
 
 
-def verify_uri(endpoint_context, request, uri_type, client_id=None):
+def verify_uri(endpoint_context: EndpointContext,
+               request: Union[dict, Message],
+               uri_type: str,
+               client_id: Optional[str] = None):
     """
     A redirect URI
     MUST NOT contain a fragment
@@ -105,7 +111,11 @@ def verify_uri(endpoint_context, request, uri_type, client_id=None):
     else:
         logger.debug("Client ID: {}".format(_cid))
 
-    _redirect_uri = unquote(request[uri_type])
+    _uri = request.get(uri_type)
+    if _uri is None:
+        raise ValueError(f"Wrong uri_type: {uri_type}")
+
+    _redirect_uri = unquote(_uri)
 
     part = urlparse(_redirect_uri)
     if part.fragment:
@@ -115,19 +125,17 @@ def verify_uri(endpoint_context, request, uri_type, client_id=None):
     # if _query:
     #     _query = parse_qs(_query)
 
-    match = False
     # Get the clients registered redirect uris
-    client_info = endpoint_context.cdb.get(_cid, {})
-    if not client_info:
+    client_info = endpoint_context.cdb.get(_cid)
+    if client_info is None:
         raise KeyError("No such client")
+
     logger.debug("Client info: {}".format(client_info))
     redirect_uris = client_info.get("{}s".format(uri_type))
-    if not redirect_uris:
-        if _cid not in endpoint_context.cdb:
-            logger.debug("CIDs: {}".format(list(endpoint_context.cdb.keys())))
-            raise KeyError("No such client")
-        raise ValueError("No registered {}".format(uri_type))
+    if redirect_uris is None:
+        raise ValueError(f"No registered {uri_type} for {_cid}")
     else:
+        match = False
         for regbase, rquery in redirect_uris:
             # The URI MUST exactly match one of the Redirection URI
             if _base == regbase:
@@ -197,25 +205,28 @@ def get_uri(endpoint_context, request, uri_type):
         verify_uri(endpoint_context, request, uri_type)
         uri = request[uri_type]
     else:
-        uris = "{}s".format(uri_type)
+        uris = f"{uri_type}s"
         client_id = str(request["client_id"])
         if client_id in endpoint_context.cdb:
             _specs = endpoint_context.cdb[client_id].get(uris)
             if not _specs:
-                raise ParameterError(
-                    "Missing {} and none registered".format(uri_type))
+                raise ParameterError(f"Missing '{uri_type}' and none registered")
 
             if len(_specs) > 1:
-                raise ParameterError(
-                    "Missing {} and more than one registered".format(uri_type)
-                )
+                raise ParameterError(f"Missing '{uri_type}' and more than one registered")
+
 
             uri = join_query(*_specs[0])
+        else:
+            raise UnknownClient(client_id)
 
     return uri
 
 
-def authn_args_gather(request, authn_class_ref, cinfo, **kwargs):
+def authn_args_gather(request: Union[AuthorizationRequest, dict],
+                      authn_class_ref: str,
+                      cinfo: dict,
+                      **kwargs):
     """
     Gather information to be used by the authentication method
 
@@ -225,17 +236,21 @@ def authn_args_gather(request, authn_class_ref, cinfo, **kwargs):
     :param kwargs: Extra keyword arguments
     :return: Authentication arguments
     """
-    authn_args = {
-        "authn_class_ref": authn_class_ref,
-        "return_uri": request["redirect_uri"],
-    }
+    authn_args = {}
 
     if isinstance(request, Message):
         authn_args["query"] = request.to_urlencoded()
     elif isinstance(request, dict):
         authn_args["query"] = urlencode(request)
     else:
-        ValueError("Wrong request format")
+        raise ValueError("Wrong request format")
+
+    authn_args.update(
+        {
+            "authn_class_ref": authn_class_ref,
+            "return_uri": request["redirect_uri"]
+        }
+    )
 
     if "req_user" in kwargs:
         authn_args["as_user"] = (kwargs["req_user"],)
@@ -256,7 +271,7 @@ def authn_args_gather(request, authn_class_ref, cinfo, **kwargs):
 def check_unknown_scopes_policy(request_info, cinfo, endpoint_context):
     op_capabilities = endpoint_context.conf['capabilities']
     client_allowed_scopes = cinfo.get('allowed_scopes') or \
-        op_capabilities['scopes_supported']
+                            op_capabilities['scopes_supported']
 
     # this prevents that authz would be released for unavailable scopes
     for scope in request_info['scope']:
@@ -302,20 +317,18 @@ class Authorization(Endpoint):
     def extra_response_args(self, aresp):
         return aresp
 
-    def verify_response_type(self, request, cinfo):
+    def verify_response_type(self, request: Union[Message, dict], cinfo: dict) -> bool:
         # Checking response types
         _registered = [set(rt.split(" "))
                        for rt in cinfo.get("response_types", [])]
         if not _registered:
-            # If no response_type is registered by the client then we'll
-            # use code.
+            # If no response_type is registered by the client then we'll use code.
             _registered = [{"code"}]
 
         # Is the asked for response_type among those that are permitted
         return set(request["response_type"]) in _registered
 
     def mint_token(self, token_type, grant, session_id, based_on=None):
-        self.server_get("endpoint_context").session_manager
         usage_rules = grant.usage_rules.get(token_type, {})
         token = grant.mint_token(
             session_id=session_id,
@@ -355,7 +368,7 @@ class Authorization(Endpoint):
 
             # Do I support request_uri ?
             if endpoint_context.provider_info.get("request_uri_parameter_supported", True) is False:
-                raise ServiceError("Some on is using request_uri which I'm not supporting")
+                raise ServiceError("Someone is using request_uri which I'm not supporting")
 
             _registered = endpoint_context.cdb[client_id].get("request_uris")
             # Not registered should be handled else where
@@ -363,7 +376,7 @@ class Authorization(Endpoint):
                 # Before matching remove a possible fragment
                 _p = _request_uri.split("#")
                 # ignore registered fragments for now.
-                if _p[0] not in [_val[0] for _val in _registered]:
+                if _p[0] not in [base for base, qp in _registered]:
                     raise ValueError("A request_uri outside the registered")
 
             # Fetch the request
@@ -440,7 +453,7 @@ class Authorization(Endpoint):
         # Get a verified redirect URI
         try:
             redirect_uri = get_uri(endpoint_context, request, "redirect_uri")
-        except (RedirectURIError, ParameterError, UnknownClient) as err:
+        except (RedirectURIError, ParameterError) as err:
             return self.error_cls(
                 error="invalid_request",
                 error_description="{}:{}".format(err.__class__.__name__, err),
@@ -628,12 +641,21 @@ class Authorization(Endpoint):
     def aresp_check(self, aresp, request):
         return ""
 
-    def response_mode(self, request, **kwargs):
+    def response_mode(self,
+                      request: Union[dict, AuthorizationRequest],
+                      response_args: Optional[AuthorizationResponse] = None,
+                      return_uri: Optional[str] = "",
+                      fragment_enc: Optional[bool] = None,
+                      **kwargs) -> dict:
         resp_mode = request["response_mode"]
         if resp_mode == "form_post":
+            if isinstance(response_args, AuthorizationRequest):
+                _args = response_args.to_dict()
+            else:
+                _args = response_args
             msg = FORM_POST.format(
-                inputs=inputs(kwargs["response_args"].to_dict()),
-                action=kwargs["return_uri"],
+                inputs=inputs(_args),
+                action=return_uri,
             )
             kwargs.update(
                 {
@@ -643,19 +665,24 @@ class Authorization(Endpoint):
                 }
             )
         elif resp_mode == "fragment":
-            if "fragment_enc" in kwargs:
-                if not kwargs["fragment_enc"]:
-                    # Can't be done
-                    raise InvalidRequest("wrong response_mode")
+            if fragment_enc is False:
+                # Can't be done
+                raise InvalidRequest("wrong response_mode")
             else:
                 kwargs["fragment_enc"] = True
         elif resp_mode == "query":
-            if "fragment_enc" in kwargs:
-                if kwargs["fragment_enc"]:
-                    # Can't be done
-                    raise InvalidRequest("wrong response_mode")
+            if fragment_enc is True:
+                # Can't be done
+                raise InvalidRequest("wrong response_mode")
         else:
             raise InvalidRequest("Unknown response_mode")
+
+        if resp_mode in ["fragment", "query"]:
+            kwargs.update({
+                "response_args": response_args,
+                "return_uri": return_uri
+            })
+
         return kwargs
 
     def error_response(self, response_info, error, error_description):
@@ -719,7 +746,7 @@ class Authorization(Endpoint):
                 aresp['token_type'] = "Bearer"
                 if _access_token.expires_at:
                     aresp["expires_in"] = _access_token.expires_at - \
-                        utc_time_sans_frac()
+                                          utc_time_sans_frac()
                 handled_response_type.append("token")
             else:
                 _access_token = None
@@ -778,26 +805,16 @@ class Authorization(Endpoint):
         _mngr = _context.session_manager
 
         # Do the authorization
+
+        grant = _context.authz(session_id, request=request)
+        if grant.is_active() is False:
+            return self.error_response(response_info, "server_error", "Grant not usable")
+
+        user_id, client_id, grant_id = unpack_session_key(session_id)
         try:
-            grant = _context.authz(session_id, request=request)
-        except ToOld as err:
-            return self.error_response(
-                response_info,
-                "access_denied",
-                "Authentication to old {}".format(err.args),
-            )
+            _mngr.set([user_id, client_id, grant_id], grant)
         except Exception as err:
-            return self.error_response(
-                response_info, "access_denied", "{}".format(err.args)
-            )
-        else:
-            user_id, client_id, grant_id = unpack_session_key(session_id)
-            try:
-                _mngr.set([user_id, client_id, grant_id], grant)
-            except Exception as err:
-                return self.error_response(
-                    response_info, "server_error", "{}".format(err.args)
-                )
+            return self.error_response(response_info, "server_error", "{}".format(err.args))
 
         logger.debug("response type: %s" % request["response_type"])
 
@@ -809,9 +826,7 @@ class Authorization(Endpoint):
         try:
             redirect_uri = get_uri(_context, request, "redirect_uri")
         except (RedirectURIError, ParameterError) as err:
-            return self.error_response(
-                response_info, "invalid_request", "{}".format(err.args)
-            )
+            return self.error_response(response_info, "invalid_request", "{}".format(err.args))
         else:
             response_info["return_uri"] = redirect_uri
 

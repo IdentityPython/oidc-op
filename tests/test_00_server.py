@@ -1,11 +1,16 @@
 from copy import copy
 import io
+import os
 
 from cryptojwt.key_jar import build_keyjar
+from oidcop.configure import OPConfiguration
+
+from oidcop.configure import create_from_config_file
 import pytest
 import yaml
 
 from oidcop.id_token import IDToken
+import oidcop.login_hint
 from oidcop.oidc.add_on.pkce import add_pkce_support
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -15,6 +20,12 @@ from oidcop.oidc.token import Token
 from oidcop.oidc.userinfo import UserInfo
 from oidcop.server import Server
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
+
+
+def full_path(local_file):
+    return os.path.join(BASEDIR, local_file)
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -66,6 +77,10 @@ conf = {
     },
     "add_on": {"pkce": {"function": add_pkce_support, "kwargs": {"essential": True}}},
     "template_dir": "template",
+    "login_hint_lookup": {
+        "class": oidcop.login_hint.LoginHintLookup,
+        "kwargs": {}
+    }
 }
 
 client_yaml = """
@@ -96,7 +111,10 @@ oidc_clients:
 
 
 def test_capabilities_default():
-    server = Server(conf)
+    configuration = create_from_config_file(OPConfiguration, full_path("op_config.json"),
+                                            base_path=BASEDIR, domain="127.0.0.1", port=443)
+
+    server = Server(configuration)
     assert set(server.endpoint_context.provider_info["response_types_supported"]) == {
         "code",
         "token",
@@ -147,3 +165,4 @@ def test_cdb():
     server.endpoint_context.cdb = _clients["oidc_clients"]
 
     assert set(server.endpoint_context.cdb.keys()) == {"client1", "client2", "client3"}
+

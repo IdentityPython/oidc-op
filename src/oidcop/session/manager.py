@@ -1,10 +1,12 @@
 import hashlib
 import logging
+import os
 from typing import List
 from typing import Optional
 import uuid
 
 from oidcmsg.oauth2 import AuthorizationRequest
+from oidcop.exception import ConfigurationError
 
 from oidcop import rndstr
 from oidcop.authn_event import AuthnEvent
@@ -23,11 +25,39 @@ logger = logging.getLogger(__name__)
 
 
 def pairwise_id(uid, sector_identifier, salt="", **kwargs):
-    return hashlib.sha256(("%s%s%s" % (uid, sector_identifier, salt)).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        ("{}{}{}".format(uid, sector_identifier, salt)).encode("utf-8")).hexdigest()
+
+
+class PairWiseID(object):
+    def __init__(self, salt: Optional[str] = "", filename: Optional[str] = ""):
+        if salt:
+            self.salt = salt
+        elif filename:
+            if os.path.isfile(filename):
+                self.salt = open(filename).read()
+            elif os.path.exists(filename): # Not a file, Something else
+                raise ConfigurationError("Salt filename points to something that is not a file")
+            else:
+                self.salt = rndstr(24)
+                # May raise an exception
+                fp = open(filename, "w")
+                fp.write(self.salt)
+                fp.close()
+        else:
+            self.salt = rndstr(24)
+
+    def __call__(self, uid, sector_identifier, *args, **kwargs):
+        return pairwise_id(uid, sector_identifier, self.salt)
 
 
 def public_id(uid, salt="", **kwargs):
     return hashlib.sha256("{}{}".format(uid, salt).encode("utf-8")).hexdigest()
+
+
+class PublicID(PairWiseID):
+    def __call__(self, uid, sector_identifier, *args, **kwargs):
+        return public_id(uid, self.salt)
 
 
 def ephemeral_id(*args, **kwargs):
