@@ -1,3 +1,4 @@
+import logging
 import os
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from oidcop.configure import Configuration
 from oidcop.configure import OPConfiguration
 from oidcop.configure import create_from_config_file
+from oidcop.logging import configure_logging
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -33,7 +35,7 @@ def test_op_configure():
 
 def test_op_configure_default():
     configuration = create_from_config_file(OPConfiguration, full_path("op_config_defaults.py"),
-                                            base_path=BASEDIR,domain="127.0.0.1", port=443)
+                                            base_path=BASEDIR, domain="127.0.0.1", port=443)
     assert configuration
     assert 'add_on' in configuration
     authz = configuration["authz"]
@@ -63,3 +65,43 @@ def test_server_configure():
 
     userinfo_conf = op_conf.get("userinfo")
     assert userinfo_conf["kwargs"]["db_file"].startswith(BASEDIR)
+
+
+def test_loggin_conf_file():
+    logger = configure_logging(filename=full_path("logging.yaml"))
+    assert logger
+
+def test_loggin_conf_default():
+    logger = configure_logging()
+    assert logger
+
+
+CONF = {
+    "version": 1,
+    "root": {
+        "handlers": ["default"],
+        "level": "DEBUG"
+    },
+    "loggers": {
+        "bobcat": {
+            "level": "DEBUG"
+        }
+    },
+    "handlers": {
+        "default": {
+            "class": "logging.FileHandler",
+            "filename": "debug.log",
+            "formatter": "default"
+        },
+    },
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s %(name)s %(levelname)s %(message)s"
+        }
+    }
+}
+
+
+def test_loggin_conf_dict():
+    logger = configure_logging(config=CONF)
+    assert logger

@@ -17,6 +17,7 @@ from cryptojwt.jwt import JWT
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 from oidcmsg.exception import InvalidRequest
+from oidcmsg.exception import VerificationError
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import verified_claim_name
@@ -255,10 +256,8 @@ class Session(Endpoint):
                 _cookie_infos = _context.cookie_handler.parse_cookie(
                     cookies=_cookies, name=_cookie_name
                 )
-            except IndexError:
+            except VerificationError:
                 raise InvalidRequest("Cookie error")
-            except (KeyError, AttributeError):
-                _cookie_infos = []
 
             if _cookie_infos:
                 # value is a JSON document
@@ -289,7 +288,7 @@ class Session(Endpoint):
         else:
             _aud = []
 
-        _context.cdb[_session_info["client_id"]]
+        # _context.cdb[_session_info["client_id"]]
 
         # verify that the post_logout_redirect_uri if present are among the ones
         # registered
@@ -410,11 +409,11 @@ class Session(Endpoint):
         _context = self.server_get("endpoint_context")
         _handler = _context.cookie_handler
         session_mngmnt = _handler.make_cookie_content(
-            value="none",
+            value="",
             name=_handler.name["session_management"],
-            expire=-1)
+            max_age=-1)
         session = _handler.make_cookie_content(
-            value="none",
+            value="",
             name=_handler.name["session"],
-            expire=-1)
+            max_age=-1)
         return [session_mngmnt, session]

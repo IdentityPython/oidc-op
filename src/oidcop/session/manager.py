@@ -6,6 +6,7 @@ from typing import Optional
 import uuid
 
 from oidcmsg.oauth2 import AuthorizationRequest
+from oidcop.exception import ConfigurationError
 
 from oidcop import rndstr
 from oidcop.authn_event import AuthnEvent
@@ -35,6 +36,8 @@ class PairWiseID(object):
         elif filename:
             if os.path.isfile(filename):
                 self.salt = open(filename).read()
+            elif os.path.exists(filename): # Not a file, Something else
+                raise ConfigurationError("Salt filename points to something that is not a file")
             else:
                 self.salt = rndstr(24)
                 # May raise an exception

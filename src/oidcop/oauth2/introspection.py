@@ -1,5 +1,6 @@
 """Implements RFC7662"""
 import logging
+from typing import Optional
 
 from oidcmsg import oauth2
 
@@ -62,10 +63,11 @@ class Introspection(Endpoint):
 
         return ret
 
-    def process_request(self, request=None, **kwargs):
+    def process_request(self, request=None, release: Optional[list] = None, **kwargs):
         """
 
         :param request: The authorization request as a dictionary
+        :param release: Information about what should be released
         :param kwargs:
         :return:
         """
@@ -91,8 +93,8 @@ class Introspection(Endpoint):
         if _info is None:
             return {"response_args": _resp}
 
-        if "release" in self.kwargs:
-            if "username" in self.kwargs["release"]:
+        if release:
+            if "username" in release:
                 try:
                     _info["username"] = _session_info["user_id"]
                 except KeyError:
@@ -101,8 +103,7 @@ class Introspection(Endpoint):
         _resp.update(_info)
         _resp.weed()
 
-        _claims_restriction = _session_info["grant"].claims.get(
-            "introspection")
+        _claims_restriction = _session_info["grant"].claims.get("introspection")
         if _claims_restriction:
             user_info = _context.claims_interface.get_user_claims(
                 _session_info["user_id"], _claims_restriction)

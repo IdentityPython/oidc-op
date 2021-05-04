@@ -104,43 +104,13 @@ class Authorization(authorization.Authorization):
         self.post_parse_request.append(self._do_request_uri)
         self.post_parse_request.append(self._post_parse_request)
 
-    def setup_client_session(self, user_id: str, request: dict) -> str:
-        _mngr = self.server_get("endpoint_context").session_manager
-        client_id = request['client_id']
-
-        _client_info = self.server_get("endpoint_context").cdb[client_id]
-        sub_type = _client_info.get("subject_type")
-        if sub_type and sub_type == "pairwise":
-            sector_identifier_uri = _client_info.get("sector_identifier_uri")
-            if sector_identifier_uri is None:
-                sector_identifier_uri = host_component(
-                    _client_info["redirect_uris"][0])
-
-            client_info = ClientSessionInfo(
-                authorization_request=request,
-                sub=_mngr.sub_func[sub_type](user_id, salt=_mngr.salt,
-                                             sector_identifier=sector_identifier_uri)
-            )
-        else:
-            sub_type = self.kwargs.get("subject_type")
-            if not sub_type:
-                sub_type = "public"
-
-            client_info = ClientSessionInfo(
-                authorization_request=request,
-                sub=_mngr.sub_func[sub_type](user_id, salt=_mngr.salt)
-            )
-
-        _mngr.set([user_id, client_id], client_info)
-        return session_key(user_id, client_id)
-
     def do_request_user(self, request_info, **kwargs):
         if proposed_user(request_info):
             kwargs["req_user"] = proposed_user(request_info)
         else:
-            if request_info.get("login_hint"):
-                _login_hint = request_info["login_hint"]
+            _login_hint = request_info.get("login_hint")
+            if _login_hint:
                 _context = self.server_get("endpoint_context")
                 if _context.login_hint_lookup:
-                    kwargs["req_user"] = _context.login_hint_lookup[_login_hint]
+                    kwargs["req_user"] = _context.login_hint_lookup(_login_hint)
         return kwargs

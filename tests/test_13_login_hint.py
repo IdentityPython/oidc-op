@@ -36,6 +36,12 @@ def test_login_hint2acrs():
     assert l2a("tel:+467865000") == ["http://www.swamid.se/policy/assurance/al1"]
 
 
+def test_login_hint2acrs_unmatched_schema():
+    l2a = LoginHint2Acrs({"tel": ["http://www.swamid.se/policy/assurance/al1"]})
+
+    assert l2a("mail:foobar@exaample.com") == []
+
+
 def test_server_login_hint_lookup():
     configuration = create_from_config_file(OPConfiguration, full_path("op_config.json"),
                                             base_path=BASEDIR, domain="127.0.0.1", port=443)

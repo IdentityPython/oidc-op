@@ -199,16 +199,21 @@ class CookieHandler():
             timestamp = str(int(time.time()))
 
         # create cookie payload
-        try:
-            cookie_payload = "::".join([value, typ])
-        except TypeError:
-            cookie_payload = "::".join([value[0], typ])
+        if not value and not typ:
+            _cookie_value = ""
+        else:
+            try:
+                cookie_payload = "::".join([value, typ])
+            except TypeError:
+                cookie_payload = "::".join([value[0], typ])
 
-        _cookie_value = self._sign_enc_payload(cookie_payload, timestamp)
+            _cookie_value = self._sign_enc_payload(cookie_payload, timestamp)
 
         content = {"name": name, "value": _cookie_value}
 
-        if max_age:
+        if max_age == -1:
+            content["Expires"] = "Thu, 01 Jan 1970 00:00:00 GMT;"
+        elif max_age:
             content["Max-Age"] = epoch_in_a_while(seconds=max_age)
 
         return content
@@ -235,11 +240,9 @@ class CookieHandler():
         res = []
         for _cookie in cookies:
             if _cookie["name"] == name:
-                payload, timestamp = self._ver_dec_content(
-                    _cookie['value'].split("|"))
+                payload, timestamp = self._ver_dec_content(_cookie['value'].split("|"))
                 value, typ = payload.split("::")
-                res.append({"value": value, "type": typ,
-                            "timestamp": timestamp})
+                res.append({"value": value, "type": typ, "timestamp": timestamp})
         return res
 
 

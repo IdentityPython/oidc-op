@@ -12,11 +12,9 @@ from oidcop.session import MintingNotAllowed
 from oidcop.session import session_key
 from oidcop.session.grant import Grant
 from oidcop.session.info import ClientSessionInfo
-from oidcop.session.manager import SessionManager
 from oidcop.session.token import AccessToken
 from oidcop.session.token import AuthorizationCode
 from oidcop.session.token import RefreshToken
-from oidcop.token.handler import factory
 
 AUTH_REQ = AuthorizationRequest(
     client_id="client_1",

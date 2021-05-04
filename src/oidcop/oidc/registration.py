@@ -4,6 +4,7 @@ import json
 import logging
 import secrets
 import time
+from typing import List
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
@@ -72,7 +73,7 @@ def match_sp_sep(first, second):
     return True
 
 
-def verify_url(url, urlset):
+def verify_url(url: str, urlset: List[list]) -> bool:
     part = urlparse(url)
 
     for reg, qp in urlset:
@@ -83,7 +84,7 @@ def verify_url(url, urlset):
     return False
 
 
-def secret(seed, sid):
+def secret(seed: str, sid: str):
     msg = "{}{}{}".format(time.time(), secrets.token_urlsafe(16), sid).encode("utf-8")
     csum = hmac.new(as_bytes(seed), msg, hashlib.sha224)
     return csum.hexdigest()
@@ -227,15 +228,10 @@ class Registration(Endpoint):
                         _k = []
                         for iss in ["", _context.issuer]:
                             _k.extend(
-                                _context.keyjar.get_signing_key(
-                                    ktyp, alg=request[item], owner=iss
-                                )
+                                _context.keyjar.get_signing_key(ktyp, alg=request[item], owner=iss)
                             )
                         if not _k:
-                            logger.warning(
-                                'Lacking support for "{}"'.format(
-                                    request[item])
-                            )
+                            logger.warning('Lacking support for "{}"'.format(request[item]))
                             del _cinfo[item]
 
         t = {"jwks_uri": "", "jwks": None}
@@ -246,8 +242,8 @@ class Registration(Endpoint):
 
         # if it can't load keys because the URL is false it will
         # just silently fail. Waiting for better times.
-        _context.keyjar.load_keys(
-            client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
+        _context.keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
+
         n_keys = 0
         for kb in _context.keyjar.get(client_id, []):
             n_keys += len(kb.keys())

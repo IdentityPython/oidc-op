@@ -565,3 +565,14 @@ class TestEndpoint(object):
 
         with pytest.raises(ValueError):
             self.session_endpoint.logout_all_clients(_session_info["session_id"])
+
+    def test_kill_cookies(self):
+        _info = self.session_endpoint.kill_cookies()
+        assert len(_info) == 2
+        _names = [ci['name'] for ci in _info]
+        assert set(_names) == {'oidc_op_sman', 'oidc_op'}
+        _values = [ci['value'] for ci in _info]
+        assert set(_values) == {'', ''}
+        _exps = [ci['Expires'] for ci in _info]
+        assert set(_exps) == {'Thu, 01 Jan 1970 00:00:00 GMT;', 'Thu, 01 Jan 1970 00:00:00 GMT;'}
+

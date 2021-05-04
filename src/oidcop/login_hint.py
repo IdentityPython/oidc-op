@@ -15,6 +15,9 @@ class LoginHintLookup(object):
             else:
                 _pnr = "+" + self.default_country_code + _pnr[1:]
             return self.userinfo.search(phone_number=_pnr)
+        elif arg.startswith("mail:"):
+            _mail = arg[5:]
+            return self.userinfo.search(email=_mail)
 
 
 class LoginHint2Acrs(object):

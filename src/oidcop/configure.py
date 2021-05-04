@@ -202,7 +202,7 @@ class OPConfiguration(object):
         self.login_hint2acrs = {}
         self.login_hint_lookup = None
         self.session_key = None
-        self.sub_func = None
+        self.sub_func = {}
         self.template_dir = None
         self.token_handler_args = {}
         self.userinfo = None

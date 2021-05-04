@@ -1,7 +1,7 @@
 import io
 import json
 import os
-from secrets import choice
+import secrets
 import string
 
 from oidcmsg.message import Message
@@ -10,6 +10,12 @@ from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import TokenErrorResponse
+from oidcop.configure import OPConfiguration
+
+from oidcop.endpoint import Endpoint
+import oidcop.oauth2.introspection
+
+from oidcop.oidc.add_on.pkce import add_pkce_support
 import pytest
 import yaml
 
@@ -177,7 +183,7 @@ def conf():
 
 
 def unreserved(size=64):
-    return "".join(choice(BASECH) for _ in range(size))
+    return "".join(secrets.choice(BASECH) for _ in range(size))
 
 
 def _code_challenge():
@@ -365,3 +371,48 @@ class TestEndpoint(object):
         assert isinstance(resp, TokenErrorResponse)
         assert resp["error"] == "invalid_grant"
         assert resp["error_description"] == "Missing code_verifier"
+
+
+def test_missing_authz_endpoint():
+    conf = {
+        "issuer": "https://example.com/",
+        "capabilities": CAPABILITIES,
+        "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+        "endpoint": {
+            "introspection": {
+                "path": "introspection",
+                "class": 'oidcop.oauth2.introspection.Introspection',
+                "kwargs": {},
+            }
+        }
+    }
+    configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
+    server = Server(configuration)
+    add_pkce_support(server.server_get("endpoints"))
+
+    assert 'pkce' not in server.server_get("endpoint_context").args
+
+
+def test_missing_token_endpoint():
+    conf = {
+        "issuer": "https://example.com/",
+        "capabilities": CAPABILITIES,
+        "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+        "endpoint": {
+            "authorization": {
+                "path": "authorization",
+                "class": 'oidcop.oauth2.authorization.Authorization',
+                "kwargs": {},
+            },
+            "introspection": {
+                "path": "introspection",
+                "class": 'oidcop.oauth2.introspection.Introspection',
+                "kwargs": {},
+            }
+        }
+    }
+    configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
+    server = Server(configuration)
+    add_pkce_support(server.server_get("endpoints"))
+
+    assert 'pkce' not in server.server_get("endpoint_context").args
