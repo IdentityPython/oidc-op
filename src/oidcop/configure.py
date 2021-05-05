@@ -127,22 +127,14 @@ def create_from_config_file(cls, filename: str,
                    domain=domain, port=port)
 
 
-class Configuration:
-    """Server Configuration"""
+class Base:
+    """ Configuration base class """
 
     def __init__(self,
                  conf: Dict,
                  base_path: str = '',
                  file_attributes: Optional[List[str]] = None,
-                 domain: Optional[str] = "",
-                 port: Optional[int] = 0
                  ):
-
-        log_conf = conf.get('logging')
-        if log_conf:
-            self.logger = configure_logging(config=log_conf).getChild(__name__)
-        else:
-            self.logger = logging.getLogger('oidcop')
 
         if file_attributes is None:
             file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
@@ -150,19 +142,6 @@ class Configuration:
         if base_path and file_attributes:
             # this adds a base path to all paths in the configuration
             add_base_path(conf, base_path, file_attributes)
-
-        self.webserver = conf.get("webserver", {})
-        if domain:
-            args = {"domain": domain}
-        else:
-            args = {"domain": conf.get("domain", "127.0.0.1")}
-
-        if port:
-            args["port"] = port
-        else:
-            args["port"] = conf.get("port", 80)
-
-        self.op = OPConfiguration(conf["op"]["server_info"], **args)
 
     def __getitem__(self, item):
         if item in self.__dict__:
@@ -177,7 +156,40 @@ class Configuration:
         return item in self.__dict__
 
 
-class OPConfiguration(object):
+class Configuration(Base):
+    """Server Configuration"""
+
+    def __init__(self,
+                 conf: Dict,
+                 base_path: str = '',
+                 file_attributes: Optional[List[str]] = None,
+                 domain: Optional[str] = "",
+                 port: Optional[int] = 0
+                 ):
+        Base.__init__(self, conf, base_path, file_attributes)
+
+        log_conf = conf.get('logging')
+        if log_conf:
+            self.logger = configure_logging(config=log_conf).getChild(__name__)
+        else:
+            self.logger = logging.getLogger('oidcop')
+
+        self.webserver = conf.get("webserver", {})
+
+        if domain:
+            args = {"domain": domain}
+        else:
+            args = {"domain": conf.get("domain", "127.0.0.1")}
+
+        if port:
+            args["port"] = port
+        else:
+            args["port"] = conf.get("port", 80)
+
+        self.op = OPConfiguration(conf["op"]["server_info"], **args)
+
+
+class OPConfiguration(Base):
     "Provider configuration"
 
     def __init__(self,
@@ -187,6 +199,8 @@ class OPConfiguration(object):
                  port: Optional[int] = 80,
                  file_attributes: Optional[List[str]] = None,
                  ):
+
+        Base.__init__(self, conf, base_path, file_attributes)
 
         self.add_on = None
         self.authz = None
@@ -207,13 +221,6 @@ class OPConfiguration(object):
         self.token_handler_args = {}
         self.userinfo = None
 
-        if file_attributes is None:
-            file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
-
-        if base_path and file_attributes:
-            # this adds a base path to all paths in the configuration
-            add_base_path(conf, base_path, file_attributes)
-
         for key in self.__dict__.keys():
             _val = conf.get(key)
             if not _val and key in DEFAULT_CONFIG:
@@ -233,18 +240,6 @@ class OPConfiguration(object):
             self.template_dir = os.path.abspath('templates')
         else:
             self.template_dir = os.path.abspath(self.template_dir)
-
-    def __getitem__(self, item):
-        if item in self.__dict__:
-            return self.__dict__[item]
-        else:
-            raise KeyError
-
-    def get(self, item, default=None):
-        return getattr(self, item, default)
-
-    def __contains__(self, item):
-        return item in self.__dict__
 
 
 c = {
