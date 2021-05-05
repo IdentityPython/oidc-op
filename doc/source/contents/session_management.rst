@@ -95,6 +95,9 @@ item the user id. If you want the client session information the key is a
 list with 2 items (user_id, client_id). And lastly if you want a grant then
 the key is a list with 3 elements (user_id, client_id, grant_id).
 
+Example::
+    "diana;;KtEST70jZx1x;;85544c9cace411ebab53559c5425fcc0"
+
 A *session identifier* is constructed using the **session_key** function.
 It takes as input the 3 elements list.::
 
@@ -158,7 +161,7 @@ might normally ask the user for usage consent and then base the construction
 of the grant on that consent.
 
 If an authorization server can act as a Security Token Service (STS) as
-defined by https://tools.ietf.org/html/draft-ietf-oauth-token-exchange-16
+defined by `Token Exchange [RFC-8693] <https://tools.ietf.org/html/rfc8693>`_
 then no user is involved. In the context of session management the STS is
 equivalent to a user.
 

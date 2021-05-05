@@ -3,6 +3,12 @@ Configuration directives
 ========================
 
 ------
+issuer
+------
+
+The issuer ID of the OP, a unique value in URI format.
+
+------
 add_on
 ------
 
@@ -49,7 +55,7 @@ An example::
             "db": {
               "class": "oidcop.util.JSONDictDB",
               "kwargs": {
-                "json_path": "passwd.json"
+                "filename": "passwd.json"
               }
             },
             "page_header": "Testing log in",
@@ -65,8 +71,7 @@ capabilities
 ------------
 
 This covers most of the basic functionality of the OP. The key words are the
-same as defined in
-https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata .
+same as defined in `OIDC Discovery <https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata>`_.
 A couple of things are defined else where. Like the endpoints, issuer id,
 jwks_uri and the authentication methods at the token endpoint.
 
@@ -265,6 +270,9 @@ An example::
 httpc_params
 ------------
 
+Parameters submitted to the web client (python requests).
+In this case the TLS certificate will not be verified, to be intended exclusively for development purposes
+
 Example ::
 
     "httpc_params": {
@@ -289,13 +297,6 @@ An example::
             "email_verified": {
               "essential": true
             }}}},
-
-
-------
-issuer
-------
-
-The issuer ID of the OP.
 
 ----
 keys
@@ -341,6 +342,41 @@ An example::
           }
         }
       },
+
+-----
+authz
+-----
+
+This configuration section refers to the authorization/authentication endpoint behaviour.
+Scopes bound to an access token are strictly related to grant management, as part of what that endpoint does.
+Regarding grant authorization we should have something like the following example.
+
+If you omit this section from the configuration (thus using some sort of default profile)
+you'll have an Implicit grant authorization that leads granting nothing.
+Add the below to your configuration and you'll see things changing.
+
+
+An example::
+
+      "authz": {
+        "class": "oidcop.authz.AuthzHandling",
+        "kwargs": {
+            "grant_config": {
+                "usage_rules": {
+                    "authorization_code": {
+                        "supports_minting": ["access_token", "refresh_token", "id_token"],
+                        "max_usage": 1
+                    },
+                    "access_token": {},
+                    "refresh_token": {
+                        "supports_minting": ["access_token", "refresh_token"]
+                    }
+                },
+                "expires_in": 43200
+            }
+        }
+      },
+
 
 -----------
 session_key
@@ -430,3 +466,23 @@ An example::
         }
       }
 
+This is somethig that can be customized.
+For example in a django project we would use something like
+the following (see `example/django_op/oidc_provider`):
+
+      "userinfo": {
+        "class": "oidc_provider.users.UserInfo",
+        "kwargs": {
+            # map claims to django user attributes here:
+            "claims_map": {
+                "phone_number": "telephone",
+                "family_name": "last_name",
+                "given_name": "first_name",
+                "email": "email",
+                "verified_email": "email",
+                "gender": "gender",
+                "birthdate": "get_oidc_birthdate",
+                "updated_at": "get_oidc_lastlogin"
+            }
+        }
+      }
