@@ -23,7 +23,7 @@ from oidcop.endpoint import Endpoint
 from oidcop.exception import CapabilitiesMisMatch
 from oidcop.exception import InvalidRedirectURIError
 from oidcop.exception import InvalidSectorIdentifier
-from oidcop.util import split_uri
+from oidcop.util import split_uri, importer
 
 PREFERENCE2PROVIDER = {
     # "require_signed_request_object": "request_object_algs_supported",
@@ -116,6 +116,15 @@ def comb_uri(args):
             else:
                 val.append(base)
         args['request_uris'] = val
+
+
+def random_client_id(length:int=16, reserved:list=[], **kwargs):
+    # create new id och secret
+    client_id = rndstr(16)
+    # cdb client_id MUST be unique!
+    while client_id in reserved:
+        client_id = rndstr(16)
+    return client_id
 
 
 class Registration(Endpoint):
@@ -390,11 +399,15 @@ class Registration(Endpoint):
 
         _context = self.server_get("endpoint_context")
         if new_id:
-            # create new id och secret
-            client_id = rndstr(12)
-            # cdb client_id MUST be unique!
-            while client_id in _context.cdb:
-                client_id = rndstr(12)
+            if self.kwargs.get('client_id_generator'):
+                cid_generator = importer(
+                    self.kwargs['client_id_generator']['class']
+                )
+                cid_gen_kwargs = self.kwargs['client_id_generator'].get('kwargs', {})
+            else:
+                cid_generator = importer('oidcop.oidc.registration.random_client_id')
+                cid_gen_kwargs = {}
+            client_id = cid_generator(reserved=_context.cdb.keys(), **cid_gen_kwargs)
             if "client_id" in request:
                 del request["client_id"]
         else:
