@@ -171,7 +171,8 @@ class Server(ImpExp):
             if _kwargs:
                 _userinfo_conf = _kwargs.get("userinfo")
                 if _userinfo_conf:
-                    _userinfo = init_user_info(_userinfo_conf, self.endpoint_context.cwd)
+                    _userinfo = init_user_info(
+                        _userinfo_conf, self.endpoint_context.cwd)
 
             if _userinfo is None:
                 _userinfo = self.endpoint_context.userinfo

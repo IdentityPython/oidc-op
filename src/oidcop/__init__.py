@@ -1,6 +1,4 @@
 import secrets
-import string
-from secrets import choice
 
 __version__ = '2.0.0'
 

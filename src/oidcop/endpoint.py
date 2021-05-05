@@ -12,12 +12,10 @@ from oidcmsg.oauth2 import ResponseMessage
 from oidcop.endpoint_context import EndpointContext
 
 from oidcop import sanitize
-from oidcop.client_authn import UnknownOrNoAuthnMethod
 from oidcop.client_authn import client_auth_setup
 from oidcop.client_authn import verify_client
 from oidcop.construct import construct_endpoint_info
 from oidcop.exception import UnAuthorizedClient
-from oidcop.token.exception import UnknownToken
 from oidcop.util import OAUTH2_NOCACHE_HEADERS
 
 __author__ = "Roland Hedberg"
@@ -183,7 +181,8 @@ class Endpoint(object):
 
         # Verify that the client is allowed to do this
         _client_id = ""
-        auth_info = self.client_authentication(req, http_info, endpoint=self, **kwargs)
+        auth_info = self.client_authentication(
+            req, http_info, endpoint=self, **kwargs)
 
         if "client_id" in auth_info:
             req["client_id"] = auth_info["client_id"]

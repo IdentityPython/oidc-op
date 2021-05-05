@@ -1,6 +1,5 @@
 import base64
 import hashlib
-from http.cookies import SimpleCookie
 import logging
 import os
 import time
@@ -16,7 +15,6 @@ from cryptojwt.jwe.utils import split_ctx_and_tag
 from cryptojwt.jwk.hmac import SYMKey
 from cryptojwt.jws.hmac import HMACSigner
 from cryptojwt.key_jar import init_key_jar
-from oidcmsg import time_util
 from oidcmsg.time_util import epoch_in_a_while
 
 from oidcop.util import lv_pack
@@ -240,9 +238,11 @@ class CookieHandler():
         res = []
         for _cookie in cookies:
             if _cookie["name"] == name:
-                payload, timestamp = self._ver_dec_content(_cookie['value'].split("|"))
+                payload, timestamp = self._ver_dec_content(
+                    _cookie['value'].split("|"))
                 value, typ = payload.split("::")
-                res.append({"value": value, "type": typ, "timestamp": timestamp})
+                res.append({"value": value, "type": typ,
+                            "timestamp": timestamp})
         return res
 
 

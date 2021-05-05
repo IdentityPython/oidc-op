@@ -159,7 +159,8 @@ class Grant(Item):
 
         if based_on:
             if based_on.supports_minting(token_type) is False:
-                raise MintingNotAllowed(f"Minting of {token_type} not supported")
+                raise MintingNotAllowed(
+                    f"Minting of {token_type} not supported")
             if not based_on.is_active():
                 raise MintingNotAllowed("Token inactive")
             _base_on_ref = based_on.value

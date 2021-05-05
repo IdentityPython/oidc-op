@@ -1,7 +1,6 @@
 import hashlib
 import logging
 from typing import Dict
-from typing import List
 
 from cryptojwt.utils import b64e
 from oidcmsg.oauth2 import AuthorizationErrorResponse
