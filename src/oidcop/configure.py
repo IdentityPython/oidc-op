@@ -242,7 +242,7 @@ class OPConfiguration(Base):
             self.template_dir = os.path.abspath(self.template_dir)
 
 
-c = {
+DEFAULT_EXTENDED_CONF = {
     "add_on": {
         "pkce": {
             "function": "oidcop.oidc.add_on.pkce.add_pkce_support",
@@ -414,7 +414,7 @@ c = {
                     "code id_token",
                     "id_token token",
                     "code id_token token",
-                    "none"
+                    # "none"
                 ],
                 "response_modes_supported": [
                     "query",
@@ -467,14 +467,10 @@ c = {
     "id_token": {
         "class": "oidcop.id_token.IDToken",
         "kwargs": {
-            "default_claims": {
-                "email": {
-                    "essential": True
-                },
-                "email_verified": {
-                    "essential": True
-                }
-            }
+            "base_claims": {
+                "email": None,
+                "email_verified": None,
+            },
         }
     },
     "issuer": "https://{domain}:{port}",

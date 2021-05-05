@@ -290,13 +290,12 @@ An example::
       "id_token": {
         "class": "oidcop.id_token.IDToken",
         "kwargs": {
-          "default_claims": {
-            "email": {
-              "essential": true
+            "base_claims": {
+                "email": None,
+                "email_verified": None,
             },
-            "email_verified": {
-              "essential": true
-            }}}},
+        }
+      },
 
 ----
 keys
