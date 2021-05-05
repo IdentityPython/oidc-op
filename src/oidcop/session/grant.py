@@ -109,66 +109,6 @@ class Grant(Item):
                             authorization_details=self.authorization_details,
                             resources=self.resources)
 
-    # def to_json(self) -> str:
-    #     d = {
-    #         "type": self.type,
-    #         "scope": self.scope,
-    #         "sub": self.sub,
-    #         "authorization_details": self.authorization_details,
-    #         "claims": self.claims,
-    #         "resources": self.resources,
-    #         "issued_at": self.issued_at,
-    #         "not_before": self.not_before,
-    #         "expires_at": self.expires_at,
-    #         "revoked": self.revoked,
-    #         "issued_token": [t.to_json() for t in self.issued_token],
-    #         "id": self.id,
-    #         "usage_rules": self.usage_rules,
-    #         "token_map": {k: ".".join([v.__module__, v.__name__]) for k, v in
-    #                       self.token_map.items()}
-    #     }
-    #
-    #     if self.authorization_request:
-    #         if isinstance(self.authorization_request, Message):
-    #             d["authorization_request"] = self.authorization_request.to_dict()
-    #         elif isinstance(self.authorization_request, dict):
-    #             d["authorization_request"] = self.authorization_request
-    #
-    #     if self.authentication_event:
-    #         if isinstance(self.authentication_event, Message):
-    #             d["authentication_event"] = self.authentication_event.to_dict()
-    #         elif isinstance(self.authentication_event, dict):
-    #             d["authentication_event"] = self.authentication_event
-    #
-    #     return json.dumps(d)
-    #
-    # def from_json(self, json_str: str) -> 'Grant':
-    #     d = json.loads(json_str)
-    #     for attr in ["scope", "authorization_details", "claims", "resources", "sub",
-    #                  "issued_at", "not_before", "expires_at", "revoked", "id",
-    #                  "usage_rules"]:
-    #         if attr in d:
-    #             setattr(self, attr, d[attr])
-    #
-    #     if "authentication_event" in d:
-    #         self.authentication_event = AuthnEvent(**d["authentication_event"])
-    #     if "authorization_request" in d:
-    #         self.authorization_request = AuthorizationRequest(**d["authorization_request"])
-    #
-    #     if "token_map" in d:
-    #         self.token_map = {k: importer(v) for k, v in d["token_map"].items()}
-    #     else:
-    #         self.token_map = TOKEN_MAP
-    #
-    #     if "issued_token" in d:
-    #         _it = []
-    #         for js in d["issued_token"]:
-    #             args = json.loads(js)
-    #             _it.append(self.token_map[args["type"]](**args))
-    #         setattr(self, "issued_token", _it)
-    #
-    #     return self
-
     def payload_arguments(self, session_id: str, endpoint_context,
                           token_type: str, scope: Optional[dict] = None) -> dict:
         """
@@ -218,10 +158,11 @@ class Grant(Item):
             return None
 
         if based_on:
-            if based_on.supports_minting(token_type) and based_on.is_active():
-                _base_on_ref = based_on.value
-            else:
-                raise MintingNotAllowed()
+            if based_on.supports_minting(token_type) is False:
+                raise MintingNotAllowed(f"Minting of {token_type} not supported")
+            if not based_on.is_active():
+                raise MintingNotAllowed("Token inactive")
+            _base_on_ref = based_on.value
         else:
             _base_on_ref = None
 

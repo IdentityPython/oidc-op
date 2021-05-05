@@ -11,6 +11,7 @@ from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import time_sans_frac
+from oidcop.session.token import MintingNotAllowed
 
 from oidcop import sanitize
 from oidcop.endpoint import Endpoint
@@ -119,7 +120,9 @@ class AccessTokenHelper(TokenEndpointHelper):
             _access_code, grant=True)
         grant = _session_info["grant"]
 
-        code = grant.get_token(_access_code)
+        _based_on = grant.get_token(_access_code)
+        _supports_minting = _based_on.usage_rules.get("supports_minting", [])
+
         _authn_req = grant.authorization_request
 
         # If redirect_uri was in the initial authorization request
@@ -144,41 +147,49 @@ class AccessTokenHelper(TokenEndpointHelper):
             "scope": grant.scope,
         }
 
-        token = self._mint_token(type="access_token",
-                                 grant=grant,
-                                 session_id=_session_info["session_id"],
-                                 client_id=_session_info["client_id"],
-                                 based_on=code)
+        if "access_token" in _supports_minting:
+            try:
+                token = self._mint_token(type="access_token",
+                                         grant=grant,
+                                         session_id=_session_info["session_id"],
+                                         client_id=_session_info["client_id"],
+                                         based_on=_based_on)
+            except MintingNotAllowed as err:
+                logger.warning(err)
+            else:
+                _response["access_token"] = token.value
+                _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
-        _response["access_token"] = token.value
-        _response["expires_in"] = token.expires_at - utc_time_sans_frac()
+        if issue_refresh and "refresh_token" in _supports_minting:
+            try:
+                refresh_token = self._mint_token(type="refresh_token",
+                                                 grant=grant,
+                                                 session_id=_session_info["session_id"],
+                                                 client_id=_session_info["client_id"],
+                                                 based_on=_based_on)
+            except MintingNotAllowed as err:
+                logger.warning(err)
+            else:
+                _response["refresh_token"] = refresh_token.value
 
-        if issue_refresh:
-            refresh_token = self._mint_token(type="refresh_token",
-                                             grant=grant,
-                                             session_id=_session_info["session_id"],
-                                             client_id=_session_info["client_id"],
-                                             based_on=code)
-
-            _response["refresh_token"] = refresh_token.value
-
-        code.register_usage()
+        _based_on.register_usage()
 
         # since the grant content has changed. Make sure it's stored
         _mngr[_session_info["session_id"]] = grant
 
-        if "openid" in _authn_req["scope"]:
-            try:
-                _idtoken = _context.idtoken.make(_session_info["session_id"])
-            except (JWEException, NoSuitableSigningKeys) as err:
-                logger.warning(str(err))
-                resp = self.error_cls(
-                    error="invalid_request",
-                    error_description="Could not sign/encrypt id_token",
-                )
-                return resp
+        if "openid" in _authn_req["scope"] and "id_token" in _supports_minting:
+            if "id_token" in _based_on.usage_rules.get("supports_minting"):
+                try:
+                    _idtoken = _context.idtoken.make(_session_info["session_id"])
+                except (JWEException, NoSuitableSigningKeys) as err:
+                    logger.warning(str(err))
+                    resp = self.error_cls(
+                        error="invalid_request",
+                        error_description="Could not sign/encrypt id_token",
+                    )
+                    return resp
 
-            _response["id_token"] = _idtoken
+                _response["id_token"] = _idtoken
 
         return _response
 

@@ -15,7 +15,6 @@ from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.client_authn import verify_client
 from oidcop.cookie_handler import CookieHandler
-from oidcop.endpoint_context import EndpointContext
 from oidcop.exception import UnAuthorizedClient
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
@@ -23,8 +22,8 @@ from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.session import session_key
 from oidcop.session import MintingNotAllowed
+from oidcop.session import session_key
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_info import UserInfo
 
@@ -103,9 +102,9 @@ def conf():
         "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
         "cookie_handler": {
             "class": CookieHandler,
-            "kwargs":{
+            "kwargs": {
                 "keys": {
-                    "key_defs" : COOKIE_KEYDEFS
+                    "key_defs": COOKIE_KEYDEFS
                 }
             }
         },
@@ -190,7 +189,7 @@ class TestEndpoint(object):
         }
         endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = endpoint_context.session_manager
-        self.token_endpoint = server.server_get("endpoint","token")
+        self.token_endpoint = server.server_get("endpoint", "token")
         self.user_id = "diana"
         self.endpoint_context = endpoint_context
 
@@ -496,3 +495,16 @@ class TestEndpoint(object):
         _req = self.token_endpoint.parse_request(_request.to_json())
         # A revoked token is caught already when parsing the query.
         assert isinstance(_req, TokenErrorResponse)
+
+    def test_configure_grant_types(self):
+        conf = {
+            "access_token": {
+                'class': 'oidcop.oidc.token.AccessTokenHelper'
+            }
+        }
+
+        self.token_endpoint.configure_grant_types(conf)
+
+        assert len(self.token_endpoint.helper) == 1
+        assert 'access_token' in self.token_endpoint.helper
+        assert 'refresh_token' not in self.token_endpoint.helper
