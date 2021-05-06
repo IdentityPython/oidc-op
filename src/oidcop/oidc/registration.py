@@ -85,7 +85,8 @@ def verify_url(url: str, urlset: List[list]) -> bool:
 
 
 def secret(seed: str, sid: str):
-    msg = "{}{}{}".format(time.time(), secrets.token_urlsafe(16), sid).encode("utf-8")
+    msg = "{}{}{}".format(
+        time.time(), secrets.token_urlsafe(16), sid).encode("utf-8")
     csum = hmac.new(as_bytes(seed), msg, hashlib.sha224)
     return csum.hexdigest()
 
@@ -118,7 +119,7 @@ def comb_uri(args):
         args['request_uris'] = val
 
 
-def random_client_id(length:int=16, reserved:list=[], **kwargs):
+def random_client_id(length: int = 16, reserved: list = [], **kwargs):
     # create new id och secret
     client_id = rndstr(16)
     # cdb client_id MUST be unique!
@@ -237,10 +238,12 @@ class Registration(Endpoint):
                         _k = []
                         for iss in ["", _context.issuer]:
                             _k.extend(
-                                _context.keyjar.get_signing_key(ktyp, alg=request[item], owner=iss)
+                                _context.keyjar.get_signing_key(
+                                    ktyp, alg=request[item], owner=iss)
                             )
                         if not _k:
-                            logger.warning('Lacking support for "{}"'.format(request[item]))
+                            logger.warning(
+                                'Lacking support for "{}"'.format(request[item]))
                             del _cinfo[item]
 
         t = {"jwks_uri": "", "jwks": None}
@@ -251,7 +254,8 @@ class Registration(Endpoint):
 
         # if it can't load keys because the URL is false it will
         # just silently fail. Waiting for better times.
-        _context.keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
+        _context.keyjar.load_keys(
+            client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
 
         n_keys = 0
         for kb in _context.keyjar.get(client_id, []):
@@ -403,11 +407,14 @@ class Registration(Endpoint):
                 cid_generator = importer(
                     self.kwargs['client_id_generator']['class']
                 )
-                cid_gen_kwargs = self.kwargs['client_id_generator'].get('kwargs', {})
+                cid_gen_kwargs = self.kwargs['client_id_generator'].get(
+                    'kwargs', {})
             else:
-                cid_generator = importer('oidcop.oidc.registration.random_client_id')
+                cid_generator = importer(
+                    'oidcop.oidc.registration.random_client_id')
                 cid_gen_kwargs = {}
-            client_id = cid_generator(reserved=_context.cdb.keys(), **cid_gen_kwargs)
+            client_id = cid_generator(
+                reserved=_context.cdb.keys(), **cid_gen_kwargs)
             if "client_id" in request:
                 del request["client_id"]
         else:

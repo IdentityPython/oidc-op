@@ -210,11 +210,12 @@ def get_uri(endpoint_context, request, uri_type):
         if client_id in endpoint_context.cdb:
             _specs = endpoint_context.cdb[client_id].get(uris)
             if not _specs:
-                raise ParameterError(f"Missing '{uri_type}' and none registered")
+                raise ParameterError(
+                    f"Missing '{uri_type}' and none registered")
 
             if len(_specs) > 1:
-                raise ParameterError(f"Missing '{uri_type}' and more than one registered")
-
+                raise ParameterError(
+                    f"Missing '{uri_type}' and more than one registered")
 
             uri = join_query(*_specs[0])
         else:
@@ -271,7 +272,7 @@ def authn_args_gather(request: Union[AuthorizationRequest, dict],
 def check_unknown_scopes_policy(request_info, cinfo, endpoint_context):
     op_capabilities = endpoint_context.conf['capabilities']
     client_allowed_scopes = cinfo.get('allowed_scopes') or \
-                            op_capabilities['scopes_supported']
+        op_capabilities['scopes_supported']
 
     # this prevents that authz would be released for unavailable scopes
     for scope in request_info['scope']:
@@ -368,7 +369,8 @@ class Authorization(Endpoint):
 
             # Do I support request_uri ?
             if endpoint_context.provider_info.get("request_uri_parameter_supported", True) is False:
-                raise ServiceError("Someone is using request_uri which I'm not supporting")
+                raise ServiceError(
+                    "Someone is using request_uri which I'm not supporting")
 
             _registered = endpoint_context.cdb[client_id].get("request_uris")
             # Not registered should be handled else where
@@ -746,7 +748,7 @@ class Authorization(Endpoint):
                 aresp['token_type'] = "Bearer"
                 if _access_token.expires_at:
                     aresp["expires_in"] = _access_token.expires_at - \
-                                          utc_time_sans_frac()
+                        utc_time_sans_frac()
                 handled_response_type.append("token")
             else:
                 _access_token = None

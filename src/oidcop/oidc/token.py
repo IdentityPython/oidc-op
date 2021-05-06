@@ -158,7 +158,8 @@ class AccessTokenHelper(TokenEndpointHelper):
                 logger.warning(err)
             else:
                 _response["access_token"] = token.value
-                _response["expires_in"] = token.expires_at - utc_time_sans_frac()
+                _response["expires_in"] = token.expires_at - \
+                    utc_time_sans_frac()
 
         if issue_refresh and "refresh_token" in _supports_minting:
             try:
@@ -180,7 +181,8 @@ class AccessTokenHelper(TokenEndpointHelper):
         if "openid" in _authn_req["scope"] and "id_token" in _supports_minting:
             if "id_token" in _based_on.usage_rules.get("supports_minting"):
                 try:
-                    _idtoken = _context.idtoken.make(_session_info["session_id"])
+                    _idtoken = _context.idtoken.make(
+                        _session_info["session_id"])
                 except (JWEException, NoSuitableSigningKeys) as err:
                     logger.warning(str(err))
                     resp = self.error_cls(

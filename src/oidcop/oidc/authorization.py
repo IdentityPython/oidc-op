@@ -7,8 +7,6 @@ from oidcmsg.oidc import Claims
 from oidcmsg.oidc import verified_claim_name
 
 from oidcop.oauth2 import authorization
-from oidcop.session import session_key
-from oidcop.session.info import ClientSessionInfo
 
 logger = logging.getLogger(__name__)
 
@@ -112,5 +110,6 @@ class Authorization(authorization.Authorization):
             if _login_hint:
                 _context = self.server_get("endpoint_context")
                 if _context.login_hint_lookup:
-                    kwargs["req_user"] = _context.login_hint_lookup(_login_hint)
+                    kwargs["req_user"] = _context.login_hint_lookup(
+                        _login_hint)
         return kwargs
