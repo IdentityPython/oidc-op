@@ -1,15 +1,13 @@
 import base64
 import hashlib
 import hmac
-import random
 import secrets
 import time
 
-from oidcop.endpoint import Endpoint
-
-from oidcop.server import Server
 import pytest
 
+from oidcop.endpoint import Endpoint
+from oidcop.server import Server
 from oidcop.token import Crypt
 from oidcop.token import is_expired
 from oidcop.token.handler import DefaultToken
@@ -223,5 +221,3 @@ def test_token_handler_from_config():
     assert token_handler.handler["refresh_token"].kwargs == {}
     assert token_handler.handler["refresh_token"].lifetime == 3600
     assert token_handler.handler["refresh_token"].def_aud == ["https://example.org/appl"]
-
-

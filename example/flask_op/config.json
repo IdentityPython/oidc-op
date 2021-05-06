@@ -327,28 +327,7 @@
       },
       "template_dir": "templates",
       "token_handler_args": {
-        "jwks_def": {
-          "private_path": "private/token_jwks.json",
-          "read_only": false,
-          "key_defs": [
-            {
-              "type": "oct",
-              "bytes": 24,
-              "use": [
-                "enc"
-              ],
-              "kid": "code"
-            },
-            {
-              "type": "oct",
-              "bytes": 24,
-              "use": [
-                "enc"
-              ],
-              "kid": "refresh"
-            }
-          ]
-        },
+        "jwks_file": "private/token_jwks.json",
         "code": {
           "kwargs": {
             "lifetime": 600

@@ -4,6 +4,7 @@ from typing import Optional
 from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jws.exception import JWSException
+from oidcop.token import Crypt
 
 from oidcop.exception import ToOld
 
@@ -29,11 +30,13 @@ class JWTToken(Token):
             lifetime: int = 300,
             server_get: Callable = None,
             token_type: str = "Bearer",
+            password: str = "",
             **kwargs
     ):
         Token.__init__(self, typ, **kwargs)
         self.token_type = token_type
         self.lifetime = lifetime
+        self.crypt = Crypt(password)
 
         self.kwargs = kwargs
         _context = server_get("endpoint_context")

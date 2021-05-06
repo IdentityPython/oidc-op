@@ -78,8 +78,7 @@ class Server(ImpExp):
         self.endpoint = do_endpoints(conf, self.server_get)
         _cap = get_capabilities(conf, self.endpoint)
 
-        self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(
-            _cap)
+        self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
         self.endpoint_context.do_add_on(endpoints=self.endpoint)
 
         self.endpoint_context.session_manager = create_session_manager(

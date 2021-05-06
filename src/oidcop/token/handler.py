@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 import warnings
 
 from cryptography.fernet import InvalidToken
@@ -116,40 +117,49 @@ def _add_passwd(keyjar, conf, kid):
                 conf["password"] = pw
 
 
-def factory(server_get, code=None, token=None, refresh=None, jwks_def=None, **kwargs):
+JWKS_FILE = "private/token_jwks.json"
+
+
+def factory(server_get,
+            code: Optional[dict] = None,
+            token: Optional[dict] = None,
+            refresh: Optional[dict] = None,
+            jwks_file: Optional[str] = JWKS_FILE,
+            **kwargs) -> TokenHandler:
     """
     Create a token handler
 
     :param code:
     :param token:
     :param refresh:
-    :param jwks_def:
+    :param jwks_file:
     :return: TokenHandler instance
     """
 
     TTYPE = {"code": "A", "token": "T", "refresh": "R"}
 
-    if jwks_def:
-        kj = init_key_jar(**jwks_def)
-    else:
-        kj = None
+    key_defs = []
+    if code:
+        key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": "code"})
+    if refresh:
+        key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": "refresh"})
+    if token:
+        key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": "token"})
+
+    kj = init_key_jar(key_defs=key_defs, private_path=jwks_file, read_only=False)
 
     args = {}
 
     if code:
         _add_passwd(kj, code, "code")
-        args["code_handler"] = init_token_handler(
-            server_get, code, TTYPE["code"])
+        args["code_handler"] = init_token_handler(server_get, code, TTYPE["code"])
 
     if token:
         _add_passwd(kj, token, "token")
-        args["access_token_handler"] = init_token_handler(
-            server_get, token, TTYPE["token"])
+        args["access_token_handler"] = init_token_handler(server_get, token, TTYPE["token"])
 
     if refresh is not None:
         _add_passwd(kj, refresh, "refresh")
-        args["refresh_token_handler"] = init_token_handler(
-            server_get, refresh, TTYPE["refresh"]
-        )
+        args["refresh_token_handler"] = init_token_handler(server_get, refresh, TTYPE["refresh"])
 
     return TokenHandler(**args)

@@ -105,13 +105,7 @@ class TestEndpoint(object):
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
-                "jwks_def": {
-                    "private_path": "private/token_jwks.json",
-                    "read_only": False,
-                    "key_defs": [
-                        {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
-                    ],
-                },
+                "jwks_file": "private/token_jwks.json",
                 "code": {"lifetime": 600},
                 "token": {
                     "class": "oidcop.token.jwt_token.JWTToken",

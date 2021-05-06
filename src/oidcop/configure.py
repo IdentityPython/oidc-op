@@ -111,24 +111,22 @@ def create_from_config_file(cls,
                             port: Optional[int] = 0):
     if filename.endswith(".yaml"):
         """Load configuration as YAML"""
-        return cls(load_yaml_config(filename),
-                   entity_conf_class=entity_conf_class,
-                   base_path=base_path, file_attributes=file_attributes,
-                   domain=domain, port=port)
+        _conf = load_yaml_config(filename)
     elif filename.endswith(".json"):
         _str = open(filename).read()
-        return cls(json.loads(_str),
-                   entity_conf_class=entity_conf_class,
-                   base_path=base_path, file_attributes=file_attributes, domain=domain, port=port)
+        _conf = json.loads(_str)
     elif filename.endswith(".py"):
         head, tail = os.path.split(filename)
         tail = tail[:-3]
         module = importlib.import_module(tail)
-        _cnf = getattr(module, "CONFIG")
-        return cls(_cnf,
-                   entity_conf_class=entity_conf_class,
-                   base_path=base_path, file_attributes=file_attributes,
-                   domain=domain, port=port)
+        _conf = getattr(module, "CONFIG")
+    else:
+        raise ValueError("Unknown file type")
+
+    return cls(_conf,
+               entity_conf_class=entity_conf_class,
+               base_path=base_path, file_attributes=file_attributes,
+               domain=domain, port=port)
 
 
 class Base:
