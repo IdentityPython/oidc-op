@@ -4,10 +4,9 @@ import json
 import logging
 import os
 
-import OpenSSL
-import werkzeug
-
 from oidcop.configure import Configuration
+from oidcop.configure import OPConfiguration
+from oidcop.configure import create_from_config_file
 from oidcop.utils import create_context
 
 try:
@@ -53,8 +52,10 @@ logger = logging.getLogger(__name__)
 
 def main(config_file, args):
     logging.basicConfig(level=logging.DEBUG)
-    config = Configuration.create_from_config_file(config_file, base_path=dir_path)
-    app = oidc_provider_init_app(config, 'oidc_op')
+    config = create_from_config_file(Configuration, OPConfiguration, config_file,
+                                     base_path=dir_path)
+    app = oidc_provider_init_app(config.op, 'oidc_op')
+    app.logger = config.logger
 
     web_conf = config.webserver
 

@@ -9,16 +9,9 @@ folder = os.path.dirname(os.path.realpath(__file__))
 
 
 def init_oidc_op(app):
-    _config = app.srv_config.op
-    _server_info_config = _config['server_info']
+    _op_config = app.srv_config
 
-    iss = _server_info_config['issuer']
-    if '{domain}' in iss:
-        iss = iss.format(domain=app.srv_config.domain,
-                         port=app.srv_config.port)
-        _server_info_config['issuer'] = iss
-
-    server = Server(_server_info_config, cwd=folder)
+    server = Server(_op_config, cwd=folder)
 
     for endp in server.endpoint.values():
         p = urlparse(endp.endpoint_path)
@@ -31,10 +24,10 @@ def init_oidc_op(app):
     return server
 
 
-def oidc_provider_init_app(config, name=None, **kwargs):
+def oidc_provider_init_app(op_config, name=None, **kwargs):
     name = name or __name__
     app = Flask(name, static_url_path='', **kwargs)
-    app.srv_config = config
+    app.srv_config = op_config
 
     try:
         from .views import oidc_op_views

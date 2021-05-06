@@ -65,7 +65,7 @@ def add_headers_and_cookie(resp, info):
 
 def do_response(endpoint, req_args, error='', **args):
     info = endpoint.do_response(request=req_args, error=error, **args)
-    _log = current_app.srv_config.logger
+    _log = current_app.logger
     _log.debug('do_response: {}'.format(info))
 
     try:
@@ -200,7 +200,7 @@ IGNORE = ["cookie", "user-agent"]
 
 
 def service_endpoint(endpoint):
-    _log = current_app.srv_config.logger
+    _log = current_app.logger
     _log.info('At the "{}" endpoint'.format(endpoint.name))
 
     http_info = {
@@ -291,7 +291,7 @@ def check_session_iframe():
             return 'error'
         return 'OK'
 
-    current_app.srv_config.logger.debug(
+    current_app.logger.debug(
         'check_session_iframe: {}'.format(req_args))
     doc = open('templates/check_session_iframe.html').read()
     return doc
