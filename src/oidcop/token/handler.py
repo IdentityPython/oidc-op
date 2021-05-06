@@ -139,11 +139,11 @@ def factory(server_get,
     TTYPE = {"code": "A", "token": "T", "refresh": "R"}
 
     key_defs = []
-    if code:
+    if code is not None:
         key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": "code"})
-    if refresh:
+    if refresh is not None:
         key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": "refresh"})
-    if token:
+    if token is not None:
         key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": "token"})
 
     kj = init_key_jar(key_defs=key_defs, private_path=jwks_file, read_only=False)

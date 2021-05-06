@@ -1,3 +1,4 @@
+import json
 import os
 
 from oidcop.configure import OPConfiguration
@@ -43,8 +44,9 @@ def test_login_hint2acrs_unmatched_schema():
 
 
 def test_server_login_hint_lookup():
-    configuration = create_from_config_file(OPConfiguration, full_path("op_config.json"),
-                                            base_path=BASEDIR, domain="127.0.0.1", port=443)
+    _str = open(full_path("op_config.json")).read()
+    _conf = json.loads(_str)
+    configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
 
     server = Server(configuration)
     assert server.endpoint_context.login_hint_lookup("tel:0907865000") == "diana"

@@ -1,4 +1,4 @@
-import logging
+import json
 import os
 
 import pytest
@@ -16,8 +16,10 @@ def full_path(local_file):
 
 
 def test_op_configure():
-    configuration = create_from_config_file(OPConfiguration, full_path("op_config.json"),
-                                            base_path=BASEDIR, domain="127.0.0.1", port=443)
+    _str = open(full_path("op_config.json")).read()
+    _conf = json.loads(_str)
+
+    configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     assert configuration
     assert 'add_on' in configuration
     authz_conf = configuration["authz"]
@@ -34,19 +36,26 @@ def test_op_configure():
 
 
 def test_op_configure_default():
-    configuration = create_from_config_file(OPConfiguration, full_path("op_config_defaults.py"),
-                                            base_path=BASEDIR, domain="127.0.0.1", port=443)
+    _str = open(full_path("op_config.json")).read()
+    _conf = json.loads(_str)
+
+    configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     assert configuration
     assert 'add_on' in configuration
     authz = configuration["authz"]
     assert set(authz.keys()) == {"kwargs", "class"}
     id_token_conf = configuration.get("id_token", {})
     assert set(id_token_conf.keys()) == {'kwargs', 'class'}
-    assert id_token_conf["kwargs"] == {}
+    assert id_token_conf["kwargs"] == {
+        'default_claims': {
+            'email': {'essential': True},
+            'email_verified': {'essential': True}}}
 
 
 def test_server_configure():
-    configuration = create_from_config_file(Configuration, full_path("srv_config.yaml"),
+    configuration = create_from_config_file(Configuration,
+                                            entity_conf_class=OPConfiguration,
+                                            filename=full_path("srv_config.yaml"),
                                             base_path=BASEDIR)
     assert configuration
     assert 'logger' in configuration
@@ -70,6 +79,7 @@ def test_server_configure():
 def test_loggin_conf_file():
     logger = configure_logging(filename=full_path("logging.yaml"))
     assert logger
+
 
 def test_loggin_conf_default():
     logger = configure_logging()
