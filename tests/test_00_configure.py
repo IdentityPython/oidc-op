@@ -90,7 +90,13 @@ def test_op_configure_default_from_file():
 
 def test_server_configure():
     configuration = create_from_config_file(Configuration,
-                                            entity_conf_class=OPConfiguration,
+                                            entity_conf=[
+                                                {
+                                                    "class": OPConfiguration,
+                                                    "attr": "op",
+                                                    "path": ['op', 'server_info']
+                                                }
+                                            ],
                                             filename=full_path("srv_config.yaml"),
                                             base_path=BASEDIR)
     assert configuration

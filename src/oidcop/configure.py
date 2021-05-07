@@ -1,4 +1,5 @@
 """Configuration management for IDP"""
+import copy
 import importlib
 import json
 import logging
@@ -102,10 +103,26 @@ def add_base_path(conf: dict, base_path: str, file_attributes: List[str]):
     return conf
 
 
+URIS = ['issuer', 'base_url']
+
+
+def set_domain_and_port(conf: dict, uris: List[str], domain: str, port: int):
+    for key, val in conf.items():
+        if key in uris:
+            if isinstance(val, list):
+                _new = [v.format(domain=domain, port=port) for v in val]
+            else:
+                _new = val.format(domain=domain, port=port)
+            conf[key] = _new
+        elif isinstance(val, dict):
+            conf[key] = set_domain_and_port(val, uris, domain, port)
+    return conf
+
+
 def create_from_config_file(cls,
                             filename: str,
                             base_path: str = '',
-                            entity_conf_class: Optional[Any] = None,
+                            entity_conf: Optional[List[dict]] = None,
                             file_attributes: Optional[List[str]] = None,
                             domain: Optional[str] = "",
                             port: Optional[int] = 0):
@@ -124,7 +141,7 @@ def create_from_config_file(cls,
         raise ValueError("Unknown file type")
 
     return cls(_conf,
-               entity_conf_class=entity_conf_class,
+               entity_conf=entity_conf,
                base_path=base_path, file_attributes=file_attributes,
                domain=domain, port=port)
 
@@ -164,12 +181,13 @@ class OPConfiguration(Base):
     def __init__(self,
                  conf: Dict,
                  base_path: Optional[str] = '',
-                 entity_conf_class: Optional[Any] = None,
-                 domain: Optional[str] = "127.0.0.1",
-                 port: Optional[int] = 80,
+                 entity_conf: Optional[List[dict]] = None,
+                 domain: Optional[str] = "",
+                 port: Optional[int] = 0,
                  file_attributes: Optional[List[str]] = None,
                  ):
 
+        conf = copy.deepcopy(conf)
         Base.__init__(self, conf, base_path, file_attributes)
 
         self.add_on = None
@@ -197,19 +215,20 @@ class OPConfiguration(Base):
                 _val = DEFAULT_CONFIG[key]
             if not _val:
                 continue
-
-            if key in ["issuer", "base_url"]:
-                if '{domain}' in _val:
-                    setattr(self, key, _val.format(domain=domain, port=port))
-                else:
-                    setattr(self, key, _val)
-            else:
-                setattr(self, key, _val)
+            setattr(self, key, _val)
 
         if self.template_dir is None:
             self.template_dir = os.path.abspath('templates')
         else:
             self.template_dir = os.path.abspath(self.template_dir)
+
+        if not domain:
+            domain = conf.get("domain", "127.0.0.1")
+
+        if not port:
+            port = conf.get("port", 80)
+
+        set_domain_and_port(conf, URIS, domain=domain, port=port)
 
 
 class Configuration(Base):
@@ -217,7 +236,7 @@ class Configuration(Base):
 
     def __init__(self,
                  conf: Dict,
-                 entity_conf_class: Optional[Any] = None,
+                 entity_conf: Optional[List[dict]] = None,
                  base_path: str = '',
                  file_attributes: Optional[List[str]] = None,
                  domain: Optional[str] = "",
@@ -233,17 +252,26 @@ class Configuration(Base):
 
         self.webserver = conf.get("webserver", {})
 
-        if domain:
-            args = {"domain": domain}
-        else:
-            args = {"domain": conf.get("domain", "127.0.0.1")}
+        if not domain:
+            domain = conf.get("domain", "127.0.0.1")
 
-        if port:
-            args["port"] = port
-        else:
-            args["port"] = conf.get("port", 80)
+        if not port:
+            port = conf.get("port", 80)
 
-        self.op = entity_conf_class(conf["op"]["server_info"], **args)
+        set_domain_and_port(conf, URIS, domain=domain, port=port)
+
+        if entity_conf:
+            for econf in entity_conf:
+                _path = econf.get("path")
+                _cnf = conf
+                if _path:
+                    for step in _path:
+                        _cnf = _cnf[step]
+                _attr = econf["attr"]
+                _cls = econf["class"]
+                setattr(self, _attr,
+                        _cls(_cnf, base_path=base_path, file_attributes=file_attributes,
+                             domain=domain, port=port))
 
 
 DEFAULT_EXTENDED_CONF = {
