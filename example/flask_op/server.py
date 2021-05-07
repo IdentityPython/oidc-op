@@ -52,7 +52,12 @@ logger = logging.getLogger(__name__)
 
 def main(config_file, args):
     logging.basicConfig(level=logging.DEBUG)
-    config = create_from_config_file(Configuration, OPConfiguration, config_file,
+    config = create_from_config_file(Configuration,
+                                     entity_conf=[{
+                                         "class": OPConfiguration, "attr": "op",
+                                         "path": ["op", "server_info"]
+                                     }],
+                                     filename=config_file,
                                      base_path=dir_path)
     app = oidc_provider_init_app(config.op, 'oidc_op')
     app.logger = config.logger
