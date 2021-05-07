@@ -4,7 +4,6 @@ import importlib
 import json
 import logging
 import os
-from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -146,15 +145,15 @@ def create_from_config_file(cls,
                domain=domain, port=port)
 
 
-class Base:
+class Base():
     """ Configuration base class """
+    parameter = {}
 
     def __init__(self,
                  conf: Dict,
                  base_path: str = '',
                  file_attributes: Optional[List[str]] = None,
                  ):
-
         if file_attributes is None:
             file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
 
@@ -173,6 +172,12 @@ class Base:
 
     def __contains__(self, item):
         return item in self.__dict__
+
+    def items(self):
+        for key in self.__dict__:
+            if key.startswith('__') and key.endswith('__'):
+                continue
+            yield key, getattr(self, key)
 
 
 class OPConfiguration(Base):
@@ -209,6 +214,14 @@ class OPConfiguration(Base):
         self.token_handler_args = {}
         self.userinfo = None
 
+        if not domain:
+            domain = conf.get("domain", "127.0.0.1")
+
+        if not port:
+            port = conf.get("port", 80)
+
+        set_domain_and_port(conf, URIS, domain=domain, port=port)
+
         for key in self.__dict__.keys():
             _val = conf.get(key)
             if not _val and key in DEFAULT_CONFIG:
@@ -221,14 +234,6 @@ class OPConfiguration(Base):
             self.template_dir = os.path.abspath('templates')
         else:
             self.template_dir = os.path.abspath(self.template_dir)
-
-        if not domain:
-            domain = conf.get("domain", "127.0.0.1")
-
-        if not port:
-            port = conf.get("port", 80)
-
-        set_domain_and_port(conf, URIS, domain=domain, port=port)
 
 
 class Configuration(Base):

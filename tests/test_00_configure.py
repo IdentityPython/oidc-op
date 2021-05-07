@@ -34,6 +34,9 @@ def test_op_configure():
     userinfo_conf = configuration.get("userinfo")
     assert userinfo_conf["kwargs"]["db_file"].startswith(BASEDIR)
 
+    args = dict(configuration.items())
+    assert "add_on" in args
+
 
 def test_op_configure_from_file():
     configuration = create_from_config_file(OPConfiguration,
