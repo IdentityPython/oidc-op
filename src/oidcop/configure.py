@@ -103,9 +103,9 @@ def add_base_path(conf: dict, base_path: str, file_attributes: List[str]):
 
 
 def create_from_config_file(cls,
-                            entity_conf_class,
                             filename: str,
                             base_path: str = '',
+                            entity_conf_class: Optional[Any] = None,
                             file_attributes: Optional[List[str]] = None,
                             domain: Optional[str] = "",
                             port: Optional[int] = 0):
@@ -164,6 +164,7 @@ class OPConfiguration(Base):
     def __init__(self,
                  conf: Dict,
                  base_path: Optional[str] = '',
+                 entity_conf_class: Optional[Any] = None,
                  domain: Optional[str] = "127.0.0.1",
                  port: Optional[int] = 80,
                  file_attributes: Optional[List[str]] = None,
@@ -216,7 +217,7 @@ class Configuration(Base):
 
     def __init__(self,
                  conf: Dict,
-                 entity_conf_class: Optional[Any] = OPConfiguration,
+                 entity_conf_class: Optional[Any] = None,
                  base_path: str = '',
                  file_attributes: Optional[List[str]] = None,
                  domain: Optional[str] = "",

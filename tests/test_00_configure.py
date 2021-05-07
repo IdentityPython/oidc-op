@@ -35,11 +35,47 @@ def test_op_configure():
     assert userinfo_conf["kwargs"]["db_file"].startswith(BASEDIR)
 
 
+def test_op_configure_from_file():
+    configuration = create_from_config_file(OPConfiguration,
+                                            filename=full_path("op_config.json"),
+                                            base_path=BASEDIR, domain="127.0.0.1", port=443)
+
+    assert configuration
+    assert 'add_on' in configuration
+    authz_conf = configuration["authz"]
+    assert set(authz_conf.keys()) == {"kwargs", "class"}
+    id_token_conf = configuration.get("id_token")
+    assert set(id_token_conf.keys()) == {"kwargs", "class"}
+
+    with pytest.raises(KeyError):
+        _ = configuration["foobar"]
+
+    assert configuration.get("foobar", {}) == {}
+    userinfo_conf = configuration.get("userinfo")
+    assert userinfo_conf["kwargs"]["db_file"].startswith(BASEDIR)
+
+
 def test_op_configure_default():
     _str = open(full_path("op_config.json")).read()
     _conf = json.loads(_str)
 
     configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
+    assert configuration
+    assert 'add_on' in configuration
+    authz = configuration["authz"]
+    assert set(authz.keys()) == {"kwargs", "class"}
+    id_token_conf = configuration.get("id_token", {})
+    assert set(id_token_conf.keys()) == {'kwargs', 'class'}
+    assert id_token_conf["kwargs"] == {
+        'default_claims': {
+            'email': {'essential': True},
+            'email_verified': {'essential': True}}}
+
+
+def test_op_configure_default_from_file():
+    configuration = create_from_config_file(OPConfiguration,
+                                            filename=full_path("op_config.json"),
+                                            base_path=BASEDIR, domain="127.0.0.1", port=443)
     assert configuration
     assert 'add_on' in configuration
     authz = configuration["authz"]
