@@ -41,7 +41,7 @@ Then open your browser to `https://127.0.0.1:5000/.well-known/openid-configurati
 --------------------
 JWK Set (JWKS) files
 --------------------
-see: `https://cryptojwt.readthedocs.io/en/latest/keyhandling.html<https://cryptojwt.readthedocs.io/en/latest/keyhandling.html>`_
+see: [cryptojwt documentation](https://cryptojwt.readthedocs.io/en/latest/keyhandling.html<https://cryptojwt.readthedocs.io/en/latest/keyhandling.html)
 
 
 You can use `cryptojwt.key_jar.init_key_jar` to create JWKS file.

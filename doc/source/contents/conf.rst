@@ -458,21 +458,20 @@ userinfo
 
 An example::
 
-      "userinfo": {
+    "userinfo": {
         "class": "oidcop.user_info.UserInfo",
         "kwargs": {
           "db_file": "users.json"
         }
-      }
+    }
 
 This is somethig that can be customized.
 For example in a django project we would use something like
-the following (see `example/django_op/oidc_provider`):
+the following (see `example/django_op/oidc_provider`)::
 
-      "userinfo": {
+    "userinfo": {
         "class": "oidc_provider.users.UserInfo",
         "kwargs": {
-            # map claims to django user attributes here:
             "claims_map": {
                 "phone_number": "telephone",
                 "family_name": "last_name",
@@ -484,4 +483,4 @@ the following (see `example/django_op/oidc_provider`):
                 "updated_at": "get_oidc_lastlogin"
             }
         }
-      }
+    }
