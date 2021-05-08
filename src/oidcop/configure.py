@@ -135,7 +135,7 @@ def create_from_config_file(cls,
         head, tail = os.path.split(filename)
         tail = tail[:-3]
         module = importlib.import_module(tail)
-        _conf = getattr(module, "CONFIG")
+        _conf = getattr(module, "OIDCOP_CONFIG")
     else:
         raise ValueError("Unknown file type")
 
@@ -221,13 +221,13 @@ class OPConfiguration(Base):
             port = conf.get("port", 80)
 
         set_domain_and_port(conf, URIS, domain=domain, port=port)
-
         for key in self.__dict__.keys():
             _val = conf.get(key)
-            if not _val and key in DEFAULT_CONFIG:
-                _val = DEFAULT_CONFIG[key]
             if not _val:
-                continue
+                if key in DEFAULT_CONFIG:
+                    _val = DEFAULT_CONFIG[key]
+                else:
+                    continue
             setattr(self, key, _val)
 
         if self.template_dir is None:
