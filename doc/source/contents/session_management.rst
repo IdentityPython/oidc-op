@@ -44,7 +44,7 @@ The OIDC Session Management draft defines session to be:
 Note that we are dealing with a Single Sign On (SSO) context here.
 If for some reason the OP does not want to support SSO then the
 session management has to be done a bit differently. In that case each
-session (user_id,client_id) would have its own authentication even. Not one
+session (user_id,client_id) would have its own authentication event. Not one
 shared between the sessions.
 
 Design criteria
