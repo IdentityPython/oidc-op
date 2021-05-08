@@ -53,7 +53,11 @@ def init_service(conf, server_get=None):
         kwargs["server_get"] = server_get
 
     if isinstance(conf["class"], str):
-        return importer(conf["class"])(**kwargs)
+        try:
+            return importer(conf["class"])(**kwargs)
+        except TypeError as err:
+            logger.error("Could not init service class: {}".format(conf["class"]), err)
+            raise
 
     return conf["class"](**kwargs)
 
