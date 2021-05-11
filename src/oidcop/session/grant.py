@@ -1,9 +1,12 @@
+from typing import List
 from typing import Optional
 from uuid import uuid1
 
+# from cryptojwt.utils import qualified_name
 from oidcmsg.impexp import ImpExp
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AuthorizationRequest
+from oidcop.util import importer
 
 from oidcop.authn_event import AuthnEvent
 from oidcop.session import MintingNotAllowed
@@ -57,13 +60,43 @@ TOKEN_MAP = {
 }
 
 
-def issued_token_load(items, **kwargs):
+def qualified_name(cls):
+    """ Does both classes and class instances
+
+    :param cls: The item, class or class instance
+    :return: fully qualified class name
+    """
+
+    try:
+        return cls.__module__ + "." + cls.name
+    except AttributeError:
+        return cls.__module__ + '.' + cls.__name__
+
+
+def issued_token_load(items: List[dict], **kwargs):
     res = []
     for item in items:
-        _cls = TOKEN_MAP[item["type"]]
-        _cls = _cls().load(item)
+        _class_name = list(item.keys())[0]
+        _cls = importer(_class_name)
+        _cls = _cls().load(item[_class_name])
         res.append(_cls)
     return res
+
+
+def issued_token_dump(items: List, exclude_attributes, **kwargs):
+    res = []
+    for item in items:
+        _dump = item.dump(exclude_attributes=exclude_attributes)
+        res.append({qualified_name(item): _dump})
+    return res
+
+
+def token_map_dump(info: dict, **kwargs):
+    return {k: qualified_name(v) for k,v in info.items()}
+
+
+def token_map_load(items:dict, **kwargs):
+    return {k: importer(v) for k,v in items.items()}
 
 
 class Grant(Item):
@@ -77,11 +110,17 @@ class Grant(Item):
         "resources": [],
         "scope": [],
         "sub": "",
+        "token_map": {}
     })
     type = "grant"
-    special_load_dump={
+    special_load_dump = {
         "issued_token": {
-            "load": issued_token_load
+            "load": issued_token_load,
+            "dump": issued_token_dump
+        },
+        "token_map": {
+            "load": token_map_load,
+            "dump": token_map_dump
         }
     }
 

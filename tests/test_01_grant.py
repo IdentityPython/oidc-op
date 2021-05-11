@@ -343,7 +343,7 @@ class TestGrant():
 
         _jstr = grant.dump()
 
-        _grant_copy = Grant().load(_jstr)
+        _grant_copy = Grant(token_map=token_map).load(_jstr)
 
         assert len(_grant_copy.issued_token) == 3
 
