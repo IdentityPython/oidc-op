@@ -9,7 +9,6 @@ from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.token import Token
 from oidcop.server import Server
 from oidcop.session import MintingNotAllowed
-from oidcop.session import session_key
 from oidcop.session.grant import Grant
 from oidcop.session.info import ClientSessionInfo
 from oidcop.session.token import AccessToken
@@ -35,7 +34,6 @@ KEYDEFS = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
-DUMMY_SESSION_ID = session_key('user_id', 'client_id', 'grant.id')
 
 USER_ID = "diana"
 
@@ -95,6 +93,7 @@ class TestSessionManager:
         self.authn_event = AuthnEvent(uid="uid",
                                       valid_until=time_sans_frac() + 1,
                                       authn_info="authn_class_ref")
+        self.dummy_session_id = self.session_manager.encrypted_session_id('user_id', 'client_id', 'grant.id')
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
         if sector_identifier:
@@ -202,7 +201,7 @@ class TestSessionManager:
         assert grant.issued_token == []
         assert grant.is_active() is True
 
-        code = self._mint_token('authorization_code', grant, DUMMY_SESSION_ID)
+        code = self._mint_token('authorization_code', grant, self.dummy_session_id)
         assert isinstance(code, AuthorizationCode)
         assert code.is_active()
         assert len(grant.issued_token) == 1
@@ -238,7 +237,7 @@ class TestSessionManager:
         assert code.max_usage_reached() is True
 
         with pytest.raises(MintingNotAllowed):
-            self._mint_token('access_token', grant, DUMMY_SESSION_ID, code)
+            self._mint_token('access_token', grant, self.dummy_session_id, code)
 
         grant.revoke_token(based_on=code.value)
 
@@ -273,8 +272,8 @@ class TestSessionManager:
         code = self._mint_token('authorization_code', grant, session_id)
         access_token = self._mint_token('access_token', grant, session_id, code)
 
-        _session_key = session_key('diana', 'client_1', grant.id)
-        _token = self.session_manager.find_token(_session_key, access_token.value)
+        _session_id = self.session_manager.encrypted_session_id('diana', 'client_1', grant.id)
+        _token = self.session_manager.find_token(_session_id, access_token.value)
 
         assert _token.type == "access_token"
         assert _token.id == access_token.id

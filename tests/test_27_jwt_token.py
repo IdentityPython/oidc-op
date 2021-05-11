@@ -11,7 +11,6 @@ from oidcop import user_info
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.client_authn import verify_client
-from oidcop.endpoint_context import EndpointContext
 from oidcop.id_token import IDToken
 from oidcop.oauth2.introspection import Introspection
 from oidcop.oidc.authorization import Authorization
@@ -191,7 +190,7 @@ class TestEndpoint(object):
         }
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"
-        self.endpoint = server.server_get("endpoint","session")
+        self.endpoint = server.server_get("endpoint", "session")
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
         if sector_identifier:

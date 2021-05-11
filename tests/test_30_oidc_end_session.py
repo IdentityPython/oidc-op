@@ -4,10 +4,7 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
-from cryptojwt import as_unicode
-from cryptojwt import b64d
 from cryptojwt.key_jar import build_keyjar
-from cryptojwt.utils import as_bytes
 from oidcmsg.exception import InvalidRequest
 from oidcmsg.message import Message
 from oidcmsg.oidc import AuthorizationRequest
@@ -27,8 +24,6 @@ from oidcop.oidc.session import Session
 from oidcop.oidc.session import do_front_channel_logout_iframe
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.session import session_key
-from oidcop.session import unpack_session_key
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_info import UserInfo
 
@@ -188,9 +183,9 @@ class TestEndpoint(object):
             },
         }
         self.session_manager = endpoint_context.session_manager
-        self.authn_endpoint = server.server_get("endpoint","authorization")
-        self.session_endpoint = server.server_get("endpoint","session")
-        self.token_endpoint = server.server_get("endpoint","token")
+        self.authn_endpoint = server.server_get("endpoint", "authorization")
+        self.session_endpoint = server.server_get("endpoint", "session")
+        self.token_endpoint = server.server_get("endpoint", "token")
         self.user_id = "diana"
 
     def test_end_session_endpoint(self):
@@ -273,8 +268,8 @@ class TestEndpoint(object):
         resp_args, _session_id = self._auth_with_id_token("1234567")
         id_token = resp_args["id_token"]
 
-        _uid, _cid, _gid = unpack_session_key(_session_id)
-        cookie = self._create_cookie(session_key(_uid, "client_66", _gid))
+        _uid, _cid, _gid = self.session_manager.decrypt_session_id(_session_id)
+        cookie = self._create_cookie(self.session_manager.session_key(_uid, "client_66", _gid))
         http_info = {"cookie": [cookie]}
 
         with pytest.raises(ValueError):
@@ -285,8 +280,8 @@ class TestEndpoint(object):
         resp_args, _session_id = self._auth_with_id_token("1234567")
         id_token = resp_args["id_token"]
 
-        _uid, _cid, _gid = unpack_session_key(_session_id)
-        cookie = self._create_cookie(session_key(_uid, "client_66", _gid))
+        _uid, _cid, _gid = self.session_manager.decrypt_session_id(_session_id)
+        cookie = self._create_cookie(self.session_manager.session_key(_uid, "client_66", _gid))
         http_info = {"cookie": [cookie]}
 
         msg = Message(id_token=id_token)
@@ -445,7 +440,8 @@ class TestEndpoint(object):
         self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
             "backchannel_logout_uri"
         ] = "https://example.com/bc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"]["client_id"] = "client_1"
+        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+            "client_id"] = "client_1"
 
         res = self.session_endpoint.logout_from_client(_session_info["session_id"])
         assert set(res.keys()) == {"blu"}
@@ -468,11 +464,13 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             _code, client_session_info=True)
 
-        # del self.session_endpoint.server_get("endpoint_context").cdb['client_1']['backchannel_logout_uri']
+        # del self.session_endpoint.server_get("endpoint_context").cdb['client_1'][
+        # 'backchannel_logout_uri']
         self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
             "frontchannel_logout_uri"
         ] = "https://example.com/fc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"]["client_id"] = "client_1"
+        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+            "client_id"] = "client_1"
 
         res = self.session_endpoint.logout_from_client(_session_info["session_id"])
         assert set(res.keys()) == {"flu"}
@@ -493,11 +491,13 @@ class TestEndpoint(object):
         self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
             "backchannel_logout_uri"
         ] = "https://example.com/bc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"]["client_id"] = "client_1"
+        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+            "client_id"] = "client_1"
         self.session_endpoint.server_get("endpoint_context").cdb["client_2"][
             "frontchannel_logout_uri"
         ] = "https://example.com/fc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_2"]["client_id"] = "client_2"
+        self.session_endpoint.server_get("endpoint_context").cdb["client_2"][
+            "client_id"] = "client_2"
 
         res = self.session_endpoint.logout_all_clients(_session_info["session_id"])
 
@@ -516,7 +516,8 @@ class TestEndpoint(object):
 
         # both should be revoked
         assert _session_info["client_session_info"].is_revoked()
-        _cinfo = self.session_manager[session_key(self.user_id, "client_2")]
+        _cinfo = self.session_manager[
+            self.session_manager.encrypted_session_id(self.user_id, "client_2")]
         assert _cinfo.is_revoked()
 
     def test_do_verified_logout(self):
@@ -539,8 +540,8 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(_code)
         self._code_auth2("abcdefg")
 
-        _uid, _cid, _gid = unpack_session_key(_session_info["session_id"])
-        _sid = session_key('babs', _cid, _gid)
+        _uid, _cid, _gid = self.session_manager.decrypt_session_id(_session_info["session_id"])
+        _sid = self.session_manager.encrypted_session_id('babs', _cid, _gid)
         with pytest.raises(KeyError):
             res = self.session_endpoint.logout_all_clients(_sid)
 
@@ -554,13 +555,15 @@ class TestEndpoint(object):
         self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
             "backchannel_logout_uri"
         ] = "https://example.com/bc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"]["client_id"] = "client_1"
+        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+            "client_id"] = "client_1"
         self.session_endpoint.server_get("endpoint_context").cdb["client_2"][
             "frontchannel_logout_uri"
         ] = "https://example.com/fc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_2"]["client_id"] = "client_2"
+        self.session_endpoint.server_get("endpoint_context").cdb["client_2"][
+            "client_id"] = "client_2"
 
-        _uid, _cid, _gid = unpack_session_key(_session_info["session_id"])
+        _uid, _cid, _gid = self.session_manager.decrypt_session_id(_session_info["session_id"])
         self.session_endpoint.server_get("endpoint_context").session_manager.delete([_uid, _cid])
 
         with pytest.raises(ValueError):
@@ -575,4 +578,3 @@ class TestEndpoint(object):
         assert set(_values) == {'', ''}
         _exps = [ci['Expires'] for ci in _info]
         assert set(_exps) == {'Thu, 01 Jan 1970 00:00:00 GMT;', 'Thu, 01 Jan 1970 00:00:00 GMT;'}
-

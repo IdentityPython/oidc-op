@@ -7,7 +7,6 @@ from oidcmsg.oauth2 import AuthorizationRequest
 
 from oidcop.authn_event import AuthnEvent
 from oidcop.session import MintingNotAllowed
-from oidcop.session import unpack_session_key
 from oidcop.session.token import AccessToken
 from oidcop.session.token import AuthorizationCode
 from oidcop.session.token import Item
@@ -126,7 +125,7 @@ class Grant(Item):
         _claims_restriction = endpoint_context.claims_interface.get_claims(session_id,
                                                                            scopes=scope,
                                                                            usage=token_type)
-        user_id, _, _ = unpack_session_key(session_id)
+        user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
         user_info = endpoint_context.claims_interface.get_user_claims(user_id,
                                                                       _claims_restriction)
         payload.update(user_info)

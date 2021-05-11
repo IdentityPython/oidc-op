@@ -45,7 +45,6 @@ from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.session import session_key
 from oidcop.session.grant import Grant
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_authn.authn_context import UNSPECIFIED
@@ -832,7 +831,8 @@ class TestEndpoint(object):
             }
         }
 
-        DUMMY_SESSION_ID = session_key('user_id', 'client_id', 'grant.id')
+        DUMMY_SESSION_ID = self.session_manager.encrypted_session_id('user_id', 'client_id',
+                                                                     'grant.id')
 
         code = self.endpoint.mint_token('authorization_code', grant, DUMMY_SESSION_ID)
         if exp_in in [360, "360"]:
@@ -1103,7 +1103,8 @@ class TestUserAuthn(object):
         _cookie = self.endpoint_context.new_cookie(
             name=self.endpoint_context.cookie_handler.name["session"],
             sub="diana",
-            sid="diana;;client 12345;;abcdefgh",
+            sid=self.endpoint_context.session_manager.encrypted_session_id("diana", "client 12345",
+                                                                           "abcdefgh"),
             state=authn_req["state"],
             client_id=authn_req["client_id"],
         )

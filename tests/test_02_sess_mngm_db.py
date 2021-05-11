@@ -3,7 +3,6 @@ from oidcmsg.oauth2 import AuthorizationRequest
 import pytest
 
 from oidcop.authn_event import create_authn_event
-from oidcop.session import session_key
 from oidcop.session.database import Database
 from oidcop.session.database import NoSuchClientSession
 from oidcop.session.database import NoSuchGrant
@@ -72,7 +71,7 @@ class TestDB:
         self.db.set(['diana', "client_1"], client_info)
 
         # The reference is there but not the value
-        del self.db.db[session_key('diana', "client_1")]
+        del self.db.db[self.db.session_key('diana', "client_1")]
 
         client_info = ClientSessionInfo(client_id="client_1", extra="ice")
         self.db.set(['diana', "client_1"], client_info)
@@ -87,7 +86,7 @@ class TestDB:
         self.db.set(['diana', "client_1"], client_info)
 
         # The reference is there but not the value
-        del self.db.db[session_key('diana', "client_1")]
+        del self.db.db[self.db.session_key('diana', "client_1")]
 
         authn_event = create_authn_event(uid="diana",
                                          expires_in=10,
@@ -133,7 +132,7 @@ class TestDB:
         self.db.set(['diana', "client_1", "G1"], grant)
 
         # The reference is there but not the value
-        del self.db.db[session_key('diana', "client_1", "G1")]
+        del self.db.db[self.db.session_key('diana', "client_1", "G1")]
 
         grant = Grant()
         access_code = SessionToken('access_code', value='aaaaaaaaa')
@@ -206,7 +205,7 @@ class TestDB:
         self.db.set(['diana', "client_1"], client_info)
 
         # The reference is there but not the value
-        del self.db.db[session_key('diana', "client_1")]
+        del self.db.db[self.db.session_key('diana', "client_1")]
 
         with pytest.raises(NoSuchClientSession):
             self.db.get(['diana', "client_1"])
@@ -227,7 +226,7 @@ class TestDB:
         self.db.set(['diana', "client_1", "G1"], grant)
 
         # removed value
-        del self.db.db[session_key('diana', "client_1", "G1")]
+        del self.db.db[self.db.session_key('diana', "client_1", "G1")]
 
         with pytest.raises(NoSuchGrant):
             self.db.get(['diana', "client_1", "G1"])

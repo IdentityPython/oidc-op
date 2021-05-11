@@ -17,8 +17,6 @@ from oidcop.oidc.registration import Registration
 from oidcop.oidc.session import Session
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.session import session_key
-from oidcop.session import unpack_session_key
 from oidcop.session.grant import Grant
 from oidcop.session.info import ClientSessionInfo
 from oidcop.session.info import UserSessionInfo
@@ -108,8 +106,8 @@ class TestSession():
                       authentication_event=authn_event)
 
         # the grant is assigned to a session (user_id, client_id)
-        session_id = session_key(user_id, client_id, grant.id)
         self.session_manager.set([user_id, client_id, grant.id], grant)
+        session_id = self.session_manager.encrypted_session_id(user_id, client_id, grant.id)
 
         # Constructing an authorization code is now done by
 
@@ -364,11 +362,10 @@ class TestSessionJWTToken():
         )
 
         # the grant is assigned to a session (user_id, client_id)
-        session_id = session_key(user_id, client_id, grant.id)
         self.session_manager.set([user_id, client_id, grant.id], grant)
 
+        session_id = self.session_manager.encrypted_session_id(user_id, client_id, grant.id)
         # Constructing an authorization code is now done by
-
         code = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
@@ -395,7 +392,7 @@ class TestSessionJWTToken():
 
         # parse the token
         session_id = self.session_manager.token_handler.sid(TOKEN_REQ['code'])
-        user_id, client_id, grant_id = unpack_session_key(session_id)
+        user_id, client_id, grant_id = self.session_manager.decrypt_session_id(session_id)
 
         # Now given I have the client_id from the request and the user_id from the
         # token I can easily find the grant
@@ -451,7 +448,9 @@ class TestSessionJWTToken():
             scope=["openid", "mail", "offline_access"]
         )
 
-        session_id = session_key(user_id, REFRESH_TOKEN_REQ['client_id'], grant_id)
+        session_id = self.session_manager.encrypted_session_id(user_id,
+                                                               REFRESH_TOKEN_REQ['client_id'],
+                                                               grant_id)
         reftok = self.session_manager.find_token(session_id,
                                                  REFRESH_TOKEN_REQ['refresh_token'])
 

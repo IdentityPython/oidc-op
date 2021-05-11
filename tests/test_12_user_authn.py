@@ -86,7 +86,8 @@ class TestUserAuthn(object):
         _cookie = self.endpoint_context.new_cookie(
             name=self.endpoint_context.cookie_handler.name["session"],
             sub="diana",
-            sid="diana;;client 12345;;abcdefgh",
+            sid=self.endpoint_context.session_manager.encrypted_session_id(
+                "diana","client 12345","abcdefgh"),
             state=authn_req["state"],
             client_id=authn_req["client_id"],
         )

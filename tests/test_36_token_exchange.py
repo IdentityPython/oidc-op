@@ -15,7 +15,6 @@ from oidcop.id_token import IDToken
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.session import session_key
 from oidcop.session.grant import ExchangeGrant
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_info import UserInfo
@@ -162,8 +161,8 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
         }
         endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
-        self.endpoint = server.server_get("endpoint","token")
-        self.introspection_endpoint = server.server_get("endpoint","introspection")
+        self.endpoint = server.server_get("endpoint", "token")
+        self.introspection_endpoint = server.server_get("endpoint", "introspection")
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
@@ -251,7 +250,9 @@ class TestEndpoint(object):
         _token = self.session_manager.find_token(session_info["session_id"],
                                                  ter["subject_token"])
 
-        session_id = session_key(session_info['user_id'], session_info["client_id"], exch_grant.id)
+        session_id = self.session_manager.encrypted_session_id(session_info['user_id'],
+                                                               session_info["client_id"],
+                                                               exch_grant.id)
 
         _token = self._mint_access_token(exch_grant, session_id, token_ref=_token,
                                          resources=["https://backend.example.com"])

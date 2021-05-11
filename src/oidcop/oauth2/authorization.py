@@ -37,7 +37,6 @@ from oidcop.exception import ToOld
 from oidcop.exception import UnAuthorizedClientScope
 from oidcop.exception import UnknownClient
 from oidcop.session import Revoked
-from oidcop.session import unpack_session_key
 from oidcop.token.exception import UnknownToken
 from oidcop.user_authn.authn_context import pick_auth
 from oidcop.util import split_uri
@@ -345,9 +344,8 @@ class Authorization(Endpoint):
         if _exp_in:
             token.expires_at = utc_time_sans_frac() + _exp_in
 
-        self.server_get("endpoint_context").session_manager.set(
-            unpack_session_key(session_id), grant
-        )
+        _mngr = self.server_get("endpoint_context").session_manager
+        _mngr.set(_mngr.unpack_session_key(session_id), grant)
 
         return token
 
@@ -610,7 +608,7 @@ class Authorization(Endpoint):
                     _session_id = identity["sid"]
 
                     # make sure the client is the same
-                    _uid, _cid, _gid = unpack_session_key(_session_id)
+                    _uid, _cid, _gid = _mngr.decrypt_session_id(_session_id)
                     if request["client_id"] != _cid:
                         return {"function": authn, "args": authn_args}
 
@@ -630,8 +628,7 @@ class Authorization(Endpoint):
                                                          client_id=request["client_id"])
 
         if _session_id:
-            authn_event = _mngr.get_authentication_event(
-                session_id=_session_id)
+            authn_event = _mngr.get_authentication_event(session_id=_session_id)
             if authn_event.is_valid() is False:  # if not valid, do new login
                 return {"function": authn, "args": authn_args}
         else:
@@ -812,7 +809,7 @@ class Authorization(Endpoint):
         if grant.is_active() is False:
             return self.error_response(response_info, "server_error", "Grant not usable")
 
-        user_id, client_id, grant_id = unpack_session_key(session_id)
+        user_id, client_id, grant_id = _mngr.decrypt_session_id(session_id)
         try:
             _mngr.set([user_id, client_id, grant_id], grant)
         except Exception as err:

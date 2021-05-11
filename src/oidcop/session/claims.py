@@ -5,7 +5,6 @@ from typing import Union
 from oidcmsg.oidc import OpenIDSchema
 
 from oidcop.scopes import convert_scopes2claims
-from oidcop.session import unpack_session_key
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +79,7 @@ class ClaimsInterface:
         else:
             return {}
 
-        user_id, client_id, grant_id = unpack_session_key(session_id)
+        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
 
         # Can there be per client specification of which claims to use.
         if module.kwargs.get("enable_claims_per_client"):

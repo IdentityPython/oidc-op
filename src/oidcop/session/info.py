@@ -1,7 +1,18 @@
+import base64
+from typing import List
+from typing import Optional
 from typing import Tuple
 
 from oidcmsg.impexp import ImpExp
+from oidcop.util import lv_unpack
 
+from oidcop.util import lv_pack
+
+from oidcop import rndstr
+
+from oidcop.token import Crypt
+
+from oidcop.constant import DIVIDER
 from oidcop.session.grant import Grant
 from oidcop.session.token import SessionToken
 
@@ -14,11 +25,15 @@ class SessionInfo(ImpExp):
         "extra_args": {}
     }
 
-    def __init__(self, **kwargs):
+    def __init__(self,
+                 subordinate: Optional[List[str]] = None,
+                 revoked: Optional[bool] = False,
+                 type: Optional[str] = "",
+                 **kwargs):
         ImpExp.__init__(self)
-        self.subordinate = kwargs.get("subordinate", [])
-        self.revoked = kwargs.get("revoked", False)
-        self.type = kwargs.get("type", "")
+        self.subordinate = subordinate or []
+        self.revoked = revoked
+        self.type = type
         self.extra_args = {}
 
     def add_subordinate(self, value: str) -> "SessionInfo":

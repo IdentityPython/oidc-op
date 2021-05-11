@@ -6,13 +6,12 @@ from typing import Optional
 import uuid
 
 from oidcmsg.oauth2 import AuthorizationRequest
-from oidcop.exception import ConfigurationError
+from oidcop.util import Crypt
 
 from oidcop import rndstr
 from oidcop.authn_event import AuthnEvent
+from oidcop.exception import ConfigurationError
 from oidcop.token import handler
-from . import session_key
-from . import unpack_session_key
 from .database import Database
 from .grant import Grant
 from .grant import SessionToken
@@ -76,7 +75,12 @@ class SessionManager(Database):
                  handler: TokenHandler,
                  conf: Optional[dict] = None,
                  sub_func: Optional[dict] = None):
-        Database.__init__(self)
+        if conf:
+            _key = conf.get("password", rndstr(24))
+        else:
+            _key = rndstr(24)
+
+        Database.__init__(self, key=_key)
         self.token_handler = handler
         self.salt = rndstr(32)
         self.conf = conf or {}
@@ -112,7 +116,7 @@ class SessionManager(Database):
         :param token_value:
         :return:
         """
-        user_id, client_id, grant_id = unpack_session_key(session_id)
+        user_id, client_id, grant_id = self.decrypt_session_id(session_id)
         grant = self.get([user_id, client_id, grant_id])
         for token in grant.issued_token:
             if token.value == token_value:
@@ -156,7 +160,7 @@ class SessionManager(Database):
 
         self.set([user_id, client_id, grant.id], grant)
 
-        return session_key(user_id, client_id, grant.id)
+        return self.encrypted_session_id(user_id, client_id, grant.id)
 
     def create_session(self,
                        authn_event: AuthnEvent,
@@ -176,8 +180,6 @@ class SessionManager(Database):
         :param auth_req: Authorization Request
         :param client_id: Client ID
         :param user_id: User ID
-        :param sector_identifier: Identifier for a group of websites under common administrative
-            control.
         :param sub_type: What kind of subject will be assigned
         :param token_usage_rules: Rules for how tokens can be used
         :return: Session key
@@ -207,10 +209,10 @@ class SessionManager(Database):
         )
 
     def __getitem__(self, session_id: str):
-        return self.get(unpack_session_key(session_id))
+        return self.get(self.decrypt_session_id(session_id))
 
     def __setitem__(self, session_id: str, value):
-        return self.set(unpack_session_key(session_id), value)
+        return self.set(self.decrypt_session_id(session_id), value)
 
     def get_client_session_info(self, session_id: str) -> ClientSessionInfo:
         """
@@ -219,7 +221,7 @@ class SessionManager(Database):
         :param session_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _user_id, _client_id, _grant_id = unpack_session_key(session_id)
+        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
         csi = self.get([_user_id, _client_id])
         if isinstance(csi, ClientSessionInfo):
             return csi
@@ -233,7 +235,7 @@ class SessionManager(Database):
         :param session_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _user_id, _client_id, _grant_id = unpack_session_key(session_id)
+        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
         usi = self.get([_user_id])
         if isinstance(usi, UserSessionInfo):
             return usi
@@ -247,7 +249,7 @@ class SessionManager(Database):
         :param session_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _user_id, _client_id, _grant_id = unpack_session_key(session_id)
+        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
         grant = self.get([_user_id, _client_id, _grant_id])
         if isinstance(grant, Grant):
             return grant
@@ -278,17 +280,20 @@ class SessionManager(Database):
             grant = self[session_id]
             self._revoke_dependent(grant, token)
 
-    def get_authentication_events(self, session_id: Optional[str] = "",
+    def get_authentication_events(self,
+                                  session_id: Optional[str] = "",
                                   user_id: Optional[str] = "",
                                   client_id: Optional[str] = "") -> List[AuthnEvent]:
         """
         Return the authentication events that exists for a user/client combination.
 
+        :param client_id:
+        :param user_id:
         :param session_id: A session identifier
         :return: None if no authentication event could be found or an AuthnEvent instance.
         """
         if session_id:
-            user_id, client_id, _ = unpack_session_key(session_id)
+            user_id, client_id, _ = self.decrypt_session_id(session_id)
         elif user_id and client_id:
             pass
         else:
@@ -297,9 +302,7 @@ class SessionManager(Database):
 
         c_info = self.get([user_id, client_id])
 
-        self.subordinate_ = [self.get([user_id, client_id, gid])
-                             for gid in c_info.subordinate]
-        _grants = self.subordinate_
+        _grants = [self.get([user_id, client_id, gid]) for gid in c_info.subordinate]
         return [g.authentication_event for g in _grants]
 
     def get_authorization_request(self, session_id):
@@ -318,7 +321,7 @@ class SessionManager(Database):
 
         :param session_id: Session identifier
         """
-        parts = unpack_session_key(session_id)
+        parts = self.decrypt_session_id(session_id)
         if len(parts) == 2:
             _user_id, _client_id = parts
         elif len(parts) == 3:
@@ -335,7 +338,7 @@ class SessionManager(Database):
 
         :param session_id: A session identifier
         """
-        _path = unpack_session_key(session_id)
+        _path = self.decrypt_session_id(session_id)
         _info = self.get(_path)
         _info.revoke()
         self.set(_path, _info)
@@ -347,11 +350,13 @@ class SessionManager(Database):
         """
         Find all grant connected to a user session
 
+        :param client_id:
+        :param user_id:
         :param session_id: A session identifier
         :return: A list of grants
         """
         if session_id:
-            user_id, client_id, _ = unpack_session_key(session_id)
+            user_id, client_id, _ = self.decrypt_session_id(session_id)
         elif user_id and client_id:
             pass
         else:
@@ -380,7 +385,7 @@ class SessionManager(Database):
         :param authorization_request: Whether the authorization_request should part of the response
         :return: A dictionary with session information
         """
-        _user_id, _client_id, _grant_id = unpack_session_key(session_id)
+        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
         _grant = None
         res = {
             "session_id": session_id,
@@ -451,8 +456,11 @@ class SessionManager(Database):
         return _grant
 
     def remove_session(self, session_id: str):
-        _user_id, _client_id, _grant_id = unpack_session_key(session_id)
+        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
         self.delete([_user_id, _client_id, _grant_id])
+
+    def local_load_adjustments(self, **kwargs):
+        self.crypt = Crypt(self.key)
 
 
 def create_session_manager(server_get, token_handler_args, sub_func=None):

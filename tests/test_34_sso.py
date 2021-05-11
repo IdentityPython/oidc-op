@@ -2,12 +2,11 @@ import io
 import json
 import os
 
-import pytest
-import yaml
 from cryptojwt import KeyJar
 from oidcmsg.oidc import AuthorizationRequest
+import pytest
+import yaml
 
-from oidcop.endpoint_context import EndpointContext
 from oidcop.oidc.authorization import Authorization
 from oidcop.server import Server
 from oidcop.user_authn.authn_context import UNSPECIFIED
@@ -172,7 +171,7 @@ class TestUserAuthn(object):
         endpoint_context.keyjar.import_jwks(
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
-        self.endpoint = server.server_get("endpoint","authorization")
+        self.endpoint = server.server_get("endpoint", "authorization")
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
@@ -235,16 +234,20 @@ class TestUserAuthn(object):
         # No valid login cookie so new session
         assert info["session_id"] != sid2
 
-        user_session_info = self.endpoint.server_get("endpoint_context").session_manager.get(["diana"])
+        user_session_info = self.endpoint.server_get("endpoint_context").session_manager.get(
+            ["diana"])
         assert len(user_session_info.subordinate) == 3
         assert set(user_session_info.subordinate) == {"client_1", "client_2", "client_3"}
 
         # Should be one grant for each of client_2 and client_3 and
         # 2 grants for client_1
 
-        csi1 = self.endpoint.server_get("endpoint_context").session_manager.get(["diana", "client_1"])
-        csi2 = self.endpoint.server_get("endpoint_context").session_manager.get(["diana", "client_2"])
-        csi3 = self.endpoint.server_get("endpoint_context").session_manager.get(["diana", "client_3"])
+        csi1 = self.endpoint.server_get("endpoint_context").session_manager.get(
+            ["diana", "client_1"])
+        csi2 = self.endpoint.server_get("endpoint_context").session_manager.get(
+            ["diana", "client_2"])
+        csi3 = self.endpoint.server_get("endpoint_context").session_manager.get(
+            ["diana", "client_3"])
 
         assert len(csi1.subordinate) == 2
         assert len(csi2.subordinate) == 1

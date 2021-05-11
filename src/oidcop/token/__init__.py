@@ -1,16 +1,13 @@
 import base64
-import hashlib
 import logging
 from typing import Optional
 
-from cryptography.fernet import Fernet
-from cryptojwt.utils import as_bytes
-from cryptojwt.utils import as_unicode
 from oidcmsg.time_util import time_sans_frac
 
 from oidcop import rndstr
 from oidcop.token.exception import UnknownToken
 from oidcop.token.exception import WrongTokenType
+from oidcop.util import Crypt
 from oidcop.util import lv_pack
 from oidcop.util import lv_unpack
 
@@ -26,26 +23,6 @@ def is_expired(exp, when=0):
     if not when:
         when = time_sans_frac()
     return when > exp
-
-
-class Crypt(object):
-    def __init__(self, password, mode=None):
-        self.key = base64.urlsafe_b64encode(
-            hashlib.sha256(password.encode("utf-8")).digest()
-        )
-        self.core = Fernet(self.key)
-
-    def encrypt(self, text):
-        # Padding to blocksize of AES
-        text = as_bytes(text)
-        if len(text) % 16:
-            text += b" " * (16 - len(text) % 16)
-        return self.core.encrypt(as_bytes(text))
-
-    def decrypt(self, ciphertext):
-        dec_text = self.core.decrypt(ciphertext)
-        dec_text = dec_text.rstrip(b" ")
-        return as_unicode(dec_text)
 
 
 class Token(object):

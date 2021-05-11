@@ -16,7 +16,6 @@ from oidcop.exception import FailedAuthentication
 from oidcop.exception import ImproperlyConfigured
 from oidcop.exception import InvalidCookieSign
 from oidcop.exception import OnlyForTestingWarning
-from oidcop.session import unpack_session_key
 from oidcop.util import instantiate
 
 __author__ = "Roland Hedberg"
@@ -107,7 +106,7 @@ class UserAuthnMethod(object):
         else:
             for val in vals:
                 _info = json.loads(val["value"])
-                _, cid, _ = unpack_session_key(_info["sid"])
+                _, cid, _ = _context.session_manager.decrypt_session_id(_info["sid"])
                 if cid != client_id:
                     continue
                 else:

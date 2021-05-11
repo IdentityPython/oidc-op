@@ -5,7 +5,6 @@ from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
 
 from oidcop.construct import construct_endpoint_info
-from oidcop.session import unpack_session_key
 from oidcop.session.claims import claims_match
 from oidcop.session.info import SessionInfo
 
@@ -252,7 +251,7 @@ class IDToken(object):
     def make(self, session_id, **kwargs):
         _context = self.server_get("endpoint_context")
 
-        user_id, client_id, grant_id = unpack_session_key(session_id)
+        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
 
         # Should I add session ID. This is about Single Logout.
         if include_session_id(_context, client_id, "back") or include_session_id(

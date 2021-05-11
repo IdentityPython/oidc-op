@@ -29,7 +29,6 @@ from oidcop.client_authn import UnknownOrNoAuthnMethod
 from oidcop.endpoint import Endpoint
 from oidcop.endpoint_context import add_path
 from oidcop.oauth2.authorization import verify_uri
-from oidcop.session import session_key
 
 logger = logging.getLogger(__name__)
 
@@ -167,14 +166,14 @@ class Session(Endpoint):
         _rel_sid = []
         for _client_id in _session_info["user_session_info"].subordinate:
             if "backchannel_logout_uri" in _cdb[_client_id]:
-                _sid = session_key(_user_id, _client_id)
+                _sid = _mngr.encrypted_session_id(_user_id, _client_id)
                 _rel_sid.append(_sid)
                 _spec = self.do_back_channel_logout(_cdb[_client_id], _sid)
                 if _spec:
                     bc_logouts[_client_id] = _spec
             elif "frontchannel_logout_uri" in _cdb[_client_id]:
                 # Construct an IFrame
-                _sid = session_key(_user_id, _client_id)
+                _sid = _mngr.encrypted_session_id(_user_id, _client_id)
                 _rel_sid.append(_sid)
                 _spec = do_front_channel_logout_iframe(
                     _cdb[_client_id], _iss, _sid)

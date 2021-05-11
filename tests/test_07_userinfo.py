@@ -13,7 +13,6 @@ from oidcop.oidc.registration import Registration
 from oidcop.scopes import SCOPE2CLAIMS
 from oidcop.scopes import convert_scopes2claims
 from oidcop.server import Server
-from oidcop.session import unpack_session_key
 from oidcop.session.claims import ClaimsInterface
 from oidcop.session.claims import STANDARD_CLAIMS
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
@@ -324,7 +323,7 @@ class TestCollectUserInfo:
         del _req["claims"]
 
         session_id = self._create_session(_req)
-        _uid, _cid, _gid = unpack_session_key(session_id)
+        _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
 
         _userinfo_restriction = self.claims_interface.get_claims(session_id=session_id,
                                                                  scopes=_req["scope"],
@@ -350,7 +349,7 @@ class TestCollectUserInfo:
         del _req["claims"]
 
         session_id = self._create_session(_req)
-        _uid, _cid, _gid = unpack_session_key(session_id)
+        _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
 
         _userinfo_endpoint = self.server.server_get("endpoint","userinfo")
         _userinfo_endpoint.kwargs["add_claims_by_scope"] = False
@@ -371,7 +370,7 @@ class TestCollectUserInfo:
         del _req["claims"]
 
         session_id = self._create_session(_req)
-        _uid, _cid, _gid = unpack_session_key(session_id)
+        _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
 
         _userinfo_endpoint = self.server.server_get("endpoint","userinfo")
         _userinfo_endpoint.kwargs["add_claims_by_scope"] = False

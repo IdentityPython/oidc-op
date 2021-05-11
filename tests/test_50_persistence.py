@@ -18,7 +18,6 @@ from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.session import unpack_session_key
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_info import UserInfo
 
@@ -264,7 +263,8 @@ class TestEndpoint(object):
             token_handler=self.session_manager[index].token_handler["code"]
         )
 
-        self.session_manager[index].set(unpack_session_key(session_id), grant)
+        self.session_manager[index].set(
+            self.session_manager[index].decrypt_session_id(session_id), grant)
 
         return _code
 
@@ -332,6 +332,9 @@ class TestEndpoint(object):
         access_token = self._mint_access_token(grant, session_id, code, 1)
 
         # switch to another endpoint context instance
+
+        self._dump_restore(1, 2)
+
         http_info = {
             "headers": {
                 "authorization": "Bearer {}".format(access_token.value)
@@ -459,7 +462,8 @@ class TestEndpoint(object):
 
         self._dump_restore(1, 2)
 
-        self.session_manager[2].set(unpack_session_key(session_id), grant)
+        self.session_manager[2].set(
+            self.session_manager[2].decrypt_session_id(session_id), grant)
 
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)

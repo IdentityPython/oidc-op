@@ -11,16 +11,14 @@ from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import time_sans_frac
-from oidcop.session.token import MintingNotAllowed
 
 from oidcop import sanitize
 from oidcop.endpoint import Endpoint
 from oidcop.exception import ProcessError
-from oidcop.session import session_key
-from oidcop.session import unpack_session_key
 from oidcop.session.grant import AuthorizationCode
 from oidcop.session.grant import Grant
 from oidcop.session.grant import RefreshToken
+from oidcop.session.token import MintingNotAllowed
 from oidcop.session.token import SessionToken
 from oidcop.token.exception import UnknownToken
 from oidcop.util import importer
@@ -86,7 +84,7 @@ class TokenEndpointHelper(object):
             if _exp_in:
                 token.expires_at = time_sans_frac() + _exp_in
 
-        _context.session_manager.set(unpack_session_key(session_id), grant)
+        _context.session_manager.set(_context.session_manager.unpack_session_key(session_id), grant)
 
         return token
 
@@ -159,7 +157,7 @@ class AccessTokenHelper(TokenEndpointHelper):
             else:
                 _response["access_token"] = token.value
                 _response["expires_in"] = token.expires_at - \
-                    utc_time_sans_frac()
+                                          utc_time_sans_frac()
 
         if issue_refresh and "refresh_token" in _supports_minting:
             try:
@@ -267,7 +265,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         if access_token.expires_at:
             _resp["expires_in"] = access_token.expires_at - \
-                utc_time_sans_frac()
+                                  utc_time_sans_frac()
 
         _mints = token.usage_rules.get("supports_minting")
         if "refresh_token" in _mints:
@@ -451,8 +449,8 @@ class Token(Endpoint):
         _cookie = _context.new_cookie(
             name=_context.cookie_handler.name["session"],
             sub=_session_info["grant"].sub,
-            sid=session_key(_session_info['user_id'], _session_info['user_id'],
-                            _session_info['grant'].id))
+            sid=_context.session_manager.session_key(
+                _session_info['user_id'], _session_info['user_id'], _session_info['grant'].id))
 
         _headers = [("Content-type", "application/json")]
         resp = {"response_args": response_args, "http_headers": _headers}

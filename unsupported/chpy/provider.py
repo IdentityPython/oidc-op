@@ -4,7 +4,7 @@ import traceback
 
 import cherrypy
 from cryptojwt.utils import as_bytes
-from oidcendpoint.authn_event import create_authn_event
+from oidcop.authn_event import create_authn_event
 from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oauth2 import ResponseMessage
 

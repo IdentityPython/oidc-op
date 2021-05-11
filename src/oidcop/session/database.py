@@ -1,11 +1,17 @@
+import base64
 import logging
 from typing import List
+from typing import Optional
 from typing import Union
 
 from oidcmsg.impexp import ImpExp
 from oidcmsg.item import DLDict
 
-from . import session_key
+from oidcop import rndstr
+from oidcop.constant import DIVIDER
+from oidcop.util import Crypt
+from oidcop.util import lv_pack
+from oidcop.util import lv_unpack
 from .grant import Grant
 from .info import ClientSessionInfo
 from .info import SessionInfo
@@ -24,12 +30,19 @@ class NoSuchGrant(KeyError):
 
 class Database(ImpExp):
     parameter = {
-        "db": DLDict
+        "db": DLDict,
+        "key": ""
     }
 
-    def __init__(self):
+    def __init__(self, key: Optional[str] = ""):
         ImpExp.__init__(self)
         self.db = DLDict()
+
+        if not key:
+            key = rndstr(24)
+
+        self.key = key
+        self.crypt = Crypt(key)
 
     @staticmethod
     def _eval_path(path: List[str]):
@@ -53,11 +66,11 @@ class Database(ImpExp):
         uid, client_id, grant_id = self._eval_path(path)
 
         if grant_id:
-            gid_key = session_key(uid, client_id, grant_id)
+            gid_key = self.session_key(uid, client_id, grant_id)
             self.db[gid_key] = value
 
         if client_id:
-            cid_key = session_key(uid, client_id)
+            cid_key = self.session_key(uid, client_id)
             cid_info = self.db.get(cid_key, ClientSessionInfo())
             if not grant_id:
                 self.db[cid_key] = value
@@ -89,7 +102,7 @@ class Database(ImpExp):
                 raise ValueError('No session from that client for that user')
             else:
                 try:
-                    client_session_info = self.db[session_key(uid, client_id)]
+                    client_session_info = self.db[self.session_key(uid, client_id)]
                 except KeyError:
                     raise NoSuchClientSession(client_id)
                 else:
@@ -101,7 +114,7 @@ class Database(ImpExp):
                             'No such grant for that user and client')
                     else:
                         try:
-                            return self.db[session_key(uid, client_id, grant_id)]
+                            return self.db[self.session_key(uid, client_id, grant_id)]
                         except KeyError:
                             raise NoSuchGrant(grant_id)
 
@@ -115,7 +128,7 @@ class Database(ImpExp):
             if client_id:
                 if client_id in _user_info.subordinate:
                     try:
-                        _client_info = self.db[session_key(uid, client_id)]
+                        _client_info = self.db[self.session_key(uid, client_id)]
                     except KeyError:
                         pass
                     else:
@@ -123,18 +136,18 @@ class Database(ImpExp):
                             if grant_id in _client_info.subordinate:
                                 try:
                                     self.db.__delitem__(
-                                        session_key(uid, client_id, grant_id))
+                                        self.session_key(uid, client_id, grant_id))
                                 except KeyError:
                                     pass
                                 _client_info.subordinate.remove(grant_id)
                         else:
                             for grant_id in _client_info.subordinate:
                                 self.db.__delitem__(
-                                    session_key(uid, client_id, grant_id))
+                                    self.session_key(uid, client_id, grant_id))
                             _client_info.subordinate = []
 
                         if len(_client_info.subordinate) == 0:
-                            self.db.__delitem__(session_key(uid, client_id))
+                            self.db.__delitem__(self.session_key(uid, client_id))
                             _user_info.subordinate.remove(client_id)
                         else:
                             self.db[client_id] = _client_info
@@ -153,3 +166,22 @@ class Database(ImpExp):
         for key, val in new_info.items():
             setattr(_info, key, val)
         self.set(path, _info)
+
+    def session_key(self, *args):
+        return DIVIDER.join(args)
+
+    def unpack_session_key(self, key):
+        return key.split(DIVIDER)
+
+    def encrypted_session_id(self, *args) -> str:
+        rnd = rndstr(32)
+        return base64.b64encode(
+            self.crypt.encrypt(lv_pack(rnd, self.session_key(*args)).encode())).decode("utf-8")
+
+    def decrypt_session_id(self, key: str) -> List[str]:
+        try:
+            plain = self.crypt.decrypt(base64.b64decode(key))
+        except Exception as err:
+            raise ValueError(err)
+        # order: rnd, type, sid
+        return self.unpack_session_key(lv_unpack(plain)[1])

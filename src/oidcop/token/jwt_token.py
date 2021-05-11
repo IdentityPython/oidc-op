@@ -117,5 +117,5 @@ class JWTToken(Token):
         return is_expired(_payload["exp"], when)
 
     def gather_args(self, sid, sdb, udb):
-        sdb[sid]
+        # sdb[sid]
         return {}

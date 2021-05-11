@@ -23,7 +23,6 @@ from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
 from oidcop.session import MintingNotAllowed
-from oidcop.session import session_key
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_info import UserInfo
 
@@ -209,7 +208,7 @@ class TestEndpoint(object):
                                                    sub_type=sub_type)
 
     def _mint_code(self, grant, client_id):
-        session_id = session_key(self.user_id, client_id, grant.id)
+        session_id = self.session_manager.encrypted_session_id(self.user_id, client_id, grant.id)
         usage_rules = grant.usage_rules.get("authorization_code", {})
         _exp_in = usage_rules.get("expires_in")
 
