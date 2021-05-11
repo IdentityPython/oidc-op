@@ -97,26 +97,28 @@ class Database(ImpExp):
 
         if client_id is None:
             return user_info
-        else:
-            if client_id not in user_info.subordinate:
-                raise ValueError('No session from that client for that user')
-            else:
-                try:
-                    client_session_info = self.db[self.session_key(uid, client_id)]
-                except KeyError:
-                    raise NoSuchClientSession(client_id)
-                else:
-                    if grant_id is None:
-                        return client_session_info
 
-                    if grant_id not in client_session_info.subordinate:
-                        raise ValueError(
-                            'No such grant for that user and client')
-                    else:
-                        try:
-                            return self.db[self.session_key(uid, client_id, grant_id)]
-                        except KeyError:
-                            raise NoSuchGrant(grant_id)
+        if client_id not in user_info.subordinate:
+            raise ValueError('No session from that client for that user')
+
+        try:
+            skey = self.session_key(uid, client_id)
+            client_session_info = self.db[skey]
+        except KeyError:
+            raise NoSuchClientSession(client_id)
+
+        if grant_id is None:
+            return client_session_info
+
+        if grant_id not in client_session_info.subordinate:
+            raise ValueError(
+                'No such grant for that user and client')
+        else:
+            try:
+                skey = self.session_key(uid, client_id, grant_id)
+                return self.db[skey]
+            except KeyError:
+                raise NoSuchGrant(grant_id)
 
     def delete(self, path: List[str]):
         uid, client_id, grant_id = self._eval_path(path)
