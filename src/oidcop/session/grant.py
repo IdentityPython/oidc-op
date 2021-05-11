@@ -57,6 +57,15 @@ TOKEN_MAP = {
 }
 
 
+def issued_token_load(items, **kwargs):
+    res = []
+    for item in items:
+        _cls = TOKEN_MAP[item["type"]]
+        _cls = _cls().load(item)
+        res.append(_cls)
+    return res
+
+
 class Grant(Item):
     parameter = Item.parameter.copy()
     parameter.update({
@@ -70,6 +79,11 @@ class Grant(Item):
         "sub": "",
     })
     type = "grant"
+    special_load_dump={
+        "issued_token": {
+            "load": issued_token_load
+        }
+    }
 
     def __init__(self,
                  scope: Optional[list] = None,
@@ -158,8 +172,7 @@ class Grant(Item):
 
         if based_on:
             if based_on.supports_minting(token_type) is False:
-                raise MintingNotAllowed(
-                    f"Minting of {token_type} not supported")
+                raise MintingNotAllowed(f"Minting of {token_type} not supported")
             if not based_on.is_active():
                 raise MintingNotAllowed("Token inactive")
             _base_on_ref = based_on.value
