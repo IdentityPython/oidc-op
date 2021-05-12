@@ -95,7 +95,7 @@ def token_map_dump(info: dict, **kwargs):
     return {k: qualified_name(v) for k,v in info.items()}
 
 
-def token_map_load(items:dict, **kwargs):
+def token_map_load(items: dict, **kwargs):
     return {k: importer(v) for k,v in items.items()}
 
 
