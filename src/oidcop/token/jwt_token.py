@@ -48,6 +48,10 @@ class JWTToken(Token):
         self.def_aud = aud or []
         self.alg = alg
 
+    def load_claims(self, payload:dict={}):
+        # inherit me and do your things here
+        return payload
+
     def __call__(self,
                  session_id: Optional[str] = '',
                  ttype: Optional[str] = '',
@@ -66,7 +70,12 @@ class JWTToken(Token):
         else:
             ttype = "A"
 
-        payload.update({"sid": session_id, "ttype": ttype})
+        payload.update(
+            {"sid": session_id,
+             "ttype": ttype
+            }
+        )
+        payload = self.load_claims(payload)
 
         # payload.update(kwargs)
         signer = JWT(
