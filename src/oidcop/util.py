@@ -7,10 +7,12 @@ from urllib.parse import parse_qs
 from urllib.parse import urlparse
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
+import uuid
 
 from cryptography.fernet import Fernet
 from cryptojwt import as_unicode
 from cryptojwt.utils import as_bytes
+from oidcop.session.info import SessionInfo
 
 from oidcop.exception import OidcEndpointError
 
@@ -238,3 +240,18 @@ def sector_id_from_redirect_uris(uris):
             )
 
     return urlunsplit((scheme, hostname, "", "", ""))
+
+
+def get_logout_id(endpoint_context, user_id, client_id):
+    _item = SessionInfo()
+    _item.user_id = user_id
+    _item.client_id = client_id
+
+    # Note that this session ID is not the session ID the session manager is using.
+    # It must be possible to map from one to the other.
+    logout_session_id = uuid.uuid4().hex
+    # Store the map
+    _mngr = endpoint_context.session_manager
+    _mngr.set([logout_session_id], _item)
+
+    return logout_session_id

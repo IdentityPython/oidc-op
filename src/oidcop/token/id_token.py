@@ -1,5 +1,4 @@
 import logging
-import uuid
 from typing import Callable
 from typing import Optional
 
@@ -11,11 +10,10 @@ from cryptojwt.jwt import JWT
 from oidcop.construct import construct_endpoint_info
 from oidcop.exception import ToOld
 from oidcop.session.claims import claims_match
-from oidcop.session.info import SessionInfo
 from oidcop.token import is_expired
-
 from . import Token
 from . import UnknownToken
+from ..util import get_logout_id
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +58,7 @@ def include_session_id(endpoint_context, client_id, where):
 
 
 def get_sign_and_encrypt_algorithms(
-    endpoint_context, client_info, payload_type, sign=False, encrypt=False
+        endpoint_context, client_info, payload_type, sign=False, encrypt=False
 ):
     args = {"sign": sign, "encrypt": encrypt}
     if sign:
@@ -125,11 +123,11 @@ class IDToken(Token):
     }
 
     def __init__(
-        self,
-        typ: Optional[str] = "I",
-        lifetime: Optional[int] = 300,
-        server_get: Callable = None,
-        **kwargs
+            self,
+            typ: Optional[str] = "I",
+            lifetime: Optional[int] = 300,
+            server_get: Callable = None,
+            **kwargs
     ):
         Token.__init__(self, typ, **kwargs)
         self.lifetime = lifetime
@@ -141,7 +139,7 @@ class IDToken(Token):
         )
 
     def payload(
-        self, session_id, alg="RS256", code=None, access_token=None, extra_claims=None,
+            self, session_id, alg="RS256", code=None, access_token=None, extra_claims=None,
     ):
         """
 
@@ -211,15 +209,15 @@ class IDToken(Token):
         return _args
 
     def sign_encrypt(
-        self,
-        session_id,
-        client_id,
-        code=None,
-        access_token=None,
-        sign=True,
-        encrypt=False,
-        lifetime=None,
-        extra_claims=None,
+            self,
+            session_id,
+            client_id,
+            code=None,
+            access_token=None,
+            sign=True,
+            encrypt=False,
+            lifetime=None,
+            extra_claims=None,
     ) -> str:
         """
         Signed and or encrypt a IDToken
@@ -258,7 +256,7 @@ class IDToken(Token):
         return _jwt.pack(_payload, recv=client_id)
 
     def __call__(
-        self, session_id: Optional[str] = "", ttype: Optional[str] = "", **kwargs
+            self, session_id: Optional[str] = "", ttype: Optional[str] = "", **kwargs
     ) -> str:
         _context = self.server_get("endpoint_context")
 
@@ -267,21 +265,10 @@ class IDToken(Token):
         )
 
         # Should I add session ID. This is about Single Logout.
-        if include_session_id(_context, client_id, "back") or include_session_id(
-            _context, client_id, "front"
-        ):
+        if include_session_id(_context, client_id, "back") or \
+                include_session_id(_context, client_id, "front"):
 
-            # Note that this session ID is not the session ID the session manager is using.
-            # It must be possible to map from one to the other.
-            logout_session_id = uuid.uuid4().hex
-            _item = SessionInfo()
-            _item.user_id = user_id
-            _item.client_id = client_id
-            # Store the map
-            _mngr = _context.session_manager
-            _mngr.set([logout_session_id], _item)
-            # add identifier to extra arguments
-            xargs = {"sid": logout_session_id}
+            xargs = {"sid": get_logout_id(_context, user_id=user_id, client_id=client_id)}
         else:
             xargs = {}
 

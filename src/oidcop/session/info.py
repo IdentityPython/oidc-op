@@ -4,9 +4,6 @@ from typing import Tuple
 
 from oidcmsg.impexp import ImpExp
 
-from oidcop.session.grant import Grant
-from oidcop.session.token import SessionToken
-
 
 class SessionInfo(ImpExp):
     parameter = {"subordinate": [], "revoked": bool, "type": "", "extra_args": {}}
@@ -67,7 +64,7 @@ class ClientSessionInfo(SessionInfo):
         self.client_id = kwargs.get("client_id", "")
         self.extra_args = {k: v for k, v in kwargs.items() if k not in self.parameter}
 
-    def find_grant_and_token(self, val: str) -> Tuple[Grant, SessionToken]:
+    def find_grant_and_token(self, val: str) -> Tuple["Grant", "SessionToken"]:
         for grant in self.subordinate:
             token = grant.get_token(val)
             if token:
