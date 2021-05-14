@@ -28,6 +28,10 @@ class NoSuchGrant(KeyError):
     pass
 
 
+class InconsistentDatabase(TypeError):
+    pass
+
+
 class Database(ImpExp):
     parameter = {
         "db": DLDict,
@@ -91,6 +95,8 @@ class Database(ImpExp):
             user_info = self.db[uid]
         except KeyError:
             raise KeyError('No such UserID')
+        except TypeError:
+            raise InconsistentDatabase('Missing session db')
         else:
             if user_info is None:
                 raise KeyError('No such UserID')
