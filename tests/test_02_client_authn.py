@@ -3,23 +3,24 @@ import base64
 import pytest
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import JWT
-from cryptojwt.key_jar import KeyJar, build_keyjar
-from cryptojwt.utils import as_bytes, as_unicode
+from cryptojwt.key_jar import KeyJar
+from cryptojwt.key_jar import build_keyjar
+from cryptojwt.utils import as_bytes
+from cryptojwt.utils import as_unicode
 
 from oidcop import JWT_BEARER
-from oidcop.client_authn import (
-    AuthnFailure,
-    BearerBody,
-    BearerHeader,
-    ClientSecretBasic,
-    ClientSecretJWT,
-    ClientSecretPost,
-    JWSAuthnMethod,
-    PrivateKeyJWT,
-    basic_authn,
-    verify_client,
-)
-from oidcop.exception import MultipleUsage, NotForMe
+from oidcop.client_authn import AuthnFailure
+from oidcop.client_authn import BearerBody
+from oidcop.client_authn import BearerHeader
+from oidcop.client_authn import ClientSecretBasic
+from oidcop.client_authn import ClientSecretJWT
+from oidcop.client_authn import ClientSecretPost
+from oidcop.client_authn import JWSAuthnMethod
+from oidcop.client_authn import PrivateKeyJWT
+from oidcop.client_authn import basic_authn
+from oidcop.client_authn import verify_client
+from oidcop.exception import MultipleUsage
+from oidcop.exception import NotForMe
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token

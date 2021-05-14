@@ -5,27 +5,26 @@ import logging
 import secrets
 import time
 from typing import List
-from urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode
+from urllib.parse import urlparse
 
 from cryptojwt.jws.utils import alg2keytype
 from cryptojwt.utils import as_bytes
 from oidcmsg.exception import MessageException
 from oidcmsg.oauth2 import ResponseMessage
-from oidcmsg.oidc import (
-    ClientRegistrationErrorResponse,
-    RegistrationRequest,
-    RegistrationResponse,
-)
+from oidcmsg.oidc import ClientRegistrationErrorResponse
+from oidcmsg.oidc import RegistrationRequest
+from oidcmsg.oidc import RegistrationResponse
 from oidcmsg.time_util import utc_time_sans_frac
 
-from oidcop import rndstr, sanitize
+from oidcop import rndstr
+from oidcop import sanitize
 from oidcop.endpoint import Endpoint
-from oidcop.exception import (
-    CapabilitiesMisMatch,
-    InvalidRedirectURIError,
-    InvalidSectorIdentifier,
-)
-from oidcop.util import importer, split_uri
+from oidcop.exception import CapabilitiesMisMatch
+from oidcop.exception import InvalidRedirectURIError
+from oidcop.exception import InvalidSectorIdentifier
+from oidcop.util import importer
+from oidcop.util import split_uri
 
 PREFERENCE2PROVIDER = {
     # "require_signed_request_object": "request_object_algs_supported",

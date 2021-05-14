@@ -1,5 +1,6 @@
 import logging
-from typing import Optional, Union
+from typing import Optional
+from typing import Union
 
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
@@ -7,14 +8,18 @@ from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg import oidc
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
-from oidcmsg.oidc import RefreshAccessTokenRequest, TokenErrorResponse
+from oidcmsg.oidc import RefreshAccessTokenRequest
+from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import time_sans_frac
 
 from oidcop import sanitize
 from oidcop.endpoint import Endpoint
 from oidcop.exception import ProcessError
-from oidcop.session.grant import AuthorizationCode, Grant, RefreshToken
-from oidcop.session.token import MintingNotAllowed, SessionToken
+from oidcop.session.grant import AuthorizationCode
+from oidcop.session.grant import Grant
+from oidcop.session.grant import RefreshToken
+from oidcop.session.token import MintingNotAllowed
+from oidcop.session.token import SessionToken
 from oidcop.token.exception import UnknownToken
 from oidcop.util import importer
 
@@ -27,9 +32,9 @@ class TokenEndpointHelper(object):
         self.config = config
         self.error_cls = self.endpoint.error_cls
 
-    def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
-    ):
+    def post_parse_request(self, request: Union[Message, dict],
+                           client_id: Optional[str] = "",
+                           **kwargs):
         """Context specific parsing of the request.
         This is done after general request parsing and before processing
         the request.

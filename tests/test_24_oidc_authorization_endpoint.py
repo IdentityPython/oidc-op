@@ -1,54 +1,56 @@
 import io
 import json
 import os
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 import pytest
 import responses
 import yaml
-from cryptojwt import JWT, KeyJar
-from cryptojwt.utils import as_bytes, b64e
-from oidcmsg.exception import ParameterError, URIError
-from oidcmsg.oauth2 import AuthorizationErrorResponse, ResponseMessage
-from oidcmsg.oidc import (
-    AuthorizationRequest,
-    AuthorizationResponse,
-    verified_claim_name,
-    verify_id_token,
-)
+from cryptojwt import JWT
+from cryptojwt import KeyJar
+from cryptojwt.utils import as_bytes
+from cryptojwt.utils import b64e
+from oidcmsg.exception import ParameterError
+from oidcmsg.exception import URIError
+from oidcmsg.oauth2 import AuthorizationErrorResponse
+from oidcmsg.oauth2 import ResponseMessage
+from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.oidc import AuthorizationResponse
+from oidcmsg.oidc import verified_claim_name
+from oidcmsg.oidc import verify_id_token
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.cookie_handler import CookieHandler
-from oidcop.endpoint_context import init_service, init_user_info
-from oidcop.exception import (
-    NoSuchAuthentication,
-    RedirectURIError,
-    ServiceError,
-    ToOld,
-    UnknownClient,
-)
+from oidcop.endpoint_context import init_service
+from oidcop.endpoint_context import init_user_info
+from oidcop.exception import NoSuchAuthentication
+from oidcop.exception import RedirectURIError
+from oidcop.exception import ServiceError
+from oidcop.exception import ToOld
+from oidcop.exception import UnknownClient
 from oidcop.login_hint import LoginHint2Acrs
-from oidcop.oauth2.authorization import (
-    authn_args_gather,
-    get_uri,
-    inputs,
-    join_query,
-    verify_uri,
-)
+from oidcop.oauth2.authorization import authn_args_gather
+from oidcop.oauth2.authorization import get_uri
+from oidcop.oauth2.authorization import inputs
+from oidcop.oauth2.authorization import join_query
+from oidcop.oauth2.authorization import verify_uri
 from oidcop.oidc import userinfo
-from oidcop.oidc.authorization import Authorization, acr_claims, re_authenticate
+from oidcop.oidc.authorization import Authorization
+from oidcop.oidc.authorization import acr_claims
+from oidcop.oidc.authorization import re_authenticate
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
 from oidcop.session.grant import Grant
-from oidcop.user_authn.authn_context import (
-    INTERNETPROTOCOLPASSWORD,
-    UNSPECIFIED,
-    init_method,
-)
-from oidcop.user_authn.user import NoAuthn, UserAuthnMethod, UserPassJinja2
+from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcop.user_authn.authn_context import UNSPECIFIED
+from oidcop.user_authn.authn_context import init_method
+from oidcop.user_authn.user import NoAuthn
+from oidcop.user_authn.user import UserAuthnMethod
+from oidcop.user_authn.user import UserPassJinja2
 from oidcop.user_info import UserInfo
 from oidcop.util import JSONDictDB
 

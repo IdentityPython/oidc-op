@@ -1,16 +1,22 @@
 import base64
 import logging
-from typing import List, Optional, Union
+from typing import List
+from typing import Optional
+from typing import Union
 
 from oidcmsg.impexp import ImpExp
 from oidcmsg.item import DLDict
 
 from oidcop import rndstr
 from oidcop.constant import DIVIDER
-from oidcop.util import Crypt, lv_pack, lv_unpack
+from oidcop.util import Crypt
+from oidcop.util import lv_pack
+from oidcop.util import lv_unpack
 
 from .grant import Grant
-from .info import ClientSessionInfo, SessionInfo, UserSessionInfo
+from .info import ClientSessionInfo
+from .info import SessionInfo
+from .info import UserSessionInfo
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +26,10 @@ class NoSuchClientSession(KeyError):
 
 
 class NoSuchGrant(KeyError):
+    pass
+
+
+class InconsistentDatabase(TypeError):
     pass
 
 
@@ -82,16 +92,18 @@ class Database(ImpExp):
         try:
             user_info = self.db[uid]
         except KeyError:
-            raise KeyError("No such UserID")
+            raise KeyError('No such UserID')
+        except TypeError:
+            raise InconsistentDatabase('Missing session db')
         else:
             if user_info is None:
-                raise KeyError("No such UserID")
+                raise KeyError('No such UserID')
 
         if client_id is None:
             return user_info
 
         if client_id not in user_info.subordinate:
-            raise ValueError("No session from that client for that user")
+            raise ValueError('No session from that client for that user')
 
         try:
             skey = self.session_key(uid, client_id)
@@ -103,7 +115,8 @@ class Database(ImpExp):
             return client_session_info
 
         if grant_id not in client_session_info.subordinate:
-            raise ValueError("No such grant for that user and client")
+            raise ValueError(
+                'No such grant for that user and client')
         else:
             try:
                 skey = self.session_key(uid, client_id, grant_id)
@@ -129,16 +142,14 @@ class Database(ImpExp):
                             if grant_id in _client_info.subordinate:
                                 try:
                                     self.db.__delitem__(
-                                        self.session_key(uid, client_id, grant_id)
-                                    )
+                                        self.session_key(uid, client_id, grant_id))
                                 except KeyError:
                                     pass
                                 _client_info.subordinate.remove(grant_id)
                         else:
                             for grant_id in _client_info.subordinate:
                                 self.db.__delitem__(
-                                    self.session_key(uid, client_id, grant_id)
-                                )
+                                    self.session_key(uid, client_id, grant_id))
                             _client_info.subordinate = []
 
                         if len(_client_info.subordinate) == 0:

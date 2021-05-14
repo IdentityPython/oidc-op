@@ -1,9 +1,12 @@
 import json
 import logging
-from typing import Callable, Optional, Union
+from typing import Callable
+from typing import Optional
+from typing import Union
 
 from cryptojwt.exception import MissingValue
-from cryptojwt.jwt import JWT, utc_time_sans_frac
+from cryptojwt.jwt import JWT
+from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg import oidc
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage

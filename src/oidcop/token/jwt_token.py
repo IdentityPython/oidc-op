@@ -1,12 +1,15 @@
-from typing import Callable, Optional
+from typing import Callable
+from typing import Optional
 
-from cryptojwt import JWT, KeyJar
+from cryptojwt import JWT
+from cryptojwt import KeyJar
 from cryptojwt.jws.exception import JWSException
 
 from oidcop.exception import ToOld
 from oidcop.token import Crypt
 
-from . import Token, is_expired
+from . import Token
+from . import is_expired
 from .exception import UnknownToken
 
 TYPE_MAP = {"A": "code", "T": "access_token", "R": "refresh_token"}

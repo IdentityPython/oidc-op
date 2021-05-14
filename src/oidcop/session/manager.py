@@ -2,7 +2,8 @@ import hashlib
 import logging
 import os
 import uuid
-from typing import List, Optional
+from typing import List
+from typing import Optional
 
 from oidcmsg.oauth2 import AuthorizationRequest
 
@@ -15,8 +16,10 @@ from oidcop.util import Crypt
 from ..token import UnknownToken
 from ..token.handler import TokenHandler
 from .database import Database
-from .grant import Grant, SessionToken
-from .info import ClientSessionInfo, UserSessionInfo
+from .grant import Grant
+from .grant import SessionToken
+from .info import ClientSessionInfo
+from .info import UserSessionInfo
 
 logger = logging.getLogger(__name__)
 

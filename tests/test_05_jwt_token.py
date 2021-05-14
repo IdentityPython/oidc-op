@@ -3,7 +3,8 @@ import os
 import pytest
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import init_key_jar
-from oidcmsg.oidc import AccessTokenRequest, AuthorizationRequest
+from oidcmsg.oidc import AccessTokenRequest
+from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac
 
 from oidcop import user_info

@@ -4,8 +4,12 @@ from oidcmsg.oidc import AuthorizationRequest
 
 from oidcop.authn_event import create_authn_event
 from oidcop.server import Server
-from oidcop.session.grant import TOKEN_MAP, Grant, find_token, get_usage_rules
-from oidcop.session.token import AuthorizationCode, SessionToken
+from oidcop.session.grant import TOKEN_MAP
+from oidcop.session.grant import Grant
+from oidcop.session.grant import find_token
+from oidcop.session.grant import get_usage_rules
+from oidcop.session.token import AuthorizationCode
+from oidcop.session.token import SessionToken
 from oidcop.token import DefaultToken
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 

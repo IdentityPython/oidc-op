@@ -1,4 +1,6 @@
-from typing import Any, Optional, Union
+from typing import Any
+from typing import Optional
+from typing import Union
 
 from cryptojwt import KeyJar
 from oidcmsg.impexp import ImpExp
@@ -7,11 +9,14 @@ from oidcop import authz
 from oidcop.client_authn import client_auth_setup
 from oidcop.configure import OPConfiguration
 from oidcop.endpoint import Endpoint
-from oidcop.endpoint_context import EndpointContext, init_service, init_user_info
+from oidcop.endpoint_context import EndpointContext
+from oidcop.endpoint_context import init_service
+from oidcop.endpoint_context import init_user_info
 from oidcop.session.claims import ClaimsInterface
 from oidcop.session.manager import create_session_manager
 from oidcop.user_authn.authn_context import populate_authn_broker
-from oidcop.util import allow_refresh_token, build_endpoints
+from oidcop.util import allow_refresh_token
+from oidcop.util import build_endpoints
 
 
 def do_endpoints(conf, server_get):

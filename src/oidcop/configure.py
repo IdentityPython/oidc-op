@@ -4,7 +4,9 @@ import importlib
 import json
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Dict
+from typing import List
+from typing import Optional
 
 from oidcop.logging import configure_logging
 from oidcop.utils import load_yaml_config

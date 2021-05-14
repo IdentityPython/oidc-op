@@ -1,6 +1,7 @@
 from oidcmsg.time_util import time_sans_frac
 
-from oidcop.session.token import AccessToken, AuthorizationCode
+from oidcop.session.token import AccessToken
+from oidcop.session.token import AuthorizationCode
 
 
 def test_authorization_code_default():

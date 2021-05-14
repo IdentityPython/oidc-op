@@ -1,20 +1,25 @@
 import json
 import logging
-from typing import Any, Optional, Union
+from typing import Any
+from typing import Optional
+from typing import Union
 
 import requests
 from cryptojwt import KeyJar
 from cryptojwt.utils import as_bytes
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment
+from jinja2 import FileSystemLoader
 from oidcmsg.context import OidcContext
 
 from oidcop import rndstr
 from oidcop.configure import OPConfiguration
-from oidcop.scopes import SCOPE2CLAIMS, Scopes
+from oidcop.scopes import SCOPE2CLAIMS
+from oidcop.scopes import Scopes
 from oidcop.session.claims import STANDARD_CLAIMS
 from oidcop.session.manager import SessionManager
 from oidcop.template_handler import Jinja2TemplateHandler
-from oidcop.util import get_http_params, importer
+from oidcop.util import get_http_params
+from oidcop.util import importer
 
 logger = logging.getLogger(__name__)
 

@@ -1,21 +1,28 @@
 import json
 import logging
-from typing import Optional, Union
-from urllib.parse import parse_qs, urlencode, urlparse
+from typing import Optional
+from typing import Union
+from urllib.parse import parse_qs
+from urllib.parse import urlencode
+from urllib.parse import urlparse
 
-from cryptojwt import as_unicode, b64d
+from cryptojwt import as_unicode
+from cryptojwt import b64d
 from cryptojwt.jwe.aes import AES_GCMEncrypter
 from cryptojwt.jwe.utils import split_ctx_and_tag
 from cryptojwt.jws.exception import JWSException
 from cryptojwt.jws.jws import factory
 from cryptojwt.jws.utils import alg2keytype
 from cryptojwt.jwt import JWT
-from cryptojwt.utils import as_bytes, b64e
-from oidcmsg.exception import InvalidRequest, VerificationError
+from cryptojwt.utils import as_bytes
+from cryptojwt.utils import b64e
+from oidcmsg.exception import InvalidRequest
+from oidcmsg.exception import VerificationError
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import verified_claim_name
-from oidcmsg.oidc.session import BACK_CHANNEL_LOGOUT_EVENT, EndSessionRequest
+from oidcmsg.oidc.session import BACK_CHANNEL_LOGOUT_EVENT
+from oidcmsg.oidc.session import EndSessionRequest
 
 from oidcop import rndstr
 from oidcop.client_authn import UnknownOrNoAuthnMethod

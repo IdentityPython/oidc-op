@@ -6,9 +6,11 @@ from http.cookies import SimpleCookie
 import pytest
 import responses
 import yaml
-from cryptojwt import JWT, KeyJar
+from cryptojwt import JWT
+from cryptojwt import KeyJar
 from cryptojwt.jwt import utc_time_sans_frac
-from oidcmsg.oauth2 import AuthorizationRequest, JWTSecuredAuthorizationRequest
+from oidcmsg.oauth2 import AuthorizationRequest
+from oidcmsg.oauth2 import JWTSecuredAuthorizationRequest
 from oidcmsg.time_util import in_a_while
 
 from oidcop.cookie_handler import CookieHandler

@@ -1,25 +1,22 @@
-import base64
-from typing import List, Optional, Tuple
+from typing import List
+from typing import Optional
+from typing import Tuple
 
 from oidcmsg.impexp import ImpExp
 
-from oidcop import rndstr
-from oidcop.constant import DIVIDER
 from oidcop.session.grant import Grant
 from oidcop.session.token import SessionToken
-from oidcop.token import Crypt
-from oidcop.util import lv_pack, lv_unpack
 
 
 class SessionInfo(ImpExp):
     parameter = {"subordinate": [], "revoked": bool, "type": "", "extra_args": {}}
 
     def __init__(
-        self,
-        subordinate: Optional[List[str]] = None,
-        revoked: Optional[bool] = False,
-        type: Optional[str] = "",
-        **kwargs
+            self,
+            subordinate: Optional[List[str]] = None,
+            revoked: Optional[bool] = False,
+            type: Optional[str] = "",
+            **kwargs
     ):
         ImpExp.__init__(self)
         self.subordinate = subordinate or []
@@ -50,7 +47,7 @@ class SessionInfo(ImpExp):
 class UserSessionInfo(SessionInfo):
     parameter = SessionInfo.parameter.copy()
     parameter.update(
-        {"user_id": "",}
+        {"user_id": "", }
     )
 
     def __init__(self, **kwargs):

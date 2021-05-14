@@ -12,12 +12,10 @@ from urllib.parse import unquote
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptojwt.jwt import JWT
 
-from oidcop.exception import (
-    FailedAuthentication,
-    ImproperlyConfigured,
-    InvalidCookieSign,
-    OnlyForTestingWarning,
-)
+from oidcop.exception import FailedAuthentication
+from oidcop.exception import ImproperlyConfigured
+from oidcop.exception import InvalidCookieSign
+from oidcop.exception import OnlyForTestingWarning
 from oidcop.util import instantiate
 
 __author__ = "Roland Hedberg"

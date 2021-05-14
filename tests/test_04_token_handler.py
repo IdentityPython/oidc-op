@@ -8,8 +8,11 @@ import pytest
 
 from oidcop.endpoint import Endpoint
 from oidcop.server import Server
-from oidcop.token import Crypt, is_expired
-from oidcop.token.handler import DefaultToken, TokenHandler, factory
+from oidcop.token import Crypt
+from oidcop.token import is_expired
+from oidcop.token.handler import DefaultToken
+from oidcop.token.handler import TokenHandler
+from oidcop.token.handler import factory
 from oidcop.token.jwt_token import JWTToken
 
 

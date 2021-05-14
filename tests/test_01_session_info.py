@@ -1,7 +1,9 @@
 import pytest
 from oidcmsg.oauth2 import AuthorizationRequest
 
-from oidcop.session.info import ClientSessionInfo, SessionInfo, UserSessionInfo
+from oidcop.session.info import ClientSessionInfo
+from oidcop.session.info import SessionInfo
+from oidcop.session.info import UserSessionInfo
 
 AUTH_REQ = AuthorizationRequest(
     client_id="client_1",

@@ -2,7 +2,8 @@ import pytest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac
 
-from oidcop.authn_event import AuthnEvent, create_authn_event
+from oidcop.authn_event import AuthnEvent
+from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.token import Token
@@ -10,7 +11,9 @@ from oidcop.server import Server
 from oidcop.session import MintingNotAllowed
 from oidcop.session.grant import Grant
 from oidcop.session.info import ClientSessionInfo
-from oidcop.session.token import AccessToken, AuthorizationCode, RefreshToken
+from oidcop.session.token import AccessToken
+from oidcop.session.token import AuthorizationCode
+from oidcop.session.token import RefreshToken
 
 AUTH_REQ = AuthorizationRequest(
     client_id="client_1",

@@ -1,14 +1,17 @@
 import copy
 import json
 import os
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 import pytest
 import responses
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.exception import InvalidRequest
 from oidcmsg.message import Message
-from oidcmsg.oidc import AuthorizationRequest, verified_claim_name, verify_id_token
+from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.oidc import verified_claim_name
+from oidcmsg.oidc import verify_id_token
 
 from oidcop.cookie_handler import CookieHandler
 from oidcop.exception import RedirectURIError
@@ -17,7 +20,8 @@ from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
-from oidcop.oidc.session import Session, do_front_channel_logout_iframe
+from oidcop.oidc.session import Session
+from oidcop.oidc.session import do_front_channel_logout_iframe
 from oidcop.oidc.token import Token
 from oidcop.server import Server
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD

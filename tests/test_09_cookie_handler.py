@@ -1,7 +1,8 @@
 import pytest
 from cryptojwt.jwk.hmac import SYMKey
 
-from oidcop.cookie_handler import CookieHandler, compute_session_state
+from oidcop.cookie_handler import CookieHandler
+from oidcop.cookie_handler import compute_session_state
 
 KEYDEFS = [
     {"type": "OCT", "kid": "sig", "use": ["sig"]},

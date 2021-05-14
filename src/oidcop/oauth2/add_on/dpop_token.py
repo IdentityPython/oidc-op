@@ -6,7 +6,8 @@ from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg.message import Message
 
-from oidcop.oidc.token import AccessTokenHelper, RefreshTokenHelper
+from oidcop.oidc.token import AccessTokenHelper
+from oidcop.oidc.token import RefreshTokenHelper
 
 logger = logging.getLogger(__name__)
 

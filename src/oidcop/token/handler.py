@@ -9,7 +9,10 @@ from cryptojwt.utils import as_unicode
 from oidcmsg.impexp import ImpExp
 from oidcmsg.item import DLDict
 
-from oidcop.token import DefaultToken, Token, UnknownToken, WrongTokenType
+from oidcop.token import DefaultToken
+from oidcop.token import Token
+from oidcop.token import UnknownToken
+from oidcop.token import WrongTokenType
 from oidcop.util import importer
 
 __author__ = "Roland Hedberg"

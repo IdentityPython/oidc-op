@@ -1,5 +1,6 @@
 from oidcmsg import oidc
-from oidcmsg.oidc import JRD, Link
+from oidcmsg.oidc import JRD
+from oidcmsg.oidc import Link
 
 from oidcop.endpoint import Endpoint
 

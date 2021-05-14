@@ -1,4 +1,5 @@
-from typing import List, Optional
+from typing import List
+from typing import Optional
 from uuid import uuid1
 
 from oidcmsg.impexp import ImpExp
@@ -7,15 +8,13 @@ from oidcmsg.oauth2 import AuthorizationRequest
 
 from oidcop.authn_event import AuthnEvent
 from oidcop.session import MintingNotAllowed
-from oidcop.session.token import (
-    AccessToken,
-    AuthorizationCode,
-    IDToken,
-    Item,
-    RefreshToken,
-    SessionToken,
-)
+from oidcop.session.token import AccessToken
+from oidcop.session.token import AuthorizationCode
+from oidcop.session.token import Item
+from oidcop.session.token import RefreshToken
+from oidcop.session.token import SessionToken
 from oidcop.token import Token as TokenHandler
+from oidcop.token.id_token import IDToken
 from oidcop.util import importer
 
 

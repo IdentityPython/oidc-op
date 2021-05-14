@@ -3,12 +3,15 @@ import json
 import os
 
 import pytest
-from cryptojwt import JWT, as_unicode
+from cryptojwt import JWT
+from cryptojwt import as_unicode
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.utils import as_bytes
 from oidcmsg.oauth2 import TokenIntrospectionRequest
-from oidcmsg.oidc import AccessTokenRequest, AuthorizationRequest
-from oidcmsg.time_util import time_sans_frac, utc_time_sans_frac
+from oidcmsg.oidc import AccessTokenRequest
+from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling

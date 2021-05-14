@@ -2,7 +2,8 @@ import json
 import os
 
 import pytest
-from cryptojwt import JWT, KeyJar
+from cryptojwt import JWT
+from cryptojwt import KeyJar
 from cryptojwt.jws.jws import factory
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac

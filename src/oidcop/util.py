@@ -3,7 +3,10 @@ import hashlib
 import importlib
 import json
 import logging
-from urllib.parse import parse_qs, urlparse, urlsplit, urlunsplit
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
+from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
 
 from cryptography.fernet import Fernet
 from cryptojwt import as_unicode

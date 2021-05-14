@@ -4,7 +4,8 @@ import os
 import pytest
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oauth2 import TokenExchangeRequest
-from oidcmsg.oidc import AccessTokenRequest, AuthorizationRequest
+from oidcmsg.oidc import AccessTokenRequest
+from oidcmsg.oidc import AuthorizationRequest
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling

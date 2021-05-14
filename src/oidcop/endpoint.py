@@ -1,13 +1,18 @@
 import logging
-from typing import Callable, List, Optional, Union
+from typing import Callable
+from typing import List
+from typing import Optional
+from typing import Union
 from urllib.parse import urlparse
 
-from oidcmsg.exception import MissingRequiredAttribute, MissingRequiredValue
+from oidcmsg.exception import MissingRequiredAttribute
+from oidcmsg.exception import MissingRequiredValue
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
 
 from oidcop import sanitize
-from oidcop.client_authn import client_auth_setup, verify_client
+from oidcop.client_authn import client_auth_setup
+from oidcop.client_authn import verify_client
 from oidcop.construct import construct_endpoint_info
 from oidcop.endpoint_context import EndpointContext
 from oidcop.exception import UnAuthorizedClient

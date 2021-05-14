@@ -3,7 +3,8 @@ from typing import Callable
 from urllib.parse import urlsplit
 
 from oidcmsg import oidc
-from oidcmsg.oidc import Claims, verified_claim_name
+from oidcmsg.oidc import Claims
+from oidcmsg.oidc import verified_claim_name
 
 from oidcop.oauth2 import authorization
 

@@ -3,9 +3,12 @@ import pytest
 from oidcmsg.oauth2 import AuthorizationRequest
 
 from oidcop.authn_event import create_authn_event
-from oidcop.session.database import Database, NoSuchClientSession, NoSuchGrant
+from oidcop.session.database import Database
+from oidcop.session.database import NoSuchClientSession
+from oidcop.session.database import NoSuchGrant
 from oidcop.session.grant import Grant
-from oidcop.session.info import ClientSessionInfo, UserSessionInfo
+from oidcop.session.info import ClientSessionInfo
+from oidcop.session.info import UserSessionInfo
 from oidcop.session.manager import public_id
 from oidcop.session.token import SessionToken
 

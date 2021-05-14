@@ -5,8 +5,11 @@ from typing import Optional
 from oidcmsg.time_util import time_sans_frac
 
 from oidcop import rndstr
-from oidcop.token.exception import UnknownToken, WrongTokenType
-from oidcop.util import Crypt, lv_pack, lv_unpack
+from oidcop.token.exception import UnknownToken
+from oidcop.token.exception import WrongTokenType
+from oidcop.util import Crypt
+from oidcop.util import lv_pack
+from oidcop.util import lv_unpack
 
 __author__ = "Roland Hedberg"
 

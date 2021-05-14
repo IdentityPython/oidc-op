@@ -1,6 +1,7 @@
 import logging
 import uuid
-from typing import Callable, Optional
+from typing import Callable
+from typing import Optional
 
 from cryptojwt.jws.exception import JWSException
 from cryptojwt.jws.jws import factory
@@ -13,7 +14,8 @@ from oidcop.session.claims import claims_match
 from oidcop.session.info import SessionInfo
 from oidcop.token import is_expired
 
-from . import Token, UnknownToken
+from . import Token
+from . import UnknownToken
 
 logger = logging.getLogger(__name__)
 

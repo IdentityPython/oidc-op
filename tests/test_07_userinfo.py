@@ -9,9 +9,11 @@ from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
-from oidcop.scopes import SCOPE2CLAIMS, convert_scopes2claims
+from oidcop.scopes import SCOPE2CLAIMS
+from oidcop.scopes import convert_scopes2claims
 from oidcop.server import Server
-from oidcop.session.claims import STANDARD_CLAIMS, ClaimsInterface
+from oidcop.session.claims import STANDARD_CLAIMS
+from oidcop.session.claims import ClaimsInterface
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_info import UserInfo
 

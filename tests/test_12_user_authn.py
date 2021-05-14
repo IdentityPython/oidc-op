@@ -3,8 +3,10 @@ import os
 import pytest
 
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD, UNSPECIFIED
-from oidcop.user_authn.user import NoAuthn, UserPassJinja2
+from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcop.user_authn.authn_context import UNSPECIFIED
+from oidcop.user_authn.user import NoAuthn
+from oidcop.user_authn.user import UserPassJinja2
 from oidcop.util import JSONDictDB
 
 KEYDEFS = [

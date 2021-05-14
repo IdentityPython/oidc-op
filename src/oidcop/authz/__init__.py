@@ -2,7 +2,8 @@ import copy
 import inspect
 import logging
 import sys
-from typing import Optional, Union
+from typing import Optional
+from typing import Union
 
 from oidcmsg.message import Message
 

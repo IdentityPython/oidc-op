@@ -2,11 +2,9 @@ import os
 
 import pytest
 from cryptojwt.key_jar import init_key_jar
-from oidcmsg.oidc import (
-    AccessTokenRequest,
-    AuthorizationRequest,
-    RefreshAccessTokenRequest,
-)
+from oidcmsg.oidc import AccessTokenRequest
+from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.time_util import time_sans_frac
 
 from oidcop import user_info
@@ -19,7 +17,8 @@ from oidcop.oidc.session import Session
 from oidcop.oidc.token import Token
 from oidcop.server import Server
 from oidcop.session.grant import Grant
-from oidcop.session.info import ClientSessionInfo, UserSessionInfo
+from oidcop.session.info import ClientSessionInfo
+from oidcop.session.info import UserSessionInfo
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 
 

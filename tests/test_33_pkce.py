@@ -8,18 +8,17 @@ import pytest
 import yaml
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AuthorizationErrorResponse
-from oidcmsg.oidc import (
-    AccessTokenRequest,
-    AuthorizationRequest,
-    AuthorizationResponse,
-    TokenErrorResponse,
-)
+from oidcmsg.oidc import AccessTokenRequest
+from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.oidc import AuthorizationResponse
+from oidcmsg.oidc import TokenErrorResponse
 
 import oidcop.oauth2.introspection
 from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
 from oidcop.endpoint import Endpoint
-from oidcop.oidc.add_on.pkce import CC_METHOD, add_pkce_support
+from oidcop.oidc.add_on.pkce import CC_METHOD
+from oidcop.oidc.add_on.pkce import add_pkce_support
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.token import Token
 from oidcop.server import Server

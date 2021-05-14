@@ -4,12 +4,10 @@ import os
 import pytest
 from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
-from oidcmsg.oidc import (
-    AccessTokenRequest,
-    AuthorizationRequest,
-    RefreshAccessTokenRequest,
-    TokenErrorResponse,
-)
+from oidcmsg.oidc import AccessTokenRequest
+from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.oidc import RefreshAccessTokenRequest
+from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop import JWT_BEARER

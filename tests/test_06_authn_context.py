@@ -11,13 +11,11 @@ from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import (
-    INTERNETPROTOCOLPASSWORD,
-    TIMESYNCTOKEN,
-    init_method,
-    pick_auth,
-    populate_authn_broker,
-)
+from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcop.user_authn.authn_context import TIMESYNCTOKEN
+from oidcop.user_authn.authn_context import init_method
+from oidcop.user_authn.authn_context import pick_auth
+from oidcop.user_authn.authn_context import populate_authn_broker
 from oidcop.user_authn.user import NoAuthn
 from oidcop.user_info import UserInfo
 

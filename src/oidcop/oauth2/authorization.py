@@ -1,17 +1,26 @@
 import json
 import logging
-from typing import List, Optional, Union
-from urllib.parse import unquote, urlencode, urlparse
+from typing import List
+from typing import Optional
+from typing import Union
+from urllib.parse import unquote
+from urllib.parse import urlencode
+from urllib.parse import urlparse
 
-from cryptojwt import BadSyntax, as_unicode, b64d
+from cryptojwt import BadSyntax
+from cryptojwt import as_unicode
+from cryptojwt import b64d
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
-from cryptojwt.utils import as_bytes, b64e
+from cryptojwt.utils import as_bytes
+from cryptojwt.utils import b64e
 from oidcmsg import oauth2
-from oidcmsg.exception import ParameterError, URIError
+from oidcmsg.exception import ParameterError
+from oidcmsg.exception import URIError
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AuthorizationRequest
-from oidcmsg.oidc import AuthorizationResponse, verified_claim_name
+from oidcmsg.oidc import AuthorizationResponse
+from oidcmsg.oidc import verified_claim_name
 from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop import rndstr
@@ -19,16 +28,14 @@ from oidcop.authn_event import create_authn_event
 from oidcop.cookie_handler import compute_session_state
 from oidcop.endpoint import Endpoint
 from oidcop.endpoint_context import EndpointContext
-from oidcop.exception import (
-    InvalidRequest,
-    NoSuchAuthentication,
-    RedirectURIError,
-    ServiceError,
-    TamperAllert,
-    ToOld,
-    UnAuthorizedClientScope,
-    UnknownClient,
-)
+from oidcop.exception import InvalidRequest
+from oidcop.exception import NoSuchAuthentication
+from oidcop.exception import RedirectURIError
+from oidcop.exception import ServiceError
+from oidcop.exception import TamperAllert
+from oidcop.exception import ToOld
+from oidcop.exception import UnAuthorizedClientScope
+from oidcop.exception import UnknownClient
 from oidcop.session import Revoked
 from oidcop.token.exception import UnknownToken
 from oidcop.user_authn.authn_context import pick_auth

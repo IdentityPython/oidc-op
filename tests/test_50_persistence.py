@@ -4,7 +4,8 @@ import shutil
 
 import pytest
 from cryptojwt.jwt import utc_time_sans_frac
-from oidcmsg.oidc import AccessTokenRequest, AuthorizationRequest
+from oidcmsg.oidc import AccessTokenRequest
+from oidcmsg.oidc import AuthorizationRequest
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event

@@ -3,7 +3,9 @@ import os
 
 import pytest
 
-from oidcop.configure import Configuration, OPConfiguration, create_from_config_file
+from oidcop.configure import Configuration
+from oidcop.configure import OPConfiguration
+from oidcop.configure import create_from_config_file
 from oidcop.logging import configure_logging
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))

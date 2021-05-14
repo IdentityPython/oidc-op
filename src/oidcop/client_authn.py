@@ -1,17 +1,28 @@
 import base64
 import logging
-from typing import Callable, Optional, Union
+from typing import Callable
+from typing import Optional
+from typing import Union
 from urllib.parse import unquote_plus
 
-from cryptojwt.exception import BadSignature, Invalid, MissingKey
-from cryptojwt.jwt import JWT, utc_time_sans_frac
-from cryptojwt.utils import as_bytes, as_unicode
+from cryptojwt.exception import BadSignature
+from cryptojwt.exception import Invalid
+from cryptojwt.exception import MissingKey
+from cryptojwt.jwt import JWT
+from cryptojwt.jwt import utc_time_sans_frac
+from cryptojwt.utils import as_bytes
+from cryptojwt.utils import as_unicode
 from oidcmsg.message import Message
-from oidcmsg.oidc import JsonWebToken, verified_claim_name
+from oidcmsg.oidc import JsonWebToken
+from oidcmsg.oidc import verified_claim_name
 
-from oidcop import JWT_BEARER, sanitize
+from oidcop import JWT_BEARER
+from oidcop import sanitize
 from oidcop.endpoint_context import EndpointContext
-from oidcop.exception import InvalidClient, MultipleUsage, NotForMe, UnknownClient
+from oidcop.exception import InvalidClient
+from oidcop.exception import MultipleUsage
+from oidcop.exception import NotForMe
+from oidcop.exception import UnknownClient
 from oidcop.util import importer
 
 logger = logging.getLogger(__name__)

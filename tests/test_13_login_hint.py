@@ -1,8 +1,10 @@
 import json
 import os
 
-from oidcop.configure import OPConfiguration, create_from_config_file
-from oidcop.endpoint_context import init_service, init_user_info
+from oidcop.configure import OPConfiguration
+from oidcop.configure import create_from_config_file
+from oidcop.endpoint_context import init_service
+from oidcop.endpoint_context import init_user_info
 from oidcop.login_hint import LoginHint2Acrs
 from oidcop.server import Server
 

@@ -2,40 +2,37 @@ import io
 import json
 import os
 from http.cookies import SimpleCookie
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 import pytest
 import yaml
 from cryptojwt import KeyJar
 from cryptojwt.jwt import utc_time_sans_frac
-from cryptojwt.utils import as_bytes, b64e
-from oidcmsg.exception import ParameterError, URIError
-from oidcmsg.oauth2 import (
-    AuthorizationErrorResponse,
-    AuthorizationRequest,
-    AuthorizationResponse,
-)
+from cryptojwt.utils import as_bytes
+from cryptojwt.utils import b64e
+from oidcmsg.exception import ParameterError
+from oidcmsg.exception import URIError
+from oidcmsg.oauth2 import AuthorizationErrorResponse
+from oidcmsg.oauth2 import AuthorizationRequest
+from oidcmsg.oauth2 import AuthorizationResponse
 from oidcmsg.time_util import in_a_while
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.cookie_handler import CookieHandler
-from oidcop.exception import (
-    InvalidRequest,
-    NoSuchAuthentication,
-    RedirectURIError,
-    ToOld,
-    UnAuthorizedClientScope,
-    UnknownClient,
-)
-from oidcop.oauth2.authorization import (
-    FORM_POST,
-    Authorization,
-    get_uri,
-    inputs,
-    join_query,
-    verify_uri,
-)
+from oidcop.exception import InvalidRequest
+from oidcop.exception import NoSuchAuthentication
+from oidcop.exception import RedirectURIError
+from oidcop.exception import ToOld
+from oidcop.exception import UnAuthorizedClientScope
+from oidcop.exception import UnknownClient
+from oidcop.oauth2.authorization import FORM_POST
+from oidcop.oauth2.authorization import Authorization
+from oidcop.oauth2.authorization import get_uri
+from oidcop.oauth2.authorization import inputs
+from oidcop.oauth2.authorization import join_query
+from oidcop.oauth2.authorization import verify_uri
 from oidcop.server import Server
 from oidcop.user_info import UserInfo
 

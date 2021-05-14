@@ -1,7 +1,5 @@
-from oidcmsg.oauth2.device_authorization import (
-    AuthorizationRequest,
-    AuthorizationResponse,
-)
+from oidcmsg.oauth2.device_authorization import AuthorizationRequest
+from oidcmsg.oauth2.device_authorization import AuthorizationResponse
 from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop import rndstr

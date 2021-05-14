@@ -4,11 +4,14 @@ import json
 import pytest
 import responses
 from cryptojwt.key_jar import init_key_jar
-from oidcmsg.oidc import RegistrationRequest, RegistrationResponse
+from oidcmsg.oidc import RegistrationRequest
+from oidcmsg.oidc import RegistrationResponse
 
 from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc.authorization import Authorization
-from oidcop.oidc.registration import Registration, match_sp_sep, verify_url
+from oidcop.oidc.registration import Registration
+from oidcop.oidc.registration import match_sp_sep
+from oidcop.oidc.registration import verify_url
 from oidcop.oidc.token import Token
 from oidcop.oidc.userinfo import UserInfo
 from oidcop.server import Server
