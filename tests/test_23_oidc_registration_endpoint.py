@@ -1,18 +1,14 @@
 # -*- coding: latin-1 -*-
 import json
 
-from cryptojwt.key_jar import init_key_jar
-from oidcmsg.oidc import RegistrationRequest
-from oidcmsg.oidc import RegistrationResponse
 import pytest
 import responses
+from cryptojwt.key_jar import init_key_jar
+from oidcmsg.oidc import RegistrationRequest, RegistrationResponse
 
 from oidcop.cookie_handler import CookieHandler
-from oidcop.id_token import IDToken
 from oidcop.oidc.authorization import Authorization
-from oidcop.oidc.registration import Registration
-from oidcop.oidc.registration import match_sp_sep
-from oidcop.oidc.registration import verify_url
+from oidcop.oidc.registration import Registration, match_sp_sep, verify_url
 from oidcop.oidc.token import Token
 from oidcop.oidc.userinfo import UserInfo
 from oidcop.server import Server
@@ -74,9 +70,6 @@ class TestEndpoint(object):
         conf = {
             "issuer": "https://example.com/",
             "password": "mycket hemligt",
-            "token_expires_in": 600,
-            "grant_expires_in": 300,
-            "refresh_token_expires_in": 86400,
             "verify_ssl": False,
             "capabilities": {
                 "subject_types_supported": ["public", "pairwise", "ephemeral"],
@@ -87,16 +80,42 @@ class TestEndpoint(object):
                     "refresh_token",
                 ],
             },
+            "token_handler_args": {
+                "jwks_def": {
+                    "private_path": "private/token_jwks.json",
+                    "read_only": False,
+                    "key_defs": [
+                        {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
+                    ],
+                },
+                "code": {"kwargs": {"lifetime": 600}},
+                "token": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "add_claims_by_scope": True,
+                        "aud": ["https://example.org/appl"],
+                    },
+                },
+                "refresh": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                },
+                "id_token": {
+                    "class": "oidcop.token.id_token.IDToken",
+                    "kwargs": {
+                        "base_claims": {
+                            "email": {"essential": True},
+                            "email_verified": {"essential": True},
+                        }
+                    },
+                },
+            },
             "cookie_handler": {
                 "class": CookieHandler,
-                "kwargs": {
-                    "keys": {
-                        "key_defs": COOKIE_KEYDEFS
-                    }
-                }
+                "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
             },
             "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
-            "id_token": {"class": IDToken},
             "endpoint": {
                 "registration": {
                     "path": "registration",
@@ -151,7 +170,7 @@ class TestEndpoint(object):
         with responses.RequestsMock() as rsps:
             rsps.add(
                 "GET",
-                CLI_REQ['jwks_uri'],
+                CLI_REQ["jwks_uri"],
                 body=JWKS,
                 adding_headers={"Content-Type": "application/json"},
                 status=200,
@@ -166,7 +185,7 @@ class TestEndpoint(object):
         with responses.RequestsMock() as rsps:
             rsps.add(
                 "GET",
-                CLI_REQ['jwks_uri'],
+                CLI_REQ["jwks_uri"],
                 body=JWKS,
                 adding_headers={"Content-Type": "application/json"},
                 status=200,
@@ -220,7 +239,7 @@ class TestEndpoint(object):
         with responses.RequestsMock() as rsps:
             rsps.add(
                 "GET",
-                _msg['jwks_uri'],
+                _msg["jwks_uri"],
                 body=JWKS,
                 adding_headers={"Content-Type": "application/json"},
                 status=200,
@@ -243,7 +262,7 @@ class TestEndpoint(object):
         with responses.RequestsMock() as rsps:
             rsps.add(
                 "GET",
-                _msg['jwks_uri'],
+                _msg["jwks_uri"],
                 body=JWKS,
                 adding_headers={"Content-Type": "application/json"},
                 status=200,
@@ -284,7 +303,7 @@ class TestEndpoint(object):
         with responses.RequestsMock() as rsps:
             rsps.add(
                 "GET",
-                CLI_REQ['jwks_uri'],
+                CLI_REQ["jwks_uri"],
                 body=JWKS,
                 adding_headers={"Content-Type": "application/json"},
                 status=200,
@@ -297,11 +316,11 @@ class TestEndpoint(object):
         # This should be OK
         _req["policy_uri"] = "https://client.example.org/policy.html"
         _resp = self.endpoint.process_request(request=RegistrationRequest(**_req))
-        assert 'error' not in _resp
+        assert "error" not in _resp
         # This not so much
         _req["policy_uri"] = "https://example.com/policy.html"
         _resp = self.endpoint.process_request(request=RegistrationRequest(**_req))
-        assert 'error' in _resp
+        assert "error" in _resp
 
     def test_register_request_uris_with_query_part(self):
         _req = MSG.copy()
@@ -309,7 +328,7 @@ class TestEndpoint(object):
         del _req["jwks_uri"]
         _resp = self.endpoint.process_request(request=RegistrationRequest(**_req))
         assert "error" in _resp
-        assert _resp["error_description"] == 'request_uris contains query part'
+        assert _resp["error_description"] == "request_uris contains query part"
 
 
 def test_match_sp_sep():

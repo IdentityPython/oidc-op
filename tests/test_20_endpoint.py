@@ -1,8 +1,8 @@
 import json
 from urllib.parse import urlparse
 
-from oidcmsg.message import Message
 import pytest
+from oidcmsg.message import Message
 
 from oidcop.endpoint import Endpoint
 from oidcop.server import Server
@@ -64,7 +64,7 @@ class TestEndpoint(object):
         }
         server = Server(conf)
         self.endpoint_context = server.endpoint_context
-        self.endpoint = server.server_get("endpoint", '')
+        self.endpoint = server.server_get("endpoint", "")
 
     def test_parse_urlencoded(self):
         self.endpoint.request_format = "urlencoded"
@@ -161,55 +161,81 @@ class TestEndpoint(object):
         assert set(umsg.keys()) == set(EXAMPLE_MSG.keys())
 
     def test_do_response_response_msg_1(self):
-        info = self.endpoint.do_response(EXAMPLE_MSG, response_msg='{foo=bar}')
-        assert info['response'] == '{foo=bar}'
-        assert ('Content-type', 'application/json') in info["http_headers"]
+        info = self.endpoint.do_response(EXAMPLE_MSG, response_msg="{foo=bar}")
+        assert info["response"] == "{foo=bar}"
+        assert ("Content-type", "application/json") in info["http_headers"]
 
         self.endpoint.response_format = "jws"
-        info = self.endpoint.do_response(EXAMPLE_MSG, response_msg="header.payload.sign")
+        info = self.endpoint.do_response(
+            EXAMPLE_MSG, response_msg="header.payload.sign"
+        )
 
-        assert info['response'] == "header.payload.sign"
-        assert ('Content-type', 'application/jose') in info["http_headers"]
+        assert info["response"] == "header.payload.sign"
+        assert ("Content-type", "application/jose") in info["http_headers"]
 
         self.endpoint.response_format = ""
         info = self.endpoint.do_response(EXAMPLE_MSG, response_msg="foo=bar")
 
-        assert info['response'] == "foo=bar"
-        assert ('Content-type', 'application/x-www-form-urlencoded') in info["http_headers"]
+        assert info["response"] == "foo=bar"
+        assert ("Content-type", "application/x-www-form-urlencoded") in info[
+            "http_headers"
+        ]
 
-        info = self.endpoint.do_response(EXAMPLE_MSG, response_msg='{foo=bar}',
-                                         content_type='application/json')
-        assert info['response'] == '{foo=bar}'
-        assert ('Content-type', 'application/json') in info["http_headers"]
+        info = self.endpoint.do_response(
+            EXAMPLE_MSG, response_msg="{foo=bar}", content_type="application/json"
+        )
+        assert info["response"] == "{foo=bar}"
+        assert ("Content-type", "application/json") in info["http_headers"]
 
-        info = self.endpoint.do_response(EXAMPLE_MSG, response_msg="header.payload.sign",
-                                         content_type='application/jose')
-        assert info['response'] == "header.payload.sign"
-        assert ('Content-type', 'application/jose') in info["http_headers"]
+        info = self.endpoint.do_response(
+            EXAMPLE_MSG,
+            response_msg="header.payload.sign",
+            content_type="application/jose",
+        )
+        assert info["response"] == "header.payload.sign"
+        assert ("Content-type", "application/jose") in info["http_headers"]
 
     def test_do_response_placement_body(self):
         self.endpoint.response_placement = "body"
         info = self.endpoint.do_response(EXAMPLE_MSG)
-        assert ('Content-type', 'application/json; charset=utf-8') in info["http_headers"]
-        assert info[
-            "response"] == '{"name": "Doe, Jane", "given_name": "Jane", "family_name": "Doe"}'
+        assert ("Content-type", "application/json; charset=utf-8") in info[
+            "http_headers"
+        ]
+        assert (
+            info["response"]
+            == '{"name": "Doe, Jane", "given_name": "Jane", "family_name": "Doe"}'
+        )
 
     def test_do_response_placement_url(self):
         self.endpoint.response_placement = "url"
-        info = self.endpoint.do_response(EXAMPLE_MSG, return_uri="https://example.org/cb")
-        assert ('Content-type', 'application/x-www-form-urlencoded') in info["http_headers"]
-        assert info[
-            "response"] == 'https://example.org/cb?name=Doe%2C+Jane&given_name=Jane&family_name=Doe'
+        info = self.endpoint.do_response(
+            EXAMPLE_MSG, return_uri="https://example.org/cb"
+        )
+        assert ("Content-type", "application/x-www-form-urlencoded") in info[
+            "http_headers"
+        ]
+        assert (
+            info["response"]
+            == "https://example.org/cb?name=Doe%2C+Jane&given_name=Jane&family_name=Doe"
+        )
 
-        info = self.endpoint.do_response(EXAMPLE_MSG, return_uri="https://example.org/cb",
-                                         fragment_enc=True)
-        assert ('Content-type', 'application/x-www-form-urlencoded') in info["http_headers"]
-        assert info[
-            "response"] == 'https://example.org/cb#name=Doe%2C+Jane&given_name=Jane&family_name=Doe'
+        info = self.endpoint.do_response(
+            EXAMPLE_MSG, return_uri="https://example.org/cb", fragment_enc=True
+        )
+        assert ("Content-type", "application/x-www-form-urlencoded") in info[
+            "http_headers"
+        ]
+        assert (
+            info["response"]
+            == "https://example.org/cb#name=Doe%2C+Jane&given_name=Jane&family_name=Doe"
+        )
 
     def test_do_response_error(self):
-        info = self.endpoint.do_response(error="invalid_request",
-                                         error_description="Missing required attribute")
+        info = self.endpoint.do_response(
+            error="invalid_request", error_description="Missing required attribute"
+        )
 
-        assert info[
-            "response"] == '{"error": "invalid_request", "error_description": "Missing required attribute"}'
+        assert (
+            info["response"]
+            == '{"error": "invalid_request", "error_description": "Missing required attribute"}'
+        )

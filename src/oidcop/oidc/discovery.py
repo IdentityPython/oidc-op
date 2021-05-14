@@ -1,6 +1,5 @@
 from oidcmsg import oidc
-from oidcmsg.oidc import JRD
-from oidcmsg.oidc import Link
+from oidcmsg.oidc import JRD, Link
 
 from oidcop.endpoint import Endpoint
 
@@ -36,4 +35,7 @@ class Discovery(Endpoint):
         return info
 
     def process_request(self, request=None, **kwargs):
-        return {"subject": request["resource"], "hrefs": [self.server_get("endpoint_context").issuer]}
+        return {
+            "subject": request["resource"],
+            "hrefs": [self.server_get("endpoint_context").issuer],
+        }

@@ -4,15 +4,20 @@ import importlib
 import json
 import logging
 import os
-from typing import Dict
-from typing import List
-from typing import Optional
+from typing import Dict, List, Optional
 
 from oidcop.logging import configure_logging
 from oidcop.utils import load_yaml_config
 
-DEFAULT_FILE_ATTRIBUTE_NAMES = ['server_key', 'server_cert', 'filename', 'template_dir',
-                                'private_path', 'public_path', 'db_file']
+DEFAULT_FILE_ATTRIBUTE_NAMES = [
+    "server_key",
+    "server_cert",
+    "filename",
+    "template_dir",
+    "private_path",
+    "public_path",
+    "db_file",
+]
 
 DEFAULT_CONFIG = {
     "cookie_handler": {
@@ -21,29 +26,17 @@ DEFAULT_CONFIG = {
             "keys": {
                 "private_path": "private/cookie_jwks.json",
                 "key_defs": [
-                    {
-                        "type": "OCT",
-                        "use": [
-                            "enc"
-                        ],
-                        "kid": "enc"
-                    },
-                    {
-                        "type": "OCT",
-                        "use": [
-                            "sig"
-                        ],
-                        "kid": "sig"
-                    }
+                    {"type": "OCT", "use": ["enc"], "kid": "enc"},
+                    {"type": "OCT", "use": ["sig"], "kid": "sig"},
                 ],
-                "read_only": False
+                "read_only": False,
             },
             "name": {
                 "session": "oidc_op",
                 "register": "oidc_op_rp",
-                "session_management": "sman"
-            }
-        }
+                "session_management": "sman",
+            },
+        },
     },
     "authz": {
         "class": "oidcop.authz.AuthzHandling",
@@ -54,36 +47,27 @@ DEFAULT_CONFIG = {
                         "supports_minting": [
                             "access_token",
                             "refresh_token",
-                            "id_token"
+                            "id_token",
                         ],
-                        "max_usage": 1
+                        "max_usage": 1,
                     },
                     "access_token": {},
                     "refresh_token": {
-                        "supports_minting": [
-                            "access_token",
-                            "refresh_token"
-                        ]
-                    }
+                        "supports_minting": ["access_token", "refresh_token"]
+                    },
                 },
-                "expires_in": 43200
+                "expires_in": 43200,
             }
-        }
+        },
     },
-    "httpc_params": {
-        "verify": False
-    },
-    "id_token": {
-        "class": "oidcop.id_token.IDToken",
-        "kwargs": {}
-    },
+    "httpc_params": {"verify": False},
     "issuer": "https://{domain}:{port}",
     "session_key": {
         "filename": "private/session_jwk.json",
         "type": "OCT",
-        "use": "sig"
+        "use": "sig",
     },
-    "template_dir": "templates"
+    "template_dir": "templates",
 }
 
 
@@ -102,7 +86,7 @@ def add_base_path(conf: dict, base_path: str, file_attributes: List[str]):
     return conf
 
 
-URIS = ['issuer', 'base_url']
+URIS = ["issuer", "base_url"]
 
 
 def set_domain_and_port(conf: dict, uris: List[str], domain: str, port: int):
@@ -118,13 +102,15 @@ def set_domain_and_port(conf: dict, uris: List[str], domain: str, port: int):
     return conf
 
 
-def create_from_config_file(cls,
-                            filename: str,
-                            base_path: str = '',
-                            entity_conf: Optional[List[dict]] = None,
-                            file_attributes: Optional[List[str]] = None,
-                            domain: Optional[str] = "",
-                            port: Optional[int] = 0):
+def create_from_config_file(
+    cls,
+    filename: str,
+    base_path: str = "",
+    entity_conf: Optional[List[dict]] = None,
+    file_attributes: Optional[List[str]] = None,
+    domain: Optional[str] = "",
+    port: Optional[int] = 0,
+):
     if filename.endswith(".yaml"):
         """Load configuration as YAML"""
         _conf = load_yaml_config(filename)
@@ -139,21 +125,27 @@ def create_from_config_file(cls,
     else:
         raise ValueError("Unknown file type")
 
-    return cls(_conf,
-               entity_conf=entity_conf,
-               base_path=base_path, file_attributes=file_attributes,
-               domain=domain, port=port)
+    return cls(
+        _conf,
+        entity_conf=entity_conf,
+        base_path=base_path,
+        file_attributes=file_attributes,
+        domain=domain,
+        port=port,
+    )
 
 
-class Base():
+class Base:
     """ Configuration base class """
+
     parameter = {}
 
-    def __init__(self,
-                 conf: Dict,
-                 base_path: str = '',
-                 file_attributes: Optional[List[str]] = None,
-                 ):
+    def __init__(
+        self,
+        conf: Dict,
+        base_path: str = "",
+        file_attributes: Optional[List[str]] = None,
+    ):
         if file_attributes is None:
             file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
 
@@ -175,7 +167,7 @@ class Base():
 
     def items(self):
         for key in self.__dict__:
-            if key.startswith('__') and key.endswith('__'):
+            if key.startswith("__") and key.endswith("__"):
                 continue
             yield key, getattr(self, key)
 
@@ -183,14 +175,15 @@ class Base():
 class OPConfiguration(Base):
     "Provider configuration"
 
-    def __init__(self,
-                 conf: Dict,
-                 base_path: Optional[str] = '',
-                 entity_conf: Optional[List[dict]] = None,
-                 domain: Optional[str] = "",
-                 port: Optional[int] = 0,
-                 file_attributes: Optional[List[str]] = None,
-                 ):
+    def __init__(
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
+    ):
 
         conf = copy.deepcopy(conf)
         Base.__init__(self, conf, base_path, file_attributes)
@@ -231,7 +224,7 @@ class OPConfiguration(Base):
             setattr(self, key, _val)
 
         if self.template_dir is None:
-            self.template_dir = os.path.abspath('templates')
+            self.template_dir = os.path.abspath("templates")
         else:
             self.template_dir = os.path.abspath(self.template_dir)
 
@@ -239,21 +232,22 @@ class OPConfiguration(Base):
 class Configuration(Base):
     """Server Configuration"""
 
-    def __init__(self,
-                 conf: Dict,
-                 entity_conf: Optional[List[dict]] = None,
-                 base_path: str = '',
-                 file_attributes: Optional[List[str]] = None,
-                 domain: Optional[str] = "",
-                 port: Optional[int] = 0
-                 ):
+    def __init__(
+        self,
+        conf: Dict,
+        entity_conf: Optional[List[dict]] = None,
+        base_path: str = "",
+        file_attributes: Optional[List[str]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+    ):
         Base.__init__(self, conf, base_path, file_attributes)
 
-        log_conf = conf.get('logging')
+        log_conf = conf.get("logging")
         if log_conf:
             self.logger = configure_logging(config=log_conf).getChild(__name__)
         else:
-            self.logger = logging.getLogger('oidcop')
+            self.logger = logging.getLogger("oidcop")
 
         self.webserver = conf.get("webserver", {})
 
@@ -274,19 +268,24 @@ class Configuration(Base):
                         _cnf = _cnf[step]
                 _attr = econf["attr"]
                 _cls = econf["class"]
-                setattr(self, _attr,
-                        _cls(_cnf, base_path=base_path, file_attributes=file_attributes,
-                             domain=domain, port=port))
+                setattr(
+                    self,
+                    _attr,
+                    _cls(
+                        _cnf,
+                        base_path=base_path,
+                        file_attributes=file_attributes,
+                        domain=domain,
+                        port=port,
+                    ),
+                )
 
 
 DEFAULT_EXTENDED_CONF = {
     "add_on": {
         "pkce": {
             "function": "oidcop.oidc.add_on.pkce.add_pkce_support",
-            "kwargs": {
-                "essential": False,
-                "code_challenge_method": "S256 S384 S512"
-            }
+            "kwargs": {"essential": False, "code_challenge_method": "S256 S384 S512"},
         },
         "claims": {
             "function": "oidcop.oidc.add_on.custom_scopes.add_custom_scopes",
@@ -299,10 +298,10 @@ DEFAULT_EXTENDED_CONF = {
                     "email_verified",
                     "sub",
                     "iss",
-                    "eduperson_scoped_affiliation"
+                    "eduperson_scoped_affiliation",
                 ]
-            }
-        }
+            },
+        },
     },
     "authz": {
         "class": "oidcop.authz.AuthzHandling",
@@ -313,21 +312,18 @@ DEFAULT_EXTENDED_CONF = {
                         "supports_minting": [
                             "access_token",
                             "refresh_token",
-                            "id_token"
+                            "id_token",
                         ],
-                        "max_usage": 1
+                        "max_usage": 1,
                     },
                     "access_token": {},
                     "refresh_token": {
-                        "supports_minting": [
-                            "access_token",
-                            "refresh_token"
-                        ]
-                    }
+                        "supports_minting": ["access_token", "refresh_token"]
+                    },
                 },
-                "expires_in": 43200
+                "expires_in": 43200,
             }
-        }
+        },
     },
     "authentication": {
         "user": {
@@ -338,28 +334,23 @@ DEFAULT_EXTENDED_CONF = {
                 "template": "user_pass.jinja2",
                 "db": {
                     "class": "oidcop.util.JSONDictDB",
-                    "kwargs": {
-                        "filename": "passwd.json"
-                    }
+                    "kwargs": {"filename": "passwd.json"},
                 },
                 "page_header": "Testing log in",
                 "submit_btn": "Get me in!",
                 "user_label": "Nickname",
-                "passwd_label": "Secret sauce"
-            }
+                "passwd_label": "Secret sauce",
+            },
         }
     },
     "capabilities": {
-        "subject_types_supported": [
-            "public",
-            "pairwise"
-        ],
+        "subject_types_supported": ["public", "pairwise"],
         "grant_types_supported": [
             "authorization_code",
             "implicit",
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
-            "refresh_token"
-        ]
+            "refresh_token",
+        ],
     },
     "cookie_handler": {
         "class": "oidcop.cookie_handler.CookieHandler",
@@ -367,73 +358,49 @@ DEFAULT_EXTENDED_CONF = {
             "keys": {
                 "private_path": "private/cookie_jwks.json",
                 "key_defs": [
-                    {
-                        "type": "OCT",
-                        "use": [
-                            "enc"
-                        ],
-                        "kid": "enc"
-                    },
-                    {
-                        "type": "OCT",
-                        "use": [
-                            "sig"
-                        ],
-                        "kid": "sig"
-                    }
+                    {"type": "OCT", "use": ["enc"], "kid": "enc"},
+                    {"type": "OCT", "use": ["sig"], "kid": "sig"},
                 ],
-                "read_only": False
+                "read_only": False,
             },
             "name": {
                 "session": "oidc_op",
                 "register": "oidc_op_rp",
-                "session_management": "sman"
-            }
-        }
+                "session_management": "sman",
+            },
+        },
     },
     "endpoint": {
         "webfinger": {
             "path": ".well-known/webfinger",
             "class": "oidcop.oidc.discovery.Discovery",
-            "kwargs": {
-                "client_authn_method": None
-            }
+            "kwargs": {"client_authn_method": None},
         },
         "provider_info": {
             "path": ".well-known/openid-configuration",
             "class": "oidcop.oidc.provider_config.ProviderConfiguration",
-            "kwargs": {
-                "client_authn_method": None
-            }
+            "kwargs": {"client_authn_method": None},
         },
         "registration": {
             "path": "registration",
             "class": "oidcop.oidc.registration.Registration",
             "kwargs": {
                 "client_authn_method": None,
-                "client_secret_expiration_time": 432000
-            }
+                "client_secret_expiration_time": 432000,
+            },
         },
         "registration_api": {
             "path": "registration_api",
             "class": "oidcop.oidc.read_registration.RegistrationRead",
-            "kwargs": {
-                "client_authn_method": [
-                    "bearer_header"
-                ]
-            }
+            "kwargs": {"client_authn_method": ["bearer_header"]},
         },
         "introspection": {
             "path": "introspection",
             "class": "oidcop.oauth2.introspection.Introspection",
             "kwargs": {
-                "client_authn_method": [
-                    "client_secret_post"
-                ],
-                "release": [
-                    "username"
-                ]
-            }
+                "client_authn_method": ["client_secret_post"],
+                "release": ["username"],
+            },
         },
         "authorization": {
             "path": "authorization",
@@ -453,12 +420,8 @@ DEFAULT_EXTENDED_CONF = {
                     "code id_token token",
                     # "none"
                 ],
-                "response_modes_supported": [
-                    "query",
-                    "fragment",
-                    "form_post"
-                ]
-            }
+                "response_modes_supported": ["query", "fragment", "form_post"],
+            },
         },
         "token": {
             "path": "token",
@@ -468,20 +431,16 @@ DEFAULT_EXTENDED_CONF = {
                     "client_secret_post",
                     "client_secret_basic",
                     "client_secret_jwt",
-                    "private_key_jwt"
+                    "private_key_jwt",
                 ]
-            }
+            },
         },
         "userinfo": {
             "path": "userinfo",
             "class": "oidcop.oidc.userinfo.UserInfo",
             "kwargs": {
-                "claim_types_supported": [
-                    "normal",
-                    "aggregated",
-                    "distributed"
-                ]
-            }
+                "claim_types_supported": ["normal", "aggregated", "distributed"]
+            },
         },
         "end_session": {
             "path": "session",
@@ -494,114 +453,67 @@ DEFAULT_EXTENDED_CONF = {
                 "frontchannel_logout_session_supported": True,
                 "backchannel_logout_supported": True,
                 "backchannel_logout_session_supported": True,
-                "check_session_iframe": "check_session_iframe"
-            }
-        }
-    },
-    "httpc_params": {
-        "verify": False
-    },
-    "id_token": {
-        "class": "oidcop.id_token.IDToken",
-        "kwargs": {
-            "base_claims": {
-                "email": None,
-                "email_verified": None,
+                "check_session_iframe": "check_session_iframe",
             },
-        }
+        },
     },
+    "httpc_params": {"verify": False},
     "issuer": "https://{domain}:{port}",
     "keys": {
         "private_path": "private/jwks.json",
         "key_defs": [
-            {
-                "type": "RSA",
-                "use": [
-                    "sig"
-                ]
-            },
-            {
-                "type": "EC",
-                "crv": "P-256",
-                "use": [
-                    "sig"
-                ]
-            }
+            {"type": "RSA", "use": ["sig"]},
+            {"type": "EC", "crv": "P-256", "use": ["sig"]},
         ],
         "public_path": "static/jwks.json",
         "read_only": False,
-        "uri_path": "static/jwks.json"
+        "uri_path": "static/jwks.json",
     },
     "login_hint2acrs": {
         "class": "oidcop.login_hint.LoginHint2Acrs",
         "kwargs": {
             "scheme_map": {
-                "email": [
-                    "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"
-                ]
+                "email": ["oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"]
             }
-        }
+        },
     },
     "session_key": {
         "filename": "private/session_jwk.json",
         "type": "OCT",
-        "use": "sig"
+        "use": "sig",
     },
     "template_dir": "templates",
     "token_handler_args": {
         "jwks_def": {
             "private_path": "private/token_jwks.json",
             "read_only": False,
-            "key_defs": [
-                {
-                    "type": "oct",
-                    "bytes": 24,
-                    "use": [
-                        "enc"
-                    ],
-                    "kid": "code"
-                },
-                {
-                    "type": "oct",
-                    "bytes": 24,
-                    "use": [
-                        "enc"
-                    ],
-                    "kid": "refresh"
-                }
-            ]
+            "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
         },
-        "code": {
-            "kwargs": {
-                "lifetime": 600
-            }
-        },
+        "code": {"kwargs": {"lifetime": 600}},
         "token": {
             "class": "oidcop.token.jwt_token.JWTToken",
             "kwargs": {
                 "lifetime": 3600,
-                "add_claims": [
-                    "email",
-                    "email_verified",
-                    "phone_number",
-                    "phone_number_verified"
-                ],
-                "add_claim_by_scope": True,
-                "aud": [
-                    "https://example.org/appl"
-                ]
-            }
+                "add_claims_by_scope": True,
+                "aud": ["https://example.org/appl"],
+            },
         },
         "refresh": {
+            "class": "oidcop.token.jwt_token.JWTToken",
+            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+        },
+        "id_token": {
+            "class": "oidcop.token.id_token.IDToken",
             "kwargs": {
-                "lifetime": 86400
-            }
-        }
+                "base_claims": {
+                    "email": {"essential": True},
+                    "email_verified": {"essential": True},
+                }
+            },
+        },
     },
     "userinfo": {
         "class": "oidcop.user_info.UserInfo",
-        "kwargs": {
-            "db_file": "users.json"
-        }
-    }
+        "kwargs": {"db_file": "users.json"},
+    },
 }

@@ -1,8 +1,7 @@
-from cryptojwt.jwk.hmac import SYMKey
 import pytest
+from cryptojwt.jwk.hmac import SYMKey
 
-from oidcop.cookie_handler import CookieHandler
-from oidcop.cookie_handler import compute_session_state
+from oidcop.cookie_handler import CookieHandler, compute_session_state
 
 KEYDEFS = [
     {"type": "OCT", "kid": "sig", "use": ["sig"]},
@@ -25,30 +24,35 @@ class TestCookieSign(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {'name', "value"}
+        assert set(_cookie_info.keys()) == {"name", "value"}
         assert len(_cookie_info["value"].split("|")) == 3
 
     def test_make_cookie_content_max_age(self):
-        _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso",
-                                                               max_age=3600)
+        _cookie_info = self.cookie_handler.make_cookie_content(
+            "oidcop", "value", "sso", max_age=3600
+        )
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {'name', 'value', 'Max-Age'}
+        assert set(_cookie_info.keys()) == {"name", "value", "Max-Age"}
         assert len(_cookie_info["value"].split("|")) == 3
 
     def test_read_cookie_info(self):
-        _cookie_info = [self.cookie_handler.make_cookie_content("oidcop", "value", "sso")]
+        _cookie_info = [
+            self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
+        ]
         returned = [{"name": c["name"], "value": c["value"]} for c in _cookie_info]
         _info = self.cookie_handler.parse_cookie("oidcop", returned)
         assert len(_info) == 1
-        assert set(_info[0].keys()) == {'value', 'type', 'timestamp'}
+        assert set(_info[0].keys()) == {"value", "type", "timestamp"}
         assert _info[0]["value"] == "value"
         assert _info[0]["type"] == "sso"
 
     def test_mult_cookie(self):
-        _cookie = [self.cookie_handler.make_cookie_content("oidcop", "value", "sso"),
-                   self.cookie_handler.make_cookie_content(
-                       "oidcop", "session_state", "session"
-                   )]
+        _cookie = [
+            self.cookie_handler.make_cookie_content("oidcop", "value", "sso"),
+            self.cookie_handler.make_cookie_content(
+                "oidcop", "session_state", "session"
+            ),
+        ]
         assert len(_cookie) == 2
         _c_info = self.cookie_handler.parse_cookie("oidcop", _cookie)
         assert len(_c_info) == 2
@@ -63,7 +67,7 @@ class TestCookieHandlerSignEnc(object):
     def make_cookie_handler(self):
         cookie_conf = {
             "sign_key": SYMKey(k="ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch"),
-            "enc_key": SYMKey(k="NXi6HD473d_YS4exVRn7z9z23mGmvU641MuvKqH0o7Y")
+            "enc_key": SYMKey(k="NXi6HD473d_YS4exVRn7z9z23mGmvU641MuvKqH0o7Y"),
         }
 
         self.cookie_handler = CookieHandler(**cookie_conf)
@@ -71,30 +75,35 @@ class TestCookieHandlerSignEnc(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {'name', "value"}
+        assert set(_cookie_info.keys()) == {"name", "value"}
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_make_cookie_content_max_age(self):
-        _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso",
-                                                               max_age=3600)
+        _cookie_info = self.cookie_handler.make_cookie_content(
+            "oidcop", "value", "sso", max_age=3600
+        )
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {'name', 'value', 'Max-Age'}
+        assert set(_cookie_info.keys()) == {"name", "value", "Max-Age"}
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_read_cookie_info(self):
-        _cookie_info = [self.cookie_handler.make_cookie_content("oidcop", "value", "sso")]
+        _cookie_info = [
+            self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
+        ]
         returned = [{"name": c["name"], "value": c["value"]} for c in _cookie_info]
         _info = self.cookie_handler.parse_cookie("oidcop", returned)
         assert len(_info) == 1
-        assert set(_info[0].keys()) == {'value', 'type', 'timestamp'}
+        assert set(_info[0].keys()) == {"value", "type", "timestamp"}
         assert _info[0]["value"] == "value"
         assert _info[0]["type"] == "sso"
 
     def test_mult_cookie(self):
-        _cookie = [self.cookie_handler.make_cookie_content("oidcop", "value", "sso"),
-                   self.cookie_handler.make_cookie_content(
-                       "oidcop", "session_state", "session"
-                   )]
+        _cookie = [
+            self.cookie_handler.make_cookie_content("oidcop", "value", "sso"),
+            self.cookie_handler.make_cookie_content(
+                "oidcop", "session_state", "session"
+            ),
+        ]
         assert len(_cookie) == 2
         _c_info = self.cookie_handler.parse_cookie("oidcop", _cookie)
         assert len(_c_info) == 2
@@ -116,30 +125,35 @@ class TestCookieHandlerEnc(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {'name', "value"}
+        assert set(_cookie_info.keys()) == {"name", "value"}
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_make_cookie_content_max_age(self):
-        _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso",
-                                                               max_age=3600)
+        _cookie_info = self.cookie_handler.make_cookie_content(
+            "oidcop", "value", "sso", max_age=3600
+        )
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {'name', 'value', 'Max-Age'}
+        assert set(_cookie_info.keys()) == {"name", "value", "Max-Age"}
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_read_cookie_info(self):
-        _cookie_info = [self.cookie_handler.make_cookie_content("oidcop", "value", "sso")]
+        _cookie_info = [
+            self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
+        ]
         returned = [{"name": c["name"], "value": c["value"]} for c in _cookie_info]
         _info = self.cookie_handler.parse_cookie("oidcop", returned)
         assert len(_info) == 1
-        assert set(_info[0].keys()) == {'value', 'type', 'timestamp'}
+        assert set(_info[0].keys()) == {"value", "type", "timestamp"}
         assert _info[0]["value"] == "value"
         assert _info[0]["type"] == "sso"
 
     def test_mult_cookie(self):
-        _cookie = [self.cookie_handler.make_cookie_content("oidcop", "value", "sso"),
-                   self.cookie_handler.make_cookie_content(
-                       "oidcop", "session_state", "session"
-                   )]
+        _cookie = [
+            self.cookie_handler.make_cookie_content("oidcop", "value", "sso"),
+            self.cookie_handler.make_cookie_content(
+                "oidcop", "session_state", "session"
+            ),
+        ]
         assert len(_cookie) == 2
         _c_info = self.cookie_handler.parse_cookie("oidcop", _cookie)
         assert len(_c_info) == 2
@@ -156,7 +170,7 @@ class TestCookieHandlerSignEncKeys(object):
             "keys": {
                 "private_path": "private/cookie_jwks.json",
                 "key_defs": KEYDEFS,
-                "read_only": False
+                "read_only": False,
             }
         }
 
@@ -165,30 +179,35 @@ class TestCookieHandlerSignEncKeys(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {'name', "value"}
+        assert set(_cookie_info.keys()) == {"name", "value"}
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_make_cookie_content_max_age(self):
-        _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso",
-                                                               max_age=3600)
+        _cookie_info = self.cookie_handler.make_cookie_content(
+            "oidcop", "value", "sso", max_age=3600
+        )
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {'name', 'value', 'Max-Age'}
+        assert set(_cookie_info.keys()) == {"name", "value", "Max-Age"}
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_read_cookie_info(self):
-        _cookie_info = [self.cookie_handler.make_cookie_content("oidcop", "value", "sso")]
+        _cookie_info = [
+            self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
+        ]
         returned = [{"name": c["name"], "value": c["value"]} for c in _cookie_info]
         _info = self.cookie_handler.parse_cookie("oidcop", returned)
         assert len(_info) == 1
-        assert set(_info[0].keys()) == {'value', 'type', 'timestamp'}
+        assert set(_info[0].keys()) == {"value", "type", "timestamp"}
         assert _info[0]["value"] == "value"
         assert _info[0]["type"] == "sso"
 
     def test_mult_cookie(self):
-        _cookie = [self.cookie_handler.make_cookie_content("oidcop", "value", "sso"),
-                   self.cookie_handler.make_cookie_content(
-                       "oidcop", "session_state", "session"
-                   )]
+        _cookie = [
+            self.cookie_handler.make_cookie_content("oidcop", "value", "sso"),
+            self.cookie_handler.make_cookie_content(
+                "oidcop", "session_state", "session"
+            ),
+        ]
         assert len(_cookie) == 2
         _c_info = self.cookie_handler.parse_cookie("oidcop", _cookie)
         assert len(_c_info) == 2
@@ -203,6 +222,7 @@ def test_compute_session_state():
         "state", "salt", "client_id", "https://example.com/redirect"
     )
     assert hv == "d21113fbe4b54661ae45f3a3233b0f865ccc646af248274b6fa5664267540e29.salt"
+
 
 #
 # def test_create_session_cookie():

@@ -1,17 +1,16 @@
 import logging
-from typing import Optional
-from typing import Union
+from typing import Optional, Union
 
 from oidcmsg.oidc import OpenIDSchema
 
+from oidcop.exception import ServiceError
 from oidcop.scopes import convert_scopes2claims
 
 logger = logging.getLogger(__name__)
 
 # USAGE = Literal["userinfo", "id_token", "introspection"]
 
-IGNORE = ["error", "error_description",
-          "error_uri", "_claim_names", "_claim_sources"]
+IGNORE = ["error", "error_description", "error_uri", "_claim_names", "_claim_sources"]
 STANDARD_CLAIMS = [c for c in OpenIDSchema.c_param.keys() if c not in IGNORE]
 
 
@@ -24,25 +23,24 @@ def available_claims(endpoint_context):
 
 
 class ClaimsInterface:
-    init_args = {
-        "add_claims_by_scope": False,
-        "enable_claims_per_client": False
-    }
+    init_args = {"add_claims_by_scope": False, "enable_claims_per_client": False}
 
     def __init__(self, server_get):
         self.server_get = server_get
 
-    def authorization_request_claims(self, session_id: str, usage: Optional[str] = "") -> dict:
-        _grant = self.server_get(
-            "endpoint_context").session_manager.get_grant(session_id)
+    def authorization_request_claims(
+        self, session_id: str, usage: Optional[str] = ""
+    ) -> dict:
+        _grant = self.server_get("endpoint_context").session_manager.get_grant(
+            session_id
+        )
         if _grant.authorization_request and "claims" in _grant.authorization_request:
             return _grant.authorization_request["claims"].get(usage, {})
 
         return {}
 
     def _get_client_claims(self, client_id, usage):
-        client_info = self.server_get(
-            "endpoint_context").cdb.get(client_id, {})
+        client_info = self.server_get("endpoint_context").cdb.get(client_id, {})
         client_claims = client_info.get("{}_claims".format(usage), {})
         if isinstance(client_claims, list):
             client_claims = {k: None for k in client_claims}
@@ -64,22 +62,26 @@ class ClaimsInterface:
         if usage == "userinfo":
             module = self.server_get("endpoint", "userinfo")
         elif usage == "id_token":
-            if _context.idtoken:
-                module = _context.idtoken
+            try:
+                module = _context.session_manager.token_handler["id_token"]
+            except KeyError:
+                raise ServiceError("No support for ID Tokens")
         elif usage == "introspection":
             module = self.server_get("endpoint", "introspection")
         elif usage == "access_token":
             try:
                 module = _context.session_manager.token_handler["access_token"]
             except KeyError:
-                pass
+                raise ServiceError("No support for Access Tokens")
 
         if module:
             base_claims = module.kwargs.get("base_claims", {})
         else:
             return {}
 
-        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
+        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(
+            session_id
+        )
 
         # Can there be per client specification of which claims to use.
         if module.kwargs.get("enable_claims_per_client"):
@@ -96,13 +98,14 @@ class ClaimsInterface:
                     client_id, _context, scopes
                 )
 
-                _claims = convert_scopes2claims(
-                    _scopes, map=_context.scope2claims)
+                _claims = convert_scopes2claims(_scopes, map=_context.scope2claims)
                 claims.update(_claims)
 
         # Bring in claims specification from the authorization request
-        request_claims = self.authorization_request_claims(session_id=session_id,
-                                                           usage=usage)
+        # This only goes for ID Token and user info
+        request_claims = self.authorization_request_claims(
+            session_id=session_id, usage=usage
+        )
 
         # This will add claims that has not be added before and
         # set filters on those claims that also appears in one of the sources above
@@ -126,11 +129,15 @@ class ClaimsInterface:
         """
         if claims_restriction:
             # Get all possible claims
-            user_info = self.server_get(
-                "endpoint_context").userinfo(user_id, client_id=None)
+            user_info = self.server_get("endpoint_context").userinfo(
+                user_id, client_id=None
+            )
             # Filter out the claims that can be returned
-            return {k: user_info.get(k) for k, v in claims_restriction.items() if
-                    claims_match(user_info.get(k), v)}
+            return {
+                k: user_info.get(k)
+                for k, v in claims_restriction.items()
+                if claims_match(user_info.get(k), v)
+            }
         else:
             return {}
 

@@ -1,14 +1,16 @@
 import json
 import os
 
+import pytest
 from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
-from oidcmsg.oidc import AccessTokenRequest
-from oidcmsg.oidc import AuthorizationRequest
-from oidcmsg.oidc import RefreshAccessTokenRequest
-from oidcmsg.oidc import TokenErrorResponse
+from oidcmsg.oidc import (
+    AccessTokenRequest,
+    AuthorizationRequest,
+    RefreshAccessTokenRequest,
+    TokenErrorResponse,
+)
 from oidcmsg.time_util import utc_time_sans_frac
-import pytest
 
 from oidcop import JWT_BEARER
 from oidcop.authn_event import create_authn_event
@@ -99,13 +101,26 @@ def conf():
         "verify_ssl": False,
         "capabilities": CAPABILITIES,
         "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+        "token_handler_args": {
+            "jwks_file": "private/token_jwks.json",
+            "code": {"kwargs": {"lifetime": 600}},
+            "token": {
+                "class": "oidcop.token.jwt_token.JWTToken",
+                "kwargs": {
+                    "lifetime": 3600,
+                    "add_claims_by_scope": True,
+                    "aud": ["https://example.org/appl"],
+                },
+            },
+            "refresh": {
+                "class": "oidcop.token.jwt_token.JWTToken",
+                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+            },
+            "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
+        },
         "cookie_handler": {
             "class": CookieHandler,
-            "kwargs": {
-                "keys": {
-                    "key_defs": COOKIE_KEYDEFS
-                }
-            }
+            "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
         },
         "endpoint": {
             "provider_config": {
@@ -158,19 +173,23 @@ def conf():
                     "usage_rules": {
                         "authorization_code": {
                             "expires_in": 300,
-                            'supports_minting': ["access_token", "refresh_token", "id_token"],
-                            "max_usage": 1
+                            "supports_minting": [
+                                "access_token",
+                                "refresh_token",
+                                "id_token",
+                            ],
+                            "max_usage": 1,
                         },
                         "access_token": {"expires_in": 600},
                         "refresh_token": {
                             "expires_in": 86400,
-                            'supports_minting': ["access_token", "refresh_token"],
-                        }
+                            "supports_minting": ["access_token", "refresh_token"],
+                        },
                     },
-                    "expires_in": 43200
+                    "expires_in": 43200,
                 }
-            }
-        }
+            },
+        },
     }
 
 
@@ -195,20 +214,22 @@ class TestEndpoint(object):
     def test_init(self):
         assert self.token_endpoint
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
-        client_id = authz_req['client_id']
+        client_id = authz_req["client_id"]
         ae = create_authn_event(self.user_id)
-        return self.session_manager.create_session(ae, authz_req, self.user_id,
-                                                   client_id=client_id,
-                                                   sub_type=sub_type)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     def _mint_code(self, grant, client_id):
-        session_id = self.session_manager.encrypted_session_id(self.user_id, client_id, grant.id)
+        session_id = self.session_manager.encrypted_session_id(
+            self.user_id, client_id, grant.id
+        )
         usage_rules = grant.usage_rules.get("authorization_code", {})
         _exp_in = usage_rules.get("expires_in")
 
@@ -216,9 +237,9 @@ class TestEndpoint(object):
         _code = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type='authorization_code',
+            token_type="authorization_code",
             token_handler=self.session_manager.token_handler["code"],
-            usage_rules=usage_rules
+            usage_rules=usage_rules,
         )
 
         if _exp_in:
@@ -236,10 +257,10 @@ class TestEndpoint(object):
         _token = grant.mint_token(
             _session_info,
             endpoint_context=self.endpoint_context,
-            token_type='access_token',
+            token_type="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             based_on=token_ref,  # Means the token (tok) was used to mint this token
-            usage_rules=usage_rules
+            usage_rules=usage_rules,
         )
         if isinstance(_exp_in, str):
             _exp_in = int(_exp_in)
@@ -251,7 +272,7 @@ class TestEndpoint(object):
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ['client_id'])
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -262,7 +283,7 @@ class TestEndpoint(object):
     def test_process_request(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ['client_id'])
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _context = self.endpoint_context
@@ -276,7 +297,7 @@ class TestEndpoint(object):
     def test_process_request_using_code_twice(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ['client_id'])
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _context = self.endpoint_context
@@ -292,7 +313,7 @@ class TestEndpoint(object):
     def test_do_response(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ['client_id'])
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -305,7 +326,7 @@ class TestEndpoint(object):
     def test_process_request_using_private_key_jwt(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ['client_id'])
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
         del _token_request["client_id"]
@@ -333,7 +354,7 @@ class TestEndpoint(object):
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
-        code = self._mint_code(grant, areq['client_id'])
+        code = self._mint_code(grant, areq["client_id"])
 
         _cntx = self.endpoint_context
 
@@ -347,8 +368,14 @@ class TestEndpoint(object):
 
         _token_value = _resp["response_args"]["refresh_token"]
         _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
-        _token.usage_rules["supports_minting"] = ["access_token", "refresh_token", "id_token"]
+        _token = self.session_manager.find_token(
+            _session_info["session_id"], _token_value
+        )
+        _token.usage_rules["supports_minting"] = [
+            "access_token",
+            "refresh_token",
+            "id_token",
+        ]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
         _resp = self.token_endpoint.process_request(request=_req)
@@ -359,7 +386,7 @@ class TestEndpoint(object):
             "expires_in",
             "refresh_token",
             "id_token",
-            "scope"
+            "scope",
         }
         msg = self.token_endpoint.do_response(request=_req, **_resp)
         assert isinstance(msg, dict)
@@ -370,7 +397,7 @@ class TestEndpoint(object):
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
-        code = self._mint_code(grant, areq['client_id'])
+        code = self._mint_code(grant, areq["client_id"])
 
         _cntx = self.endpoint_context
 
@@ -385,8 +412,14 @@ class TestEndpoint(object):
         # Make sure ID Tokens can also be used by this refesh token
         _token_value = _resp["response_args"]["refresh_token"]
         _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
-        _token.usage_rules["supports_minting"] = ["access_token", "refresh_token", "id_token"]
+        _token = self.session_manager.find_token(
+            _session_info["session_id"], _token_value
+        )
+        _token.usage_rules["supports_minting"] = [
+            "access_token",
+            "refresh_token",
+            "id_token",
+        ]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
         _resp = self.token_endpoint.process_request(request=_req)
@@ -403,7 +436,7 @@ class TestEndpoint(object):
             "expires_in",
             "refresh_token",
             "id_token",
-            "scope"
+            "scope",
         }
         msg = self.token_endpoint.do_response(request=_req, **_resp)
         assert isinstance(msg, dict)
@@ -422,7 +455,7 @@ class TestEndpoint(object):
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
-        code = self._mint_code(grant, areq['client_id'])
+        code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -453,7 +486,7 @@ class TestEndpoint(object):
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
-        code = self._mint_code(grant, areq['client_id'])
+        code = self._mint_code(grant, areq["client_id"])
 
         _cntx = self.token_endpoint.server_get("endpoint_context")
 
@@ -477,7 +510,7 @@ class TestEndpoint(object):
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
-        code = self._mint_code(grant, areq['client_id'])
+        code = self._mint_code(grant, areq["client_id"])
 
         _cntx = self.token_endpoint.server_get("endpoint_context")
 
@@ -496,14 +529,10 @@ class TestEndpoint(object):
         assert isinstance(_req, TokenErrorResponse)
 
     def test_configure_grant_types(self):
-        conf = {
-            "access_token": {
-                'class': 'oidcop.oidc.token.AccessTokenHelper'
-            }
-        }
+        conf = {"access_token": {"class": "oidcop.oidc.token.AccessTokenHelper"}}
 
         self.token_endpoint.configure_grant_types(conf)
 
         assert len(self.token_endpoint.helper) == 1
-        assert 'access_token' in self.token_endpoint.helper
-        assert 'refresh_token' not in self.token_endpoint.helper
+        assert "access_token" in self.token_endpoint.helper
+        assert "refresh_token" not in self.token_endpoint.helper

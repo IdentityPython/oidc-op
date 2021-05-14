@@ -1,63 +1,60 @@
 import io
 import json
 import os
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
-from cryptojwt import JWT
-from cryptojwt import KeyJar
-from cryptojwt.utils import as_bytes
-from cryptojwt.utils import b64e
-from oidcmsg.exception import ParameterError
-from oidcmsg.exception import URIError
-from oidcmsg.oauth2 import AuthorizationErrorResponse
-from oidcmsg.oauth2 import ResponseMessage
-from oidcmsg.oidc import AuthorizationRequest
-from oidcmsg.oidc import AuthorizationResponse
-from oidcmsg.oidc import verified_claim_name
-from oidcmsg.oidc import verify_id_token
 import pytest
 import responses
 import yaml
+from cryptojwt import JWT, KeyJar
+from cryptojwt.utils import as_bytes, b64e
+from oidcmsg.exception import ParameterError, URIError
+from oidcmsg.oauth2 import AuthorizationErrorResponse, ResponseMessage
+from oidcmsg.oidc import (
+    AuthorizationRequest,
+    AuthorizationResponse,
+    verified_claim_name,
+    verify_id_token,
+)
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.cookie_handler import CookieHandler
-from oidcop.endpoint_context import init_service
-from oidcop.endpoint_context import init_user_info
-from oidcop.exception import NoSuchAuthentication
-from oidcop.exception import RedirectURIError
-from oidcop.exception import ServiceError
-from oidcop.exception import ToOld
-from oidcop.exception import UnknownClient
-from oidcop.id_token import IDToken
+from oidcop.endpoint_context import init_service, init_user_info
+from oidcop.exception import (
+    NoSuchAuthentication,
+    RedirectURIError,
+    ServiceError,
+    ToOld,
+    UnknownClient,
+)
 from oidcop.login_hint import LoginHint2Acrs
-from oidcop.oauth2.authorization import authn_args_gather
-from oidcop.oauth2.authorization import get_uri
-from oidcop.oauth2.authorization import inputs
-from oidcop.oauth2.authorization import join_query
-from oidcop.oauth2.authorization import verify_uri
+from oidcop.oauth2.authorization import (
+    authn_args_gather,
+    get_uri,
+    inputs,
+    join_query,
+    verify_uri,
+)
 from oidcop.oidc import userinfo
-from oidcop.oidc.authorization import Authorization
-from oidcop.oidc.authorization import acr_claims
-from oidcop.oidc.authorization import re_authenticate
+from oidcop.oidc.authorization import Authorization, acr_claims, re_authenticate
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
 from oidcop.session.grant import Grant
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_authn.authn_context import UNSPECIFIED
-from oidcop.user_authn.authn_context import init_method
-from oidcop.user_authn.user import NoAuthn
-from oidcop.user_authn.user import UserAuthnMethod
-from oidcop.user_authn.user import UserPassJinja2
+from oidcop.user_authn.authn_context import (
+    INTERNETPROTOCOLPASSWORD,
+    UNSPECIFIED,
+    init_method,
+)
+from oidcop.user_authn.user import NoAuthn, UserAuthnMethod, UserPassJinja2
 from oidcop.user_info import UserInfo
 from oidcop.util import JSONDictDB
 
 KEYDEFS = [
-    {"type": "RSA", "key": "", "use": ["sig"]}
-    # {"type": "EC", "crv": "P-256", "use": ["sig"]}
+    {"type": "RSA", "key": "", "use": ["sig"]},
+    {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
 RESPONSE_TYPES_SUPPORTED = [
@@ -151,15 +148,31 @@ class TestEndpoint(object):
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
-            "id_token": {
-                "class": IDToken,
-                "kwargs": {
-                    "base_claims": {
-                        "email": {"essential": True},
-                        "email_verified": {"essential": True},
-                        "given_name": {"essential": True},
-                        "nickname": None
-                    }
+            "token_handler_args": {
+                "jwks_file": "private/token_jwks.json",
+                "code": {"kwargs": {"lifetime": 600}},
+                "token": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "add_claims_by_scope": True,
+                        "aud": ["https://example.org/appl"],
+                    },
+                },
+                "refresh": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                },
+                "id_token": {
+                    "class": "oidcop.token.id_token.IDToken",
+                    "kwargs": {
+                        "base_claims": {
+                            "email": {"essential": True},
+                            "email_verified": {"essential": True},
+                            "given_name": {"essential": True},
+                            "nickname": None,
+                        }
+                    },
                 },
             },
             "endpoint": {
@@ -226,17 +239,21 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                'supports_minting': ["access_token", "refresh_token", "id_token"],
-                                "max_usage": 1
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
+                                "max_usage": 1,
                             },
                             "access_token": {},
                             "refresh_token": {
-                                'supports_minting': ["access_token", "refresh_token"],
-                            }
+                                "supports_minting": ["access_token", "refresh_token"],
+                            },
                         },
-                        "expires_in": 43200
+                        "expires_in": 43200,
                     }
-                }
+                },
             },
             "cookie_handler": {
                 "class": CookieHandler,
@@ -245,8 +262,8 @@ class TestEndpoint(object):
                     "name": {
                         "session": "oidc_op",
                         "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman"
-                    }
+                        "session_management": "oidc_op_sman",
+                    },
                 },
             },
             "login_hint2acrs": {
@@ -268,24 +285,22 @@ class TestEndpoint(object):
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        endpoint_context.keyjar.add_symmetric(
-            "client_1", "hemligtkodord1234567890"
-        )
+        endpoint_context.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
 
     def test_init(self):
         assert self.endpoint
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
-        client_id = authz_req['client_id']
+        client_id = authz_req["client_id"]
         ae = create_authn_event(self.user_id)
-        return self.session_manager.create_session(ae, authz_req, self.user_id,
-                                                   client_id=client_id,
-                                                   sub_type=sub_type)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     def test_parse(self):
         _req = self.endpoint.parse_request(AUTH_REQ_DICT)
@@ -301,7 +316,7 @@ class TestEndpoint(object):
             "fragment_enc",
             "return_uri",
             "cookie",
-            "session_id"
+            "session_id",
         }
 
     def test_do_response_code(self):
@@ -398,8 +413,10 @@ class TestEndpoint(object):
         _req["nonce"] = "rnd_nonce"
         _pr_resp = self.endpoint.parse_request(_req)
         _resp = self.endpoint.process_request(_pr_resp)
-        idt = verify_id_token(_resp["response_args"],
-                              keyjar=self.endpoint.server_get("endpoint_context").keyjar)
+        idt = verify_id_token(
+            _resp["response_args"],
+            keyjar=self.endpoint.server_get("endpoint_context").keyjar,
+        )
         assert idt
         # from config
         assert "given_name" in _resp["response_args"]["__verified_id_token"]
@@ -422,7 +439,8 @@ class TestEndpoint(object):
         _pr_resp = self.endpoint.parse_request(_req)
         _resp = self.endpoint.process_request(_pr_resp)
         res = verify_id_token(
-            _resp["response_args"], keyjar=self.endpoint.server_get("endpoint_context").keyjar
+            _resp["response_args"],
+            keyjar=self.endpoint.server_get("endpoint_context").keyjar,
         )
         assert res
         res = _resp["response_args"][verified_claim_name("id_token")]
@@ -431,7 +449,9 @@ class TestEndpoint(object):
     def test_verify_uri_unknown_client(self):
         request = {"redirect_uri": "https://rp.example.com/cb"}
         with pytest.raises(UnknownClient):
-            verify_uri(self.endpoint.server_get("endpoint_context"), request, "redirect_uri")
+            verify_uri(
+                self.endpoint.server_get("endpoint_context"), request, "redirect_uri"
+            )
 
     def test_verify_uri_fragment(self):
         _ec = self.endpoint.server_get("endpoint_context")
@@ -582,7 +602,7 @@ class TestEndpoint(object):
         session_id = self._create_session(request)
 
         resp = self.endpoint.create_authn_response(request, session_id)
-        assert isinstance(resp["response_args"], AuthorizationErrorResponse)
+        assert isinstance(resp["response_args"], AuthorizationResponse)
 
     def test_setup_auth(self):
         request = AuthorizationRequest(
@@ -600,9 +620,9 @@ class TestEndpoint(object):
             "id_token_signed_response_alg": "RS256",
         }
 
-        kaka = self.endpoint.server_get("endpoint_context").cookie_handler.make_cookie_content(
-            "value", "sso"
-        )
+        kaka = self.endpoint.server_get(
+            "endpoint_context"
+        ).cookie_handler.make_cookie_content("value", "sso")
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, [kaka])
         assert set(res.keys()) == {"session_id", "identity", "user"}
@@ -764,7 +784,8 @@ class TestEndpoint(object):
     def test_parse_request(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
-            AUTH_REQ_DICT, aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"]
+            AUTH_REQ_DICT,
+            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
         )
         # -----------------
         _req = self.endpoint.parse_request(
@@ -781,7 +802,8 @@ class TestEndpoint(object):
     def test_parse_request_uri(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
-            AUTH_REQ_DICT, aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"]
+            AUTH_REQ_DICT,
+            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
         )
 
         request_uri = "https://client.example.com/req"
@@ -813,28 +835,30 @@ class TestEndpoint(object):
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "RS256",
-            "policy_uri": "https://example.com/policy.html"
+            "policy_uri": "https://example.com/policy.html",
         }
 
         assert self.endpoint.verify_response_type(request, client_info) is False
 
-        client_info["response_types"] = ["code", "code id_token", "id_token", "id_token token"]
+        client_info["response_types"] = [
+            "code",
+            "code id_token",
+            "id_token",
+            "id_token token",
+        ]
 
         assert self.endpoint.verify_response_type(request, client_info) is True
 
     @pytest.mark.parametrize("exp_in", [360, "360", 0])
     def test_mint_token_exp_at(self, exp_in):
         grant = Grant()
-        grant.usage_rules = {
-            'authorization_code': {
-                "expires_in": exp_in
-            }
-        }
+        grant.usage_rules = {"authorization_code": {"expires_in": exp_in}}
 
-        DUMMY_SESSION_ID = self.session_manager.encrypted_session_id('user_id', 'client_id',
-                                                                     'grant.id')
+        DUMMY_SESSION_ID = self.session_manager.encrypted_session_id(
+            "user_id", "client_id", "grant.id"
+        )
 
-        code = self.endpoint.mint_token('authorization_code', grant, DUMMY_SESSION_ID)
+        code = self.endpoint.mint_token("authorization_code", grant, DUMMY_SESSION_ID)
         if exp_in in [360, "360"]:
             assert code.expires_at
         else:
@@ -857,16 +881,18 @@ class TestEndpoint(object):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
             orig_request.to_dict(),
-            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"]
+            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
         )
 
         endpoint_context = self.endpoint.server_get("endpoint_context")
-        endpoint_context.cdb["client_1"]["request_uris"] = [("https://example.com/request", {})]
+        endpoint_context.cdb["client_1"]["request_uris"] = [
+            ("https://example.com/request", {})
+        ]
 
         with responses.RequestsMock() as rsps:
             rsps.add(
                 "GET",
-                request['request_uri'],
+                request["request_uri"],
                 body=_jws,
                 adding_headers={"Content-Type": "application/jose"},
                 status=200,
@@ -879,7 +905,7 @@ class TestEndpoint(object):
         with responses.RequestsMock() as rsps:
             rsps.add(
                 "GET",
-                request['request_uri'],
+                request["request_uri"],
                 body=_jws,
                 adding_headers={"Content-Type": "application/jose"},
                 status=200,
@@ -913,8 +939,10 @@ class TestEndpoint(object):
         assert msg["error_description"] == "unknown client"
 
         request["client_id"] = "client_1"
-        endpoint_context.cdb['client_1']["redirect_uris"] = [('https://example.com/cb', ''),
-                                                             ('https://example.com/2nd_cb', '')]
+        endpoint_context.cdb["client_1"]["redirect_uris"] = [
+            ("https://example.com/cb", ""),
+            ("https://example.com/2nd_cb", ""),
+        ]
 
         msg = self.endpoint._post_parse_request(request, "client_1", endpoint_context)
         assert "error" in msg
@@ -928,22 +956,26 @@ class TestEndpoint(object):
             redirect_uri="https://example.com/cb",
             state="state",
             scope="openid",
-            response_mode=response_mode
+            response_mode=response_mode,
         )
 
-        response_args = AuthorizationResponse(
-            scope="openid",
-            code="abcdefghijklmnop"
-        )
+        response_args = AuthorizationResponse(scope="openid", code="abcdefghijklmnop")
 
         if response_mode == "fragment":
-            info = self.endpoint.response_mode(request, response_args, request["redirect_uri"],
-                                               fragment_enc=True)
+            info = self.endpoint.response_mode(
+                request, response_args, request["redirect_uri"], fragment_enc=True
+            )
         else:
-            info = self.endpoint.response_mode(request, response_args, request["redirect_uri"])
+            info = self.endpoint.response_mode(
+                request, response_args, request["redirect_uri"]
+            )
 
         if response_mode == "form_post":
-            assert set(info.keys()) == {"response_msg", "content_type", "response_placement"}
+            assert set(info.keys()) == {
+                "response_msg",
+                "content_type",
+                "response_placement",
+            }
         elif response_mode == "fragment":
             assert set(info.keys()) == {"response_args", "return_uri", "fragment_enc"}
         elif response_mode == "query":
@@ -955,7 +987,7 @@ class TestEndpoint(object):
             response_type=["code"],
             redirect_uri="https://example.com/cb",
             state="state",
-            scope="openid"
+            scope="openid",
         )
         session_id = self._create_session(request)
         resp = self.endpoint.post_authentication(request, session_id)
@@ -978,15 +1010,21 @@ class TestEndpoint(object):
 
         endpoint_context = self.endpoint.server_get("endpoint_context")
         # userinfo
-        _userinfo = init_user_info({"class": "oidcop.user_info.UserInfo",
-                                    "kwargs": {"db_file": full_path("users.json")}}, "")
+        _userinfo = init_user_info(
+            {
+                "class": "oidcop.user_info.UserInfo",
+                "kwargs": {"db_file": full_path("users.json")},
+            },
+            "",
+        )
         # login_hint
         endpoint_context.login_hint_lookup = init_service(
-            {"class": "oidcop.login_hint.LoginHintLookup"}, None)
+            {"class": "oidcop.login_hint.LoginHintLookup"}, None
+        )
         endpoint_context.login_hint_lookup.userinfo = _userinfo
 
         # With login_hint and login_hint_lookup
-        assert self.endpoint.do_request_user(request) == {'req_user': 'diana'}
+        assert self.endpoint.do_request_user(request) == {"req_user": "diana"}
 
 
 def test_authn_args_gather_message():
@@ -1002,17 +1040,19 @@ def test_authn_args_gather_message():
         "client_id": "client_id",
         "redirect_uris": [("https://rp.example.com/cb", {})],
         "id_token_signed_response_alg": "RS256",
-        "policy_uri": "https://example.com/policy.html"
+        "policy_uri": "https://example.com/policy.html",
     }
 
     args = authn_args_gather(request, INTERNETPROTOCOLPASSWORD, client_info)
-    assert set(args.keys()) == {'query', 'authn_class_ref', 'return_uri', 'policy_uri'}
+    assert set(args.keys()) == {"query", "authn_class_ref", "return_uri", "policy_uri"}
 
     args = authn_args_gather(request.to_dict(), INTERNETPROTOCOLPASSWORD, client_info)
-    assert set(args.keys()) == {'query', 'authn_class_ref', 'return_uri', 'policy_uri'}
+    assert set(args.keys()) == {"query", "authn_class_ref", "return_uri", "policy_uri"}
 
     with pytest.raises(ValueError):
-        authn_args_gather(request.to_urlencoded(), INTERNETPROTOCOLPASSWORD, client_info)
+        authn_args_gather(
+            request.to_urlencoded(), INTERNETPROTOCOLPASSWORD, client_info
+        )
 
 
 def test_inputs():
@@ -1103,11 +1143,14 @@ class TestUserAuthn(object):
         _cookie = self.endpoint_context.new_cookie(
             name=self.endpoint_context.cookie_handler.name["session"],
             sub="diana",
-            sid=self.endpoint_context.session_manager.encrypted_session_id("diana", "client 12345",
-                                                                           "abcdefgh"),
+            sid=self.endpoint_context.session_manager.encrypted_session_id(
+                "diana", "client 12345", "abcdefgh"
+            ),
             state=authn_req["state"],
             client_id=authn_req["client_id"],
         )
 
-        _info, _time_stamp = method.authenticated_as(client_id="client 12345", cookie=[_cookie])
+        _info, _time_stamp = method.authenticated_as(
+            client_id="client 12345", cookie=[_cookie]
+        )
         assert _info["sub"] == "diana"

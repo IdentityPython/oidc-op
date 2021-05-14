@@ -1,12 +1,19 @@
 import logging
 import uuid
+from typing import Callable, Optional
 
+from cryptojwt.jws.exception import JWSException
+from cryptojwt.jws.jws import factory
 from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
 
 from oidcop.construct import construct_endpoint_info
+from oidcop.exception import ToOld
 from oidcop.session.claims import claims_match
 from oidcop.session.info import SessionInfo
+from oidcop.token import is_expired
+
+from . import Token, UnknownToken
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +50,7 @@ def include_session_id(endpoint_context, client_id, where):
 
     # Does the client support back-channel logout ?
     try:
-        endpoint_context.cdb[client_id][
-            "{}channel_logout_uri".format(where)
-        ]
+        endpoint_context.cdb[client_id]["{}channel_logout_uri".format(where)]
     except KeyError:
         return False
 
@@ -53,7 +58,8 @@ def include_session_id(endpoint_context, client_id, where):
 
 
 def get_sign_and_encrypt_algorithms(
-        endpoint_context, client_info, payload_type, sign=False, encrypt=False):
+    endpoint_context, client_info, payload_type, sign=False, encrypt=False
+):
     args = {"sign": sign, "encrypt": encrypt}
     if sign:
         try:
@@ -79,8 +85,7 @@ def get_sign_and_encrypt_algorithms(
 
     if encrypt:
         try:
-            args["enc_alg"] = client_info["%s_encrypted_response_alg" %
-                                          payload_type]
+            args["enc_alg"] = client_info["%s_encrypted_response_alg" % payload_type]
         except KeyError:
             try:
                 args["enc_alg"] = endpoint_context.jwx_def["encryption_alg"][
@@ -94,8 +99,7 @@ def get_sign_and_encrypt_algorithms(
                     args["enc_alg"] = _supported[0]
 
         try:
-            args["enc_enc"] = client_info["%s_encrypted_response_enc" %
-                                          payload_type]
+            args["enc_enc"] = client_info["%s_encrypted_response_enc" % payload_type]
         except KeyError:
             try:
                 args["enc_enc"] = endpoint_context.jwx_def["encryption_enc"][
@@ -111,27 +115,31 @@ def get_sign_and_encrypt_algorithms(
     return args
 
 
-class IDToken(object):
+class IDToken(Token):
     default_capabilities = {
         "id_token_signing_alg_values_supported": None,
         "id_token_encryption_alg_values_supported": None,
         "id_token_encryption_enc_values_supported": None,
     }
 
-    def __init__(self, server_get, **kwargs):
+    def __init__(
+        self,
+        typ: Optional[str] = "I",
+        lifetime: Optional[int] = 300,
+        server_get: Callable = None,
+        **kwargs
+    ):
+        Token.__init__(self, typ, **kwargs)
+        self.lifetime = lifetime
         self.server_get = server_get
         self.kwargs = kwargs
         self.scope_to_claims = None
         self.provider_info = construct_endpoint_info(
-            self.default_capabilities, **kwargs)
+            self.default_capabilities, **kwargs
+        )
 
     def payload(
-            self,
-            session_id,
-            alg="RS256",
-            code=None,
-            access_token=None,
-            extra_claims=None,
+        self, session_id, alg="RS256", code=None, access_token=None, extra_claims=None,
     ):
         """
 
@@ -160,7 +168,8 @@ class IDToken(object):
         else:
             user_info = _context.claims_interface.get_user_claims(
                 user_id=session_information["user_id"],
-                claims_restriction=_claims_restriction)
+                claims_restriction=_claims_restriction,
+            )
             if _claims_restriction and "acr" in _claims_restriction and "acr" in _args:
                 if claims_match(_args["acr"], _claims_restriction["acr"]) is False:
                     raise ValueError("Could not match expected 'acr'")
@@ -200,16 +209,16 @@ class IDToken(object):
         return _args
 
     def sign_encrypt(
-            self,
-            session_id,
-            client_id,
-            code=None,
-            access_token=None,
-            sign=True,
-            encrypt=False,
-            lifetime=None,
-            extra_claims=None,
-    ):
+        self,
+        session_id,
+        client_id,
+        code=None,
+        access_token=None,
+        sign=True,
+        encrypt=False,
+        lifetime=None,
+        extra_claims=None,
+    ) -> str:
         """
         Signed and or encrypt a IDToken
 
@@ -236,26 +245,29 @@ class IDToken(object):
             alg=alg_dict["sign_alg"],
             code=code,
             access_token=access_token,
-            extra_claims=extra_claims
+            extra_claims=extra_claims,
         )
 
         if lifetime is None:
             lifetime = DEF_LIFETIME
 
-        _jwt = JWT(
-            _context.keyjar, iss=_context.issuer, lifetime=lifetime, **alg_dict
-        )
+        _jwt = JWT(_context.keyjar, iss=_context.issuer, lifetime=lifetime, **alg_dict)
 
         return _jwt.pack(_payload, recv=client_id)
 
-    def make(self, session_id, **kwargs):
+    def __call__(
+        self, session_id: Optional[str] = "", ttype: Optional[str] = "", **kwargs
+    ) -> str:
         _context = self.server_get("endpoint_context")
 
-        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
+        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(
+            session_id
+        )
 
         # Should I add session ID. This is about Single Logout.
         if include_session_id(_context, client_id, "back") or include_session_id(
-                _context, client_id, "front"):
+            _context, client_id, "front"
+        ):
 
             # Note that this session ID is not the session ID the session manager is using.
             # It must be possible to map from one to the other.
@@ -273,6 +285,11 @@ class IDToken(object):
 
         lifetime = self.kwargs.get("lifetime")
 
+        # Weed out stuff that doesn't belong here
+        kwargs = {
+            k: v for k, v in kwargs.items() if k in ["encrypt", "code", "access_token"]
+        }
+
         id_token = self.sign_encrypt(
             session_id,
             client_id,
@@ -283,3 +300,36 @@ class IDToken(object):
         )
 
         return id_token
+
+    def info(self, token):
+        """
+        Return type of Token (A=Access code, T=Token, R=Refresh token) and
+        the session id.
+
+        :param token: A token
+        :return: tuple of token type and session id
+        """
+        _context = self.server_get("endpoint_context")
+
+        _jwt = factory(token)
+        _payload = _jwt.jwt.payload()
+        client_info = _context.cdb[_payload["aud"][0]]
+        alg_dict = get_sign_and_encrypt_algorithms(
+            _context, client_info, "id_token", sign=True
+        )
+
+        verifier = JWT(key_jar=_context.keyjar, allowed_sign_algs=alg_dict["sign_alg"])
+        try:
+            _payload = verifier.unpack(token)
+        except JWSException:
+            raise UnknownToken()
+
+        if is_expired(_payload["exp"]):
+            raise ToOld("Token has expired")
+        # All the token metadata
+        return {
+            "sid": _payload["sid"],
+            # "type": _payload["ttype"],
+            "exp": _payload["exp"],
+            "handler": self,
+        }

@@ -7,16 +7,17 @@ from oidcmsg.time_util import time_sans_frac
 
 from oidcop.authn_event import AuthnEvent
 from oidcop.cookie_handler import CookieHandler
-from oidcop.id_token import IDToken
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_authn.authn_context import TIMESYNCTOKEN
-from oidcop.user_authn.authn_context import init_method
-from oidcop.user_authn.authn_context import pick_auth
-from oidcop.user_authn.authn_context import populate_authn_broker
+from oidcop.user_authn.authn_context import (
+    INTERNETPROTOCOLPASSWORD,
+    TIMESYNCTOKEN,
+    init_method,
+    pick_auth,
+    populate_authn_broker,
+)
 from oidcop.user_authn.user import NoAuthn
 from oidcop.user_info import UserInfo
 
@@ -126,21 +127,9 @@ class TestAuthnBrokerEC:
         conf = {
             "issuer": "https://example.com/",
             "password": "mycket hemligt zebra",
-            "token_expires_in": 600,
-            "grant_expires_in": 300,
-            "refresh_token_expires_in": 86400,
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
-            "id_token": {
-                "class": IDToken,
-                "kwargs": {
-                    "available_claims": {
-                        "email": {"essential": True},
-                        "email_verified": {"essential": True},
-                    }
-                },
-            },
             "endpoint": {
                 "provider_config": {
                     "path": "{}/.well-known/openid-configuration",
@@ -163,7 +152,7 @@ class TestAuthnBrokerEC:
             "name": {
                 "session": "oidc_op",
                 "register": "oidc_op_reg",
-                "session_management": "oidc_op_sman"
+                "session_management": "oidc_op_sman",
             },
         }
         cookie_handler = CookieHandler(**cookie_conf)
@@ -201,9 +190,7 @@ class TestAuthnBrokerEC:
 
 def test_authn_event():
     an = AuthnEvent(
-        uid="uid",
-        valid_until=time_sans_frac() + 1,
-        authn_info="authn_class_ref",
+        uid="uid", valid_until=time_sans_frac() + 1, authn_info="authn_class_ref",
     )
 
     assert an.is_valid()

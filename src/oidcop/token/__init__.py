@@ -5,11 +5,8 @@ from typing import Optional
 from oidcmsg.time_util import time_sans_frac
 
 from oidcop import rndstr
-from oidcop.token.exception import UnknownToken
-from oidcop.token.exception import WrongTokenType
-from oidcop.util import Crypt
-from oidcop.util import lv_pack
-from oidcop.util import lv_unpack
+from oidcop.token.exception import UnknownToken, WrongTokenType
+from oidcop.util import Crypt, lv_pack, lv_unpack
 
 __author__ = "Roland Hedberg"
 
@@ -31,10 +28,9 @@ class Token(object):
         self.lifetime = lifetime
         self.kwargs = kwargs
 
-    def __call__(self,
-                 session_id: Optional[str] = '',
-                 ttype: Optional[str] = '',
-                 **payload) -> str:
+    def __call__(
+        self, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload
+    ) -> str:
         """
         Return a token.
 
@@ -73,10 +69,9 @@ class DefaultToken(Token):
         self.crypt = Crypt(password)
         self.token_type = token_type
 
-    def __call__(self,
-                 session_id: Optional[str] = '',
-                 ttype: Optional[str] = '',
-                 **payload) -> str:
+    def __call__(
+        self, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload
+    ) -> str:
         """
         Return a token.
 
@@ -117,8 +112,7 @@ class DefaultToken(Token):
         :param token: A token
         :return: dictionary with info about the token
         """
-        _res = dict(zip(["_id", "type", "sid", "exp"],
-                        self.split_token(token)))
+        _res = dict(zip(["_id", "type", "sid", "exp"], self.split_token(token)))
         if _res["type"] != self.type:
             raise WrongTokenType(_res["type"])
         else:

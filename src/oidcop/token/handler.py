@@ -1,6 +1,6 @@
 import logging
-from typing import Optional
 import warnings
+from typing import Optional
 
 from cryptography.fernet import InvalidToken
 from cryptojwt.exception import Invalid
@@ -9,9 +9,7 @@ from cryptojwt.utils import as_unicode
 from oidcmsg.impexp import ImpExp
 from oidcmsg.item import DLDict
 
-from oidcop.token import DefaultToken
-from oidcop.token import UnknownToken
-from oidcop.token import WrongTokenType
+from oidcop.token import DefaultToken, Token, UnknownToken, WrongTokenType
 from oidcop.util import importer
 
 __author__ = "Roland Hedberg"
@@ -20,23 +18,27 @@ logger = logging.getLogger(__name__)
 
 
 class TokenHandler(ImpExp):
-    parameter = {
-        "handler": DLDict,
-        "handler_order": [""]
-    }
+    parameter = {"handler": DLDict, "handler_order": [""]}
 
     def __init__(
-            self, access_token_handler=None, code_handler=None, refresh_token_handler=None
+        self,
+        access_token_handler: Optional[Token] = None,
+        code_handler: Optional[Token] = None,
+        refresh_token_handler: Optional[Token] = None,
+        id_token_handler: Optional[Token] = None,
     ):
         ImpExp.__init__(self)
-        self.handler = {"code": code_handler,
-                        "access_token": access_token_handler}
+        self.handler = {"code": code_handler, "access_token": access_token_handler}
 
         self.handler_order = ["code", "access_token"]
 
         if refresh_token_handler:
             self.handler["refresh_token"] = refresh_token_handler
             self.handler_order.append("refresh_token")
+
+        if id_token_handler:
+            self.handler["id_token"] = id_token_handler
+            self.handler_order.append("id_token")
 
     def __getitem__(self, typ):
         return self.handler[typ]
@@ -120,12 +122,15 @@ def _add_passwd(keyjar, conf, kid):
 JWKS_FILE = "private/token_jwks.json"
 
 
-def factory(server_get,
-            code: Optional[dict] = None,
-            token: Optional[dict] = None,
-            refresh: Optional[dict] = None,
-            jwks_file: Optional[str] = JWKS_FILE,
-            **kwargs) -> TokenHandler:
+def factory(
+    server_get,
+    code: Optional[dict] = None,
+    token: Optional[dict] = None,
+    refresh: Optional[dict] = None,
+    id_token: Optional[dict] = None,
+    jwks_file: Optional[str] = JWKS_FILE,
+    **kwargs
+) -> TokenHandler:
     """
     Create a token handler
 
@@ -156,10 +161,17 @@ def factory(server_get,
 
     if token:
         _add_passwd(kj, token, "token")
-        args["access_token_handler"] = init_token_handler(server_get, token, TTYPE["token"])
+        args["access_token_handler"] = init_token_handler(
+            server_get, token, TTYPE["token"]
+        )
 
     if refresh is not None:
         _add_passwd(kj, refresh, "refresh")
-        args["refresh_token_handler"] = init_token_handler(server_get, refresh, TTYPE["refresh"])
+        args["refresh_token_handler"] = init_token_handler(
+            server_get, refresh, TTYPE["refresh"]
+        )
+
+    if id_token is not None:
+        args["id_token_handler"] = init_token_handler(server_get, id_token, typ="")
 
     return TokenHandler(**args)

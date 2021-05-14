@@ -4,24 +4,22 @@ import os
 import secrets
 import string
 
-from oidcmsg.message import Message
-from oidcmsg.oauth2 import AuthorizationErrorResponse
-from oidcmsg.oidc import AccessTokenRequest
-from oidcmsg.oidc import AuthorizationRequest
-from oidcmsg.oidc import AuthorizationResponse
-from oidcmsg.oidc import TokenErrorResponse
-from oidcop.configure import OPConfiguration
-
-from oidcop.endpoint import Endpoint
-import oidcop.oauth2.introspection
-
-from oidcop.oidc.add_on.pkce import add_pkce_support
 import pytest
 import yaml
+from oidcmsg.message import Message
+from oidcmsg.oauth2 import AuthorizationErrorResponse
+from oidcmsg.oidc import (
+    AccessTokenRequest,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    TokenErrorResponse,
+)
 
+import oidcop.oauth2.introspection
+from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
-from oidcop.id_token import IDToken
-from oidcop.oidc.add_on.pkce import CC_METHOD
+from oidcop.endpoint import Endpoint
+from oidcop.oidc.add_on.pkce import CC_METHOD, add_pkce_support
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.token import Token
 from oidcop.server import Server
@@ -120,21 +118,9 @@ def conf():
     return {
         "issuer": "https://example.com/",
         "password": "mycket hemligt zebra",
-        "token_expires_in": 600,
-        "grant_expires_in": 300,
-        "refresh_token_expires_in": 86400,
         "verify_ssl": False,
         "capabilities": CAPABILITIES,
         "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
-        "id_token": {
-            "class": IDToken,
-            "kwargs": {
-                "available_claims": {
-                    "email": {"essential": True},
-                    "email_verified": {"essential": True},
-                }
-            },
-        },
         "endpoint": {
             "authorization": {
                 "path": "{}/authorization",
@@ -175,7 +161,7 @@ def conf():
                 "name": {
                     "session": "oidc_op",
                     "register": "oidc_op_reg",
-                    "session_management": "oidc_op_sman"
+                    "session_management": "oidc_op_sman",
                 },
             },
         },
@@ -263,8 +249,8 @@ class TestEndpoint(object):
         assert isinstance(resp["response_args"], AuthorizationResponse)
 
         session_info = self.session_manager.get_session_info_by_token(
-            resp["response_args"]["code"],
-            grant=True)
+            resp["response_args"]["code"], grant=True
+        )
 
         session_info["grant"].authorization_request["code_challenge_method"] = "plain"
 
@@ -312,8 +298,8 @@ class TestEndpoint(object):
         assert isinstance(_pr_resp, AuthorizationErrorResponse)
         assert _pr_resp["error"] == "invalid_request"
         assert _pr_resp[
-                   "error_description"
-               ] == "Unsupported code_challenge_method={}".format(
+            "error_description"
+        ] == "Unsupported code_challenge_method={}".format(
             _authn_req["code_challenge_method"]
         )
 
@@ -332,8 +318,8 @@ class TestEndpoint(object):
         assert isinstance(_pr_resp, AuthorizationErrorResponse)
         assert _pr_resp["error"] == "invalid_request"
         assert _pr_resp[
-                   "error_description"
-               ] == "Unsupported code_challenge_method={}".format(
+            "error_description"
+        ] == "Unsupported code_challenge_method={}".format(
             _authn_req["code_challenge_method"]
         )
 
@@ -381,16 +367,18 @@ def test_missing_authz_endpoint():
         "endpoint": {
             "introspection": {
                 "path": "introspection",
-                "class": 'oidcop.oauth2.introspection.Introspection',
+                "class": "oidcop.oauth2.introspection.Introspection",
                 "kwargs": {},
             }
-        }
+        },
     }
-    configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
+    configuration = OPConfiguration(
+        conf, base_path=BASEDIR, domain="127.0.0.1", port=443
+    )
     server = Server(configuration)
     add_pkce_support(server.server_get("endpoints"))
 
-    assert 'pkce' not in server.server_get("endpoint_context").args
+    assert "pkce" not in server.server_get("endpoint_context").args
 
 
 def test_missing_token_endpoint():
@@ -401,18 +389,20 @@ def test_missing_token_endpoint():
         "endpoint": {
             "authorization": {
                 "path": "authorization",
-                "class": 'oidcop.oauth2.authorization.Authorization',
+                "class": "oidcop.oauth2.authorization.Authorization",
                 "kwargs": {},
             },
             "introspection": {
                 "path": "introspection",
-                "class": 'oidcop.oauth2.introspection.Introspection',
+                "class": "oidcop.oauth2.introspection.Introspection",
                 "kwargs": {},
-            }
-        }
+            },
+        },
     }
-    configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
+    configuration = OPConfiguration(
+        conf, base_path=BASEDIR, domain="127.0.0.1", port=443
+    )
     server = Server(configuration)
     add_pkce_support(server.server_get("endpoints"))
 
-    assert 'pkce' not in server.server_get("endpoint_context").args
+    assert "pkce" not in server.server_get("endpoint_context").args

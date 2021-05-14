@@ -1,39 +1,41 @@
-from http.cookies import SimpleCookie
 import io
 import json
 import os
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from http.cookies import SimpleCookie
+from urllib.parse import parse_qs, urlparse
 
-from cryptojwt import KeyJar
-from cryptojwt.jwt import utc_time_sans_frac
-from cryptojwt.utils import as_bytes
-from cryptojwt.utils import b64e
-from oidcmsg.exception import ParameterError
-from oidcmsg.exception import URIError
-from oidcmsg.oauth2 import AuthorizationErrorResponse
-from oidcmsg.oauth2 import AuthorizationRequest
-from oidcmsg.oauth2 import AuthorizationResponse
-from oidcmsg.time_util import in_a_while
 import pytest
 import yaml
+from cryptojwt import KeyJar
+from cryptojwt.jwt import utc_time_sans_frac
+from cryptojwt.utils import as_bytes, b64e
+from oidcmsg.exception import ParameterError, URIError
+from oidcmsg.oauth2 import (
+    AuthorizationErrorResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+)
+from oidcmsg.time_util import in_a_while
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.cookie_handler import CookieHandler
-from oidcop.exception import InvalidRequest
-from oidcop.exception import NoSuchAuthentication
-from oidcop.exception import RedirectURIError
-from oidcop.exception import ToOld
-from oidcop.exception import UnAuthorizedClientScope
-from oidcop.exception import UnknownClient
-from oidcop.id_token import IDToken
-from oidcop.oauth2.authorization import Authorization
-from oidcop.oauth2.authorization import FORM_POST
-from oidcop.oauth2.authorization import get_uri
-from oidcop.oauth2.authorization import inputs
-from oidcop.oauth2.authorization import join_query
-from oidcop.oauth2.authorization import verify_uri
+from oidcop.exception import (
+    InvalidRequest,
+    NoSuchAuthentication,
+    RedirectURIError,
+    ToOld,
+    UnAuthorizedClientScope,
+    UnknownClient,
+)
+from oidcop.oauth2.authorization import (
+    FORM_POST,
+    Authorization,
+    get_uri,
+    inputs,
+    join_query,
+    verify_uri,
+)
 from oidcop.server import Server
 from oidcop.user_info import UserInfo
 
@@ -44,7 +46,7 @@ KEYDEFS = [
 
 COOKIE_KEYDEFS = [
     {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]}
+    {"type": "oct", "kid": "enc", "use": ["enc"]},
 ]
 
 RESPONSE_TYPES_SUPPORTED = [["code"], ["token"], ["code", "token"], ["none"]]
@@ -148,13 +150,35 @@ class TestEndpoint(object):
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
-            "id_token": {
-                "class": IDToken,
-                "kwargs": {
-                    "available_claims": {
-                        "email": {"essential": True},
-                        "email_verified": {"essential": True},
-                    }
+            "token_handler_args": {
+                "jwks_def": {
+                    "private_path": "private/token_jwks.json",
+                    "read_only": False,
+                    "key_defs": [
+                        {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
+                    ],
+                },
+                "code": {"kwargs": {"lifetime": 600}},
+                "token": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "add_claims_by_scope": True,
+                        "aud": ["https://example.org/appl"],
+                    },
+                },
+                "refresh": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                },
+                "id_token": {
+                    "class": "oidcop.token.id_token.IDToken",
+                    "kwargs": {
+                        "base_claims": {
+                            "email": {"essential": True},
+                            "email_verified": {"essential": True},
+                        }
+                    },
                 },
             },
             "endpoint": {
@@ -188,8 +212,8 @@ class TestEndpoint(object):
                     "name": {
                         "session": "oidc_op",
                         "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman"
-                    }
+                        "session_management": "oidc_op_sman",
+                    },
                 },
             },
             "authz": {
@@ -198,18 +222,26 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                'supports_minting': ["access_token", "refresh_token", "id_token"],
-                                "max_usage": 1
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
+                                "max_usage": 1,
                             },
                             "access_token": {},
                             "refresh_token": {
-                                'supports_minting': ["access_token", "refresh_token", "id_token"],
-                            }
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
+                            },
                         },
-                        "expires_in": 43200
+                        "expires_in": 43200,
                     }
-                }
-            }
+                },
+            },
         }
         server = Server(conf)
         endpoint_context = server.endpoint_context
@@ -228,18 +260,18 @@ class TestEndpoint(object):
             "client_1", "hemligtkodord1234567890"
         )
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
             areq = auth_req.copy()
             areq["sector_identifier_uri"] = sector_identifier
         else:
             areq = auth_req
 
-        client_id = areq['client_id']
+        client_id = areq["client_id"]
         ae = create_authn_event(self.user_id)
-        return self.session_manager.create_session(ae, areq, self.user_id,
-                                                   client_id=client_id,
-                                                   sub_type=sub_type)
+        return self.session_manager.create_session(
+            ae, areq, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     def test_init(self):
         assert self.endpoint
@@ -257,7 +289,7 @@ class TestEndpoint(object):
             "fragment_enc",
             "return_uri",
             "cookie",
-            "session_id"
+            "session_id",
         }
 
     def test_do_response_code(self):
@@ -279,7 +311,7 @@ class TestEndpoint(object):
         """
         _orig_req = AUTH_REQ_DICT.copy()
         _orig_req["response_type"] = "code token"
-        msg = ''
+        msg = ""
         _pr_resp = self.endpoint.parse_request(_orig_req)
         assert isinstance(_pr_resp, AuthorizationErrorResponse)
         assert _pr_resp["error"] == "invalid_request"
@@ -287,7 +319,9 @@ class TestEndpoint(object):
     def test_verify_uri_unknown_client(self):
         request = {"redirect_uri": "https://rp.example.com/cb"}
         with pytest.raises(UnknownClient):
-            verify_uri(self.endpoint.server_get("endpoint_context"), request, "redirect_uri")
+            verify_uri(
+                self.endpoint.server_get("endpoint_context"), request, "redirect_uri"
+            )
 
     def test_verify_uri_fragment(self):
         _context = self.endpoint.server_get("endpoint_context")
@@ -370,7 +404,9 @@ class TestEndpoint(object):
 
     def test_verify_uri_no_registered_qp(self):
         _context = self.endpoint.server_get("endpoint_context")
-        _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
+        _context.cdb["client_id"] = {
+            "redirect_uris": [("https://rp.example.com/cb", {})]
+        }
 
         request = {"redirect_uri": "https://rp.example.com/cb?foo=bob"}
         with pytest.raises(ValueError):
@@ -378,7 +414,9 @@ class TestEndpoint(object):
 
     def test_verify_uri_wrong_uri_type(self):
         _context = self.endpoint.server_get("endpoint_context")
-        _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
+        _context.cdb["client_id"] = {
+            "redirect_uris": [("https://rp.example.com/cb", {})]
+        }
 
         request = {"redirect_uri": "https://rp.example.com/cb?foo=bob"}
         with pytest.raises(ValueError):
@@ -386,7 +424,9 @@ class TestEndpoint(object):
 
     def test_verify_uri_none_registered(self):
         _context = self.endpoint.server_get("endpoint_context")
-        _context.cdb["client_id"] = {"post_logout_redirect_uri": [("https://rp.example.com/plrc", {})]}
+        _context.cdb["client_id"] = {
+            "post_logout_redirect_uri": [("https://rp.example.com/plrc", {})]
+        }
 
         request = {"redirect_uri": "https://rp.example.com/cb"}
         with pytest.raises(ValueError):
@@ -394,7 +434,9 @@ class TestEndpoint(object):
 
     def test_get_uri(self):
         _context = self.endpoint.server_get("endpoint_context")
-        _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
+        _context.cdb["client_id"] = {
+            "redirect_uris": [("https://rp.example.com/cb", {})]
+        }
 
         request = {
             "redirect_uri": "https://rp.example.com/cb",
@@ -405,7 +447,9 @@ class TestEndpoint(object):
 
     def test_get_uri_no_redirect_uri(self):
         _context = self.endpoint.server_get("endpoint_context")
-        _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
+        _context.cdb["client_id"] = {
+            "redirect_uris": [("https://rp.example.com/cb", {})]
+        }
 
         request = {"client_id": "client_id"}
 
@@ -413,7 +457,9 @@ class TestEndpoint(object):
 
     def test_get_uri_no_registered(self):
         _context = self.endpoint.server_get("endpoint_context")
-        _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
+        _context.cdb["client_id"] = {
+            "redirect_uris": [("https://rp.example.com/cb", {})]
+        }
 
         request = {"client_id": "client_id"}
 
@@ -471,9 +517,9 @@ class TestEndpoint(object):
             "id_token_signed_response_alg": "RS256",
         }
 
-        kaka = self.endpoint.server_get("endpoint_context").cookie_handler.make_cookie_content(
-            "value", "sso"
-        )
+        kaka = self.endpoint.server_get(
+            "endpoint_context"
+        ).cookie_handler.make_cookie_content("value", "sso")
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, [kaka])
         assert set(res.keys()) == {"session_id", "identity", "user"}
@@ -529,10 +575,12 @@ class TestEndpoint(object):
         kaka = _context.cookie_handler.make_cookie_content("value", "sso")
 
         # force to 400 Http Error message if the release scope policy is heavy!
-        _context.conf['capabilities']['deny_unknown_scopes'] = True
+        _context.conf["capabilities"]["deny_unknown_scopes"] = True
         excp = None
         try:
-            res = self.endpoint.process_request(request, http_info={"headers": {"cookie": [kaka]}})
+            res = self.endpoint.process_request(
+                request, http_info={"headers": {"cookie": [kaka]}}
+            )
         except UnAuthorizedClientScope as e:
             excp = e
         assert excp
@@ -630,7 +678,7 @@ class TestEndpoint(object):
             response_type=["id_token"],
             state="state",
             nonce="nonce",
-            scope="openid"
+            scope="openid",
         )
         redirect_uri = request["redirect_uri"]
         cinfo = {
@@ -638,8 +686,10 @@ class TestEndpoint(object):
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "RS256",
         }
-        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None, req_user="adam")
-        assert 'function' in res
+        res = self.endpoint.setup_auth(
+            request, redirect_uri, cinfo, None, req_user="adam"
+        )
+        assert "function" in res
 
     def test_req_user_no_prompt(self):
         request = AuthorizationRequest(
@@ -649,7 +699,7 @@ class TestEndpoint(object):
             state="state",
             nonce="nonce",
             scope="openid",
-            prompt="none"
+            prompt="none",
         )
         redirect_uri = request["redirect_uri"]
         cinfo = {
@@ -657,8 +707,10 @@ class TestEndpoint(object):
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "RS256",
         }
-        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None, req_user="adam")
-        assert 'error' in res
+        res = self.endpoint.setup_auth(
+            request, redirect_uri, cinfo, None, req_user="adam"
+        )
+        assert "error" in res
 
     # def test_sso(self):
     #     _pr_resp = self.endpoint.parse_request(AUTH_REQ_DICT)
@@ -700,4 +752,3 @@ def test_join_query():
     test_uri = ("https://rp.example.com/cb?", "foo=bar", "state=low")
     for i in test_uri:
         assert i in uri
-

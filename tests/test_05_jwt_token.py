@@ -1,17 +1,15 @@
 import os
 
+import pytest
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import init_key_jar
-from oidcmsg.oidc import AccessTokenRequest
-from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.oidc import AccessTokenRequest, AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac
-import pytest
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.client_authn import verify_client
-from oidcop.id_token import IDToken
 from oidcop.oauth2.introspection import Introspection
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -86,7 +84,7 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 MAP = {
     "authorization_code": "code",
     "access_token": "access_token",
-    "refresh_token": "refresh_token"
+    "refresh_token": "refresh_token",
 }
 
 
@@ -117,9 +115,15 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                },
+                "id_token": {
+                    "class": "oidcop.token.id_token.IDToken",
                     "kwargs": {
-                        "lifetime": 3600,
-                        "aud": ["https://example.org/appl"],
+                        "base_claims": {
+                            "email": {"essential": True},
+                            "email_verified": {"essential": True},
+                        }
                     },
                 },
             },
@@ -141,10 +145,7 @@ class TestEndpoint(object):
                 },
                 "token": {"path": "{}/token", "class": Token, "kwargs": {}},
                 "session": {"path": "{}/end_session", "class": Session},
-                "introspection": {
-                    "path": "{}/introspection",
-                    "class": Introspection
-                }
+                "introspection": {"path": "{}/introspection", "class": Introspection},
             },
             "client_authn": verify_client,
             "authentication": {
@@ -159,24 +160,27 @@ class TestEndpoint(object):
                 "class": user_info.UserInfo,
                 "kwargs": {"db_file": full_path("users.json")},
             },
-            "id_token": {"class": IDToken},
             "authz": {
                 "class": AuthzHandling,
                 "kwargs": {
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                'supports_minting': ["access_token", "refresh_token", "id_token"],
-                                "max_usage": 1
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
+                                "max_usage": 1,
                             },
                             "access_token": {},
                             "refresh_token": {
-                                'supports_minting': ["access_token", "refresh_token"],
-                            }
+                                "supports_minting": ["access_token", "refresh_token"],
+                            },
                         },
-                        "expires_in": 43200
+                        "expires_in": 43200,
                     }
-                }
+                },
             },
         }
         server = Server(conf, keyjar=KEYJAR)
@@ -192,17 +196,17 @@ class TestEndpoint(object):
         self.user_id = "diana"
         self.endpoint = server.server_get("endpoint", "session")
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
-        client_id = authz_req['client_id']
+        client_id = authz_req["client_id"]
         ae = create_authn_event(self.user_id)
-        return self.session_manager.create_session(ae, authz_req, self.user_id,
-                                                   client_id=client_id,
-                                                   sub_type=sub_type)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     def _mint_token(self, type, grant, session_id, based_on=None, **kwargs):
         # Constructing an authorization code is now done
@@ -222,8 +226,9 @@ class TestEndpoint(object):
         grant = self.endpoint_context.authz(session_id=session_id, request=AUTH_REQ)
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
-        access_token = self._mint_token("access_token", grant, session_id, code,
-                                        resources=[AUTH_REQ["client_id"]])
+        access_token = self._mint_token(
+            "access_token", grant, session_id, code, resources=[AUTH_REQ["client_id"]]
+        )
 
         _verifier = JWT(self.endpoint_context.keyjar)
         _info = _verifier.unpack(access_token.value)
@@ -248,8 +253,9 @@ class TestEndpoint(object):
     def test_enable_claims_per_client(self, enable_claims_per_client):
         # Set up configuration
         self.endpoint_context.cdb["client_1"]["access_token_claims"] = {"address": None}
-        self.endpoint_context.session_manager.token_handler.handler["access_token"].kwargs[
-            "enable_claims_per_client"] = enable_claims_per_client
+        self.endpoint_context.session_manager.token_handler.handler[
+            "access_token"
+        ].kwargs["enable_claims_per_client"] = enable_claims_per_client
 
         session_id = self._create_session(AUTH_REQ)
         # apply consent

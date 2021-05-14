@@ -2,10 +2,10 @@ import io
 import json
 import os
 
-from cryptojwt import KeyJar
-from oidcmsg.oidc import AuthorizationRequest
 import pytest
 import yaml
+from cryptojwt import KeyJar
+from oidcmsg.oidc import AuthorizationRequest
 
 from oidcop.oidc.authorization import Authorization
 from oidcop.server import Server
@@ -158,7 +158,7 @@ class TestUserAuthn(object):
                     "name": {
                         "session": "oidc_op",
                         "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman"
+                        "session_management": "oidc_op_sman",
                     },
                 },
             },
@@ -234,20 +234,28 @@ class TestUserAuthn(object):
         # No valid login cookie so new session
         assert info["session_id"] != sid2
 
-        user_session_info = self.endpoint.server_get("endpoint_context").session_manager.get(
-            ["diana"])
+        user_session_info = self.endpoint.server_get(
+            "endpoint_context"
+        ).session_manager.get(["diana"])
         assert len(user_session_info.subordinate) == 3
-        assert set(user_session_info.subordinate) == {"client_1", "client_2", "client_3"}
+        assert set(user_session_info.subordinate) == {
+            "client_1",
+            "client_2",
+            "client_3",
+        }
 
         # Should be one grant for each of client_2 and client_3 and
         # 2 grants for client_1
 
         csi1 = self.endpoint.server_get("endpoint_context").session_manager.get(
-            ["diana", "client_1"])
+            ["diana", "client_1"]
+        )
         csi2 = self.endpoint.server_get("endpoint_context").session_manager.get(
-            ["diana", "client_2"])
+            ["diana", "client_2"]
+        )
         csi3 = self.endpoint.server_get("endpoint_context").session_manager.get(
-            ["diana", "client_3"])
+            ["diana", "client_3"]
+        )
 
         assert len(csi1.subordinate) == 2
         assert len(csi2.subordinate) == 1

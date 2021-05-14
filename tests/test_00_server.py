@@ -1,17 +1,13 @@
-from copy import copy
 import io
 import json
 import os
+from copy import copy
 
-from cryptojwt.key_jar import build_keyjar
-from oidcop.configure import OPConfiguration
-
-from oidcop.configure import create_from_config_file
-import pytest
 import yaml
+from cryptojwt.key_jar import build_keyjar
 
-from oidcop.id_token import IDToken
 import oidcop.login_hint
+from oidcop.configure import OPConfiguration
 from oidcop.oidc.add_on.pkce import add_pkce_support
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -28,6 +24,7 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 def full_path(local_file):
     return os.path.join(BASEDIR, local_file)
 
+
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
@@ -38,13 +35,9 @@ KEYJAR = build_keyjar(KEYDEFS)
 conf = {
     "issuer": "https://example.com/",
     "password": "mycket hemligt",
-    "token_expires_in": 600,
-    "grant_expires_in": 300,
-    "refresh_token_expires_in": 86400,
     "verify_ssl": False,
     "capabilities": {},
     "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS, "read_only": True},
-    "id_token": {"class": IDToken, "kwargs": {}},
     "endpoint": {
         "provider_config": {
             "path": ".well-known/openid-configuration",
@@ -78,10 +71,7 @@ conf = {
     },
     "add_on": {"pkce": {"function": add_pkce_support, "kwargs": {"essential": True}}},
     "template_dir": "template",
-    "login_hint_lookup": {
-        "class": oidcop.login_hint.LoginHintLookup,
-        "kwargs": {}
-    }
+    "login_hint_lookup": {"class": oidcop.login_hint.LoginHintLookup, "kwargs": {}},
 }
 
 client_yaml = """
@@ -115,7 +105,9 @@ def test_capabilities_default():
     _str = open(full_path("op_config.json")).read()
     _conf = json.loads(_str)
 
-    configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
+    configuration = OPConfiguration(
+        conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443
+    )
 
     server = Server(configuration)
     assert set(server.endpoint_context.provider_info["response_types_supported"]) == {
@@ -127,7 +119,9 @@ def test_capabilities_default():
         "id_token token",
         "code id_token token",
     }
-    assert server.endpoint_context.provider_info["request_uri_parameter_supported"] is True
+    assert (
+        server.endpoint_context.provider_info["request_uri_parameter_supported"] is True
+    )
 
 
 def test_capabilities_subset1():
@@ -151,15 +145,10 @@ def test_capabilities_bool():
     _cnf = copy(conf)
     _cnf["capabilities"] = {"request_uri_parameter_supported": False}
     server = Server(_cnf)
-    assert server.endpoint_context.provider_info["request_uri_parameter_supported"] is False
-
-
-def test_capabilities_no_support():
-    _cnf = copy(conf)
-    _cnf["id_token"]["kwargs"] = {"id_token_signing_alg_values_supported": "RC4"}
-    with pytest.raises(ValueError):
-        Server(_cnf)
-    _cnf["id_token"]["kwargs"] = {}
+    assert (
+        server.endpoint_context.provider_info["request_uri_parameter_supported"]
+        is False
+    )
 
 
 def test_cdb():
@@ -168,4 +157,3 @@ def test_cdb():
     server.endpoint_context.cdb = _clients["oidc_clients"]
 
     assert set(server.endpoint_context.cdb.keys()) == {"client1", "client2", "client3"}
-

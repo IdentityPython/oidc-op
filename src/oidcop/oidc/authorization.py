@@ -3,8 +3,7 @@ from typing import Callable
 from urllib.parse import urlsplit
 
 from oidcmsg import oidc
-from oidcmsg.oidc import Claims
-from oidcmsg.oidc import verified_claim_name
+from oidcmsg.oidc import Claims, verified_claim_name
 
 from oidcop.oauth2 import authorization
 
@@ -110,6 +109,5 @@ class Authorization(authorization.Authorization):
             if _login_hint:
                 _context = self.server_get("endpoint_context")
                 if _context.login_hint_lookup:
-                    kwargs["req_user"] = _context.login_hint_lookup(
-                        _login_hint)
+                    kwargs["req_user"] = _context.login_hint_lookup(_login_hint)
         return kwargs

@@ -2,16 +2,13 @@ import json
 import os
 import shutil
 
-from cryptojwt.jwt import utc_time_sans_frac
-from oidcmsg.oidc import AccessTokenRequest
-from oidcmsg.oidc import AuthorizationRequest
 import pytest
+from cryptojwt.jwt import utc_time_sans_frac
+from oidcmsg.oidc import AccessTokenRequest, AuthorizationRequest
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
-from oidcop.endpoint_context import EndpointContext
-from oidcop.id_token import IDToken
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -80,14 +77,30 @@ ENDPOINT_CONTEXT_CONFIG = {
     "verify_ssl": False,
     "capabilities": CAPABILITIES,
     "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
-    "id_token": {"class": IDToken, "kwargs": {}},
+    "token_handler_args": {
+        "jwks_file": "private/token_jwks.json",
+        "code": {"kwargs": {"lifetime": 600}},
+        "token": {
+            "class": "oidcop.token.jwt_token.JWTToken",
+            "kwargs": {
+                "lifetime": 3600,
+                "add_claims_by_scope": True,
+                "aud": ["https://example.org/appl"],
+            },
+        },
+        "refresh": {
+            "class": "oidcop.token.jwt_token.JWTToken",
+            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+        },
+        "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
+    },
     "endpoint": {
         "provider_config": {
             "path": ".well-known/openid-configuration",
             "class": ProviderConfiguration,
             "kwargs": {},
         },
-        "registration": {"path": "registration", "class": Registration, "kwargs": {}, },
+        "registration": {"path": "registration", "class": Registration, "kwargs": {},},
         "authorization": {
             "path": "authorization",
             "class": Authorization,
@@ -109,9 +122,9 @@ ENDPOINT_CONTEXT_CONFIG = {
             "path": "userinfo",
             "class": userinfo.UserInfo,
             "kwargs": {
-                "claim_types_supported": ["normal", "aggregated", "distributed", ],
+                "claim_types_supported": ["normal", "aggregated", "distributed",],
                 "client_authn_method": ["bearer_header"],
-                "add_claims_by_scope": True
+                "add_claims_by_scope": True,
             },
         },
     },
@@ -144,63 +157,28 @@ ENDPOINT_CONTEXT_CONFIG = {
             },
         }
     },
-    "db_conf": {
-        "keyjar": {
-            "handler": "oidcmsg.storage.abfile.LabeledAbstractFileSystem",
-            "fdir": "db/keyjar",
-            "key_conv": "oidcmsg.storage.converter.QPKey",
-            "value_conv": "cryptojwt.serialize.item.KeyIssuer",
-            "label": "keyjar",
-        },
-        "default": {
-            "handler": "oidcmsg.storage.abfile.AbstractFileSystem",
-            "fdir": "db",
-            "key_conv": "oidcmsg.storage.converter.QPKey",
-            "value_conv": "oidcmsg.storage.converter.JSON",
-        },
-        "session": {
-            "handler": "oidcmsg.storage.abfile.AbstractFileSystem",
-            "fdir": "db/session",
-            "key_conv": "oidcmsg.storage.converter.QPKey",
-            "value_conv": "oidcop.session.storage.JSON",
-        },
-        "client": {
-            "handler": "oidcmsg.storage.abfile.AbstractFileSystem",
-            "fdir": "db/client",
-            "key_conv": "oidcmsg.storage.converter.QPKey",
-            "value_conv": "oidcmsg.storage.converter.JSON",
-        },
-        "registration_access_token": {
-            "handler": "oidcmsg.storage.abfile.AbstractFileSystem",
-            "fdir": "db/rat",
-            "key_conv": "oidcmsg.storage.converter.QPKey",
-            "value_conv": "oidcmsg.storage.converter.JSON",
-        },
-        "jti": {
-            "handler": "oidcmsg.storage.abfile.AbstractFileSystem",
-            "fdir": "db/jti",
-            "key_conv": "oidcmsg.storage.converter.QPKey",
-            "value_conv": "oidcmsg.storage.converter.JSON",
-        },
-    },
     "authz": {
         "class": AuthzHandling,
         "kwargs": {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        'supports_minting': ["access_token", "refresh_token", "id_token"],
-                        "max_usage": 1
+                        "supports_minting": [
+                            "access_token",
+                            "refresh_token",
+                            "id_token",
+                        ],
+                        "max_usage": 1,
                     },
                     "access_token": {},
                     "refresh_token": {
-                        'supports_minting': ["access_token", "refresh_token"],
-                    }
+                        "supports_minting": ["access_token", "refresh_token"],
+                    },
                 },
-                "expires_in": 43200
+                "expires_in": 43200,
             }
-        }
-    }
+        },
+    },
 }
 
 
@@ -227,106 +205,120 @@ class TestEndpoint(object):
         server2.endpoint_context.load(
             _store,
             init_args={
-                'server_get': server2.server_get,
-                'handler': server2.endpoint_context.session_manager.token_handler
-            })
+                "server_get": server2.server_get,
+                "handler": server2.endpoint_context.session_manager.token_handler,
+            },
+        )
 
         self.endpoint = {
-            1: server1.server_get("endpoint","userinfo"),
-            2: server2.server_get("endpoint","userinfo"),
+            1: server1.server_get("endpoint", "userinfo"),
+            2: server2.server_get("endpoint", "userinfo"),
         }
 
         self.session_manager = {
             1: server1.endpoint_context.session_manager,
-            2: server2.endpoint_context.session_manager
+            2: server2.endpoint_context.session_manager,
         }
         self.user_id = "diana"
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier='', index=1):
+    def _create_session(
+        self, auth_req, sub_type="public", sector_identifier="", index=1
+    ):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
-        client_id = authz_req['client_id']
+        client_id = authz_req["client_id"]
         ae = create_authn_event(self.user_id)
-        return self.session_manager[index].create_session(ae, authz_req, self.user_id,
-                                                          client_id=client_id,
-                                                          sub_type=sub_type)
+        return self.session_manager[index].create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     def _mint_code(self, grant, session_id, index=1):
         # Constructing an authorization code is now done
         _code = grant.mint_token(
             session_id,
             endpoint_context=self.endpoint[index].server_get("endpoint_context"),
-            token_type='authorization_code',
-            token_handler=self.session_manager[index].token_handler["code"]
+            token_type="authorization_code",
+            token_handler=self.session_manager[index].token_handler["code"],
         )
 
         self.session_manager[index].set(
-            self.session_manager[index].decrypt_session_id(session_id), grant)
+            self.session_manager[index].decrypt_session_id(session_id), grant
+        )
 
         return _code
 
     def _mint_access_token(self, grant, session_id, token_ref=None, index=1):
         _session_info = self.session_manager[index].get_session_info(
-            session_id, client_session_info=True)
+            session_id, client_session_info=True
+        )
 
         _token = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint[index].server_get("endpoint_context"),
-            token_type='access_token',
+            token_type="access_token",
             token_handler=self.session_manager[index].token_handler["access_token"],
-            based_on=token_ref  # Means the token (tok) was used to mint this token
+            based_on=token_ref,  # Means the token (tok) was used to mint this token
         )
 
-        self.session_manager[index].set([self.user_id, _session_info["client_id"], grant.id],
-                                        grant)
+        self.session_manager[index].set(
+            [self.user_id, _session_info["client_id"], grant.id], grant
+        )
 
         return _token
 
     def _dump_restore(self, fro, to):
         _store = self.session_manager[fro].dump()
         self.session_manager[to].load(
-            _store,
-            init_args={
-                'server_get': self.endpoint[to].server_get
-            })
+            _store, init_args={"server_get": self.endpoint[to].server_get}
+        )
 
     def test_init(self):
         assert self.endpoint[1]
         assert set(
-            self.endpoint[1].server_get("endpoint_context").provider_info["claims_supported"]
+            self.endpoint[1]
+            .server_get("endpoint_context")
+            .provider_info["claims_supported"]
         ) == {
-                   "address",
-                   "birthdate",
-                   "email",
-                   "email_verified",
-                   "eduperson_scoped_affiliation",
-                   "family_name",
-                   "gender",
-                   "given_name",
-                   "locale",
-                   "middle_name",
-                   "name",
-                   "nickname",
-                   "phone_number",
-                   "phone_number_verified",
-                   "picture",
-                   "preferred_username",
-                   "profile",
-                   "sub",
-                   "updated_at",
-                   "website",
-                   "zoneinfo",
-               }
+            "address",
+            "birthdate",
+            "email",
+            "email_verified",
+            "eduperson_scoped_affiliation",
+            "family_name",
+            "gender",
+            "given_name",
+            "locale",
+            "middle_name",
+            "name",
+            "nickname",
+            "phone_number",
+            "phone_number_verified",
+            "picture",
+            "preferred_username",
+            "profile",
+            "sub",
+            "updated_at",
+            "website",
+            "zoneinfo",
+        }
         assert set(
-            self.endpoint[1].server_get("endpoint_context").provider_info["claims_supported"]
-        ) == set(self.endpoint[2].server_get("endpoint_context").provider_info["claims_supported"])
+            self.endpoint[1]
+            .server_get("endpoint_context")
+            .provider_info["claims_supported"]
+        ) == set(
+            self.endpoint[2]
+            .server_get("endpoint_context")
+            .provider_info["claims_supported"]
+        )
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ, index=1)
-        grant = self.endpoint[1].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = (
+            self.endpoint[1].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        )
         # grant, session_id = self._do_grant(AUTH_REQ, index=1)
         code = self._mint_code(grant, session_id, index=1)
         access_token = self._mint_access_token(grant, session_id, code, 1)
@@ -336,9 +328,7 @@ class TestEndpoint(object):
         self._dump_restore(1, 2)
 
         http_info = {
-            "headers": {
-                "authorization": "Bearer {}".format(access_token.value)
-            }
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
         }
         _req = self.endpoint[2].parse_request({}, http_info=http_info)
 
@@ -346,16 +336,16 @@ class TestEndpoint(object):
 
     def test_process_request(self):
         session_id = self._create_session(AUTH_REQ, index=1)
-        grant = self.endpoint[1].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = (
+            self.endpoint[1].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        )
         code = self._mint_code(grant, session_id, index=1)
         access_token = self._mint_access_token(grant, session_id, code, 1)
 
         self._dump_restore(1, 2)
 
         http_info = {
-            "headers": {
-                "authorization": "Bearer {}".format(access_token.value)
-            }
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
         }
         _req = self.endpoint[2].parse_request({}, http_info=http_info)
         args = self.endpoint[2].process_request(_req)
@@ -363,19 +353,21 @@ class TestEndpoint(object):
 
     def test_process_request_not_allowed(self):
         session_id = self._create_session(AUTH_REQ, index=2)
-        grant = self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = (
+            self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        )
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)
 
         access_token.expires_at = utc_time_sans_frac() - 60
-        self.session_manager[2].set([self.user_id, AUTH_REQ["client_id"], grant.id], grant)
+        self.session_manager[2].set(
+            [self.user_id, AUTH_REQ["client_id"], grant.id], grant
+        )
 
-        self._dump_restore(2,1)
+        self._dump_restore(2, 1)
 
         http_info = {
-            "headers": {
-                "authorization": "Bearer {}".format(access_token.value)
-            }
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
         }
 
         _req = self.endpoint[1].parse_request({}, http_info=http_info)
@@ -401,16 +393,16 @@ class TestEndpoint(object):
 
     def test_do_response(self):
         session_id = self._create_session(AUTH_REQ, index=2)
-        grant = self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = (
+            self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        )
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)
 
-        self._dump_restore(2,1)
+        self._dump_restore(2, 1)
 
         http_info = {
-            "headers": {
-                "authorization": "Bearer {}".format(access_token.value)
-            }
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
         }
 
         _req = self.endpoint[1].parse_request({}, http_info=http_info)
@@ -428,16 +420,16 @@ class TestEndpoint(object):
         ] = "ES256"
 
         session_id = self._create_session(AUTH_REQ, index=2)
-        grant = self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = (
+            self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        )
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)
 
-        self._dump_restore(2,1)
+        self._dump_restore(2, 1)
 
         http_info = {
-            "headers": {
-                "authorization": "Bearer {}".format(access_token.value)
-            }
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
         }
 
         _req = self.endpoint[1].parse_request({}, http_info=http_info)
@@ -451,29 +443,33 @@ class TestEndpoint(object):
         _auth_req["scope"] = ["openid", "research_and_scholarship"]
 
         session_id = self._create_session(AUTH_REQ, index=2)
-        grant = self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = (
+            self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        )
 
-        self._dump_restore(2,1)
+        self._dump_restore(2, 1)
 
         grant.claims = {
-            "userinfo": self.endpoint[1].server_get("endpoint_context").claims_interface.get_claims(
-                session_id, scopes=_auth_req["scope"], usage="userinfo")
+            "userinfo": self.endpoint[1]
+            .server_get("endpoint_context")
+            .claims_interface.get_claims(
+                session_id, scopes=_auth_req["scope"], usage="userinfo"
+            )
         }
 
         self._dump_restore(1, 2)
 
         self.session_manager[2].set(
-            self.session_manager[2].decrypt_session_id(session_id), grant)
+            self.session_manager[2].decrypt_session_id(session_id), grant
+        )
 
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)
 
-        self._dump_restore(2,1)
+        self._dump_restore(2, 1)
 
         http_info = {
-            "headers": {
-                "authorization": "Bearer {}".format(access_token.value)
-            }
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
         }
 
         _req = self.endpoint[1].parse_request({}, http_info=http_info)

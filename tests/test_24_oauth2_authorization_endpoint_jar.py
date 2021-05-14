@@ -6,15 +6,12 @@ from http.cookies import SimpleCookie
 import pytest
 import responses
 import yaml
-from cryptojwt import JWT
-from cryptojwt import KeyJar
+from cryptojwt import JWT, KeyJar
 from cryptojwt.jwt import utc_time_sans_frac
-from oidcmsg.oauth2 import AuthorizationRequest
-from oidcmsg.oauth2 import JWTSecuredAuthorizationRequest
+from oidcmsg.oauth2 import AuthorizationRequest, JWTSecuredAuthorizationRequest
 from oidcmsg.time_util import in_a_while
 
 from oidcop.cookie_handler import CookieHandler
-from oidcop.id_token import IDToken
 from oidcop.oauth2.authorization import Authorization
 from oidcop.server import Server
 from oidcop.user_info import UserInfo
@@ -122,21 +119,9 @@ class TestEndpoint(object):
         conf = {
             "issuer": "https://example.com/",
             "password": "mycket hemligt zebra",
-            "token_expires_in": 600,
-            "grant_expires_in": 300,
-            "refresh_token_expires_in": 86400,
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
-            "id_token": {
-                "class": IDToken,
-                "kwargs": {
-                    "available_claims": {
-                        "email": {"essential": True},
-                        "email_verified": {"essential": True},
-                    }
-                },
-            },
             "endpoint": {
                 "authorization": {
                     "path": "{}/authorization",
@@ -169,7 +154,7 @@ class TestEndpoint(object):
                     "name": {
                         "session": "oidc_op",
                         "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman"
+                        "session_management": "oidc_op_sman",
                     },
                 },
             },
@@ -181,20 +166,19 @@ class TestEndpoint(object):
         endpoint_context.keyjar.import_jwks(
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
-        self.endpoint = server.server_get("endpoint","authorization")
+        self.endpoint = server.server_get("endpoint", "authorization")
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        endpoint_context.keyjar.add_symmetric(
-            "client_1", "hemligtkodord1234567890"
-        )
+        endpoint_context.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
 
     def test_parse_request_parameter(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
-            AUTH_REQ_DICT, aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"]
+            AUTH_REQ_DICT,
+            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
         )
         # -----------------
         _req = self.endpoint.parse_request(
@@ -211,7 +195,8 @@ class TestEndpoint(object):
     def test_parse_request_uri(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
-            AUTH_REQ_DICT, aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"]
+            AUTH_REQ_DICT,
+            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
         )
 
         request_uri = "https://client.example.com/req"

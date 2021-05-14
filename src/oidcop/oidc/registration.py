@@ -5,25 +5,27 @@ import logging
 import secrets
 import time
 from typing import List
-from urllib.parse import urlencode
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 from cryptojwt.jws.utils import alg2keytype
 from cryptojwt.utils import as_bytes
 from oidcmsg.exception import MessageException
 from oidcmsg.oauth2 import ResponseMessage
-from oidcmsg.oidc import ClientRegistrationErrorResponse
-from oidcmsg.oidc import RegistrationRequest
-from oidcmsg.oidc import RegistrationResponse
+from oidcmsg.oidc import (
+    ClientRegistrationErrorResponse,
+    RegistrationRequest,
+    RegistrationResponse,
+)
 from oidcmsg.time_util import utc_time_sans_frac
 
-from oidcop import rndstr
-from oidcop import sanitize
+from oidcop import rndstr, sanitize
 from oidcop.endpoint import Endpoint
-from oidcop.exception import CapabilitiesMisMatch
-from oidcop.exception import InvalidRedirectURIError
-from oidcop.exception import InvalidSectorIdentifier
-from oidcop.util import split_uri, importer
+from oidcop.exception import (
+    CapabilitiesMisMatch,
+    InvalidRedirectURIError,
+    InvalidSectorIdentifier,
+)
+from oidcop.util import importer, split_uri
 
 PREFERENCE2PROVIDER = {
     # "require_signed_request_object": "request_object_algs_supported",
@@ -85,8 +87,7 @@ def verify_url(url: str, urlset: List[list]) -> bool:
 
 
 def secret(seed: str, sid: str):
-    msg = "{}{}{}".format(
-        time.time(), secrets.token_urlsafe(16), sid).encode("utf-8")
+    msg = "{}{}{}".format(time.time(), secrets.token_urlsafe(16), sid).encode("utf-8")
     csum = hmac.new(as_bytes(seed), msg, hashlib.sha224)
     return csum.hexdigest()
 
@@ -108,15 +109,15 @@ def comb_uri(args):
 
         args[param] = val
 
-    request_uris = args.get('request_uris')
+    request_uris = args.get("request_uris")
     if request_uris:
         val = []
         for base, frag in request_uris:
             if frag:
-                val.append('{}#{}'.format(base, frag))
+                val.append("{}#{}".format(base, frag))
             else:
                 val.append(base)
-        args['request_uris'] = val
+        args["request_uris"] = val
 
 
 def random_client_id(length: int = 16, reserved: list = [], **kwargs):
@@ -202,9 +203,9 @@ class Registration(Endpoint):
                     return err
                 if _up.fragment:
                     # store base and fragment
-                    _uris.append(uri.split('#'))
+                    _uris.append(uri.split("#"))
                 else:
-                    _uris.append([uri, ''])
+                    _uris.append([uri, ""])
             _cinfo["request_uris"] = _uris
 
         if "sector_identifier_uri" in request:
@@ -239,11 +240,13 @@ class Registration(Endpoint):
                         for iss in ["", _context.issuer]:
                             _k.extend(
                                 _context.keyjar.get_signing_key(
-                                    ktyp, alg=request[item], owner=iss)
+                                    ktyp, alg=request[item], owner=iss
+                                )
                             )
                         if not _k:
                             logger.warning(
-                                'Lacking support for "{}"'.format(request[item]))
+                                'Lacking support for "{}"'.format(request[item])
+                            )
                             del _cinfo[item]
 
         t = {"jwks_uri": "", "jwks": None}
@@ -254,8 +257,7 @@ class Registration(Endpoint):
 
         # if it can't load keys because the URL is false it will
         # just silently fail. Waiting for better times.
-        _context.keyjar.load_keys(
-            client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
+        _context.keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
 
         n_keys = 0
         for kb in _context.keyjar.get(client_id, []):
@@ -333,8 +335,7 @@ class Registration(Endpoint):
         except Exception as err:
             logger.error(err)
             # res = None
-            raise InvalidSectorIdentifier(
-                "Couldn't read from sector_identifier_uri")
+            raise InvalidSectorIdentifier("Couldn't read from sector_identifier_uri")
 
         try:
             si_redirects = json.loads(res.text)
@@ -387,7 +388,7 @@ class Registration(Endpoint):
         try:
             request.verify()
         except (MessageException, ValueError) as err:
-            logger.error('request.verify() on %s', request)
+            logger.error("request.verify() on %s", request)
             return ResponseMessage(
                 error="invalid_configuration_request", error_description="%s" % err
             )
@@ -403,18 +404,13 @@ class Registration(Endpoint):
 
         _context = self.server_get("endpoint_context")
         if new_id:
-            if self.kwargs.get('client_id_generator'):
-                cid_generator = importer(
-                    self.kwargs['client_id_generator']['class']
-                )
-                cid_gen_kwargs = self.kwargs['client_id_generator'].get(
-                    'kwargs', {})
+            if self.kwargs.get("client_id_generator"):
+                cid_generator = importer(self.kwargs["client_id_generator"]["class"])
+                cid_gen_kwargs = self.kwargs["client_id_generator"].get("kwargs", {})
             else:
-                cid_generator = importer(
-                    'oidcop.oidc.registration.random_client_id')
+                cid_generator = importer("oidcop.oidc.registration.random_client_id")
                 cid_gen_kwargs = {}
-            client_id = cid_generator(
-                reserved=_context.cdb.keys(), **cid_gen_kwargs)
+            client_id = cid_generator(reserved=_context.cdb.keys(), **cid_gen_kwargs)
             if "client_id" in request:
                 del request["client_id"]
         else:
@@ -434,8 +430,7 @@ class Registration(Endpoint):
         if set_secret:
             client_secret = self.add_client_secret(_cinfo, client_id, _context)
 
-        logger.debug(
-            "Stored client info in CDB under cid={}".format(client_id))
+        logger.debug("Stored client info in CDB under cid={}".format(client_id))
 
         _context.cdb[client_id] = _cinfo
         _cinfo = self.do_client_registration(
@@ -457,8 +452,7 @@ class Registration(Endpoint):
         if client_secret:
             _context.keyjar.add_symmetric(client_id, str(client_secret))
 
-        logger.debug(
-            "Stored updated client info in CDB under cid={}".format(client_id))
+        logger.debug("Stored updated client info in CDB under cid={}".format(client_id))
         logger.debug("ClientInfo: {}".format(_cinfo))
         _context.cdb[client_id] = _cinfo
 
@@ -473,10 +467,9 @@ class Registration(Endpoint):
 
     def process_request(self, request=None, new_id=True, set_secret=True, **kwargs):
         try:
-            reg_resp = self.client_registration_setup(
-                request, new_id, set_secret)
+            reg_resp = self.client_registration_setup(request, new_id, set_secret)
         except Exception as err:
-            logger.error('client_registration_setup: %s', request)
+            logger.error("client_registration_setup: %s", request)
             return ResponseMessage(
                 error="invalid_configuration_request", error_description="%s" % err
             )
@@ -487,7 +480,7 @@ class Registration(Endpoint):
             _context = self.server_get("endpoint_context")
             _cookie = _context.new_cookie(
                 name=_context.cookie_handler.name["register"],
-                client_id=reg_resp["client_id"]
+                client_id=reg_resp["client_id"],
             )
 
             return {"response_args": reg_resp, "cookie": _cookie}
