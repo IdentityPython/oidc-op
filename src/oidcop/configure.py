@@ -70,6 +70,22 @@ DEFAULT_CONFIG = {
         "use": "sig",
     },
     "template_dir": "templates",
+    "token_handler_args": {
+        "jwks_file": "private/token_jwks.json",
+        "code": {"kwargs": {"lifetime": 600}},
+        "token": {
+            "class": "oidcop.token.jwt_token.JWTToken",
+            "kwargs": {"lifetime": 3600},
+        },
+        "refresh": {
+            "class": "oidcop.token.jwt_token.JWTToken",
+            "kwargs": {"lifetime": 86400},
+        },
+        "id_token": {
+            "class": "oidcop.token.id_token.IDToken",
+            "kwargs": {}
+        },
+    },
 }
 
 
@@ -105,13 +121,13 @@ def set_domain_and_port(conf: dict, uris: List[str], domain: str, port: int):
 
 
 def create_from_config_file(
-    cls,
-    filename: str,
-    base_path: str = "",
-    entity_conf: Optional[List[dict]] = None,
-    file_attributes: Optional[List[str]] = None,
-    domain: Optional[str] = "",
-    port: Optional[int] = 0,
+        cls,
+        filename: str,
+        base_path: str = "",
+        entity_conf: Optional[List[dict]] = None,
+        file_attributes: Optional[List[str]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
 ):
     if filename.endswith(".yaml"):
         """Load configuration as YAML"""
@@ -143,10 +159,10 @@ class Base:
     parameter = {}
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: str = "",
-        file_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: str = "",
+            file_attributes: Optional[List[str]] = None,
     ):
         if file_attributes is None:
             file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
@@ -178,13 +194,13 @@ class OPConfiguration(Base):
     "Provider configuration"
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: Optional[str] = "",
-        entity_conf: Optional[List[dict]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        file_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            file_attributes: Optional[List[str]] = None,
     ):
 
         conf = copy.deepcopy(conf)
@@ -235,13 +251,13 @@ class Configuration(Base):
     """Server Configuration"""
 
     def __init__(
-        self,
-        conf: Dict,
-        entity_conf: Optional[List[dict]] = None,
-        base_path: str = "",
-        file_attributes: Optional[List[str]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
+            self,
+            conf: Dict,
+            entity_conf: Optional[List[dict]] = None,
+            base_path: str = "",
+            file_attributes: Optional[List[str]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
     ):
         Base.__init__(self, conf, base_path, file_attributes)
 
@@ -502,7 +518,7 @@ DEFAULT_EXTENDED_CONF = {
         },
         "refresh": {
             "class": "oidcop.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
         },
         "id_token": {
             "class": "oidcop.token.id_token.IDToken",

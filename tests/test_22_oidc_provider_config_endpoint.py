@@ -2,7 +2,6 @@ import json
 
 import pytest
 
-from oidcop.endpoint_context import EndpointContext
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
@@ -52,9 +51,6 @@ class TestEndpoint(object):
         conf = {
             "issuer": "https://example.com/",
             "password": "mycket hemligt",
-            "token_expires_in": 600,
-            "grant_expires_in": 300,
-            "refresh_token_expires_in": 86400,
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
