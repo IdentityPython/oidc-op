@@ -5,9 +5,9 @@ import json
 import logging
 import sys
 import time
+import warnings
 from typing import List
 from urllib.parse import unquote
-import warnings
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptojwt.jwt import JWT
@@ -75,7 +75,9 @@ class UserAuthnMethod(object):
         raise NotImplementedError
 
     def unpack_token(self, token):
-        return verify_signed_jwt(token=token, keyjar=self.server_get("endpoint_context").keyjar)
+        return verify_signed_jwt(
+            token=token, keyjar=self.server_get("endpoint_context").keyjar
+        )
 
     def done(self, areq):
         """
@@ -94,8 +96,7 @@ class UserAuthnMethod(object):
         _context = self.server_get("endpoint_context")
         try:
             vals = _context.cookie_handler.parse_cookie(
-                cookies=cookie,
-                name=_context.cookie_handler.name["session"]
+                cookies=cookie, name=_context.cookie_handler.name["session"]
             )
         except (InvalidCookieSign, AssertionError, AttributeError) as err:
             logger.warning(err)
@@ -124,21 +125,20 @@ def verify_signed_jwt(token, keyjar, allowed_sign_algs=None):
     return verifier.unpack(token)
 
 
-LABELS = {"tos_uri": "Terms of Service",
-          "policy_uri": "Service policy", "logo_uri": ""}
+LABELS = {"tos_uri": "Terms of Service", "policy_uri": "Service policy", "logo_uri": ""}
 
 
 class UserPassJinja2(UserAuthnMethod):
     url_endpoint = "/verify/user_pass_jinja"
 
     def __init__(
-            self,
-            db,
-            template_handler,
-            template="user_pass.jinja2",
-            server_get=None,
-            verify_endpoint="",
-            **kwargs
+        self,
+        db,
+        template_handler,
+        template="user_pass.jinja2",
+        server_get=None,
+        verify_endpoint="",
+        **kwargs
     ):
 
         super(UserPassJinja2, self).__init__(server_get=server_get)
@@ -240,8 +240,7 @@ class SymKeyAuthn(UserAuthnMethod):
         self.symkey = symkey
         self.ttl = ttl
 
-    def authenticated_as(
-            self, client_id, cookie=None, authorization="", **kwargs):
+    def authenticated_as(self, client_id, cookie=None, authorization="", **kwargs):
         """
 
         :param cookie: A HTTP Cookie

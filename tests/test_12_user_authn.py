@@ -62,7 +62,7 @@ class TestUserAuthn(object):
                     "name": {
                         "session": "oidc_op",
                         "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman"
+                        "session_management": "oidc_op_sman",
                     },
                 },
             },
@@ -87,11 +87,12 @@ class TestUserAuthn(object):
             name=self.endpoint_context.cookie_handler.name["session"],
             sub="diana",
             sid=self.endpoint_context.session_manager.encrypted_session_id(
-                "diana","client 12345","abcdefgh"),
+                "diana", "client 12345", "abcdefgh"
+            ),
             state=authn_req["state"],
             client_id=authn_req["client_id"],
         )
 
         _info, _time_stamp = method.authenticated_as("client 12345", [_cookie])
-        assert set(_info.keys()) == {"sub", "sid","state", "client_id"}
+        assert set(_info.keys()) == {"sub", "sid", "state", "client_id"}
         assert _info["sub"] == "diana"

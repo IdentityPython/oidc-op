@@ -4,15 +4,15 @@ from typing import Any
 from typing import Optional
 from typing import Union
 
+import requests
 from cryptojwt import KeyJar
 from cryptojwt.utils import as_bytes
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from oidcmsg.context import OidcContext
-from oidcop.configure import OPConfiguration
-import requests
 
 from oidcop import rndstr
+from oidcop.configure import OPConfiguration
 from oidcop.scopes import SCOPE2CLAIMS
 from oidcop.scopes import Scopes
 from oidcop.session.claims import STANDARD_CLAIMS
@@ -104,6 +104,7 @@ class EndpointContext(OidcContext):
         "issuer": "",
         "jti_db": {},
         "jwks_uri": "",
+        "keyjar": KeyJar,
         "login_hint_lookup": None,
         "login_hint2acrs": {},
         "par_db": {},
@@ -120,15 +121,14 @@ class EndpointContext(OidcContext):
     }
 
     def __init__(
-            self,
-            conf: Union[dict, OPConfiguration],
-            keyjar: Optional[KeyJar] = None,
-            cwd: Optional[str] = "",
-            cookie_handler: Optional[Any] = None,
-            httpc: Optional[Any] = None,
+        self,
+        conf: Union[dict, OPConfiguration],
+        keyjar: Optional[KeyJar] = None,
+        cwd: Optional[str] = "",
+        cookie_handler: Optional[Any] = None,
+        httpc: Optional[Any] = None,
     ):
-        OidcContext.__init__(self, conf, keyjar,
-                             entity_id=conf.get("issuer", ""))
+        OidcContext.__init__(self, conf, keyjar, entity_id=conf.get("issuer", ""))
         self.conf = conf
 
         # For my Dev environment
@@ -195,8 +195,9 @@ class EndpointContext(OidcContext):
             if _loader is None:
                 _template_dir = conf.get("template_dir")
                 if _template_dir:
-                    _loader = Environment(loader=FileSystemLoader(
-                        _template_dir), autoescape=True)
+                    _loader = Environment(
+                        loader=FileSystemLoader(_template_dir), autoescape=True
+                    )
 
             if _loader:
                 self.template_handler = Jinja2TemplateHandler(_loader)
@@ -242,7 +243,8 @@ class EndpointContext(OidcContext):
 
     def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
         return self.cookie_handler.make_cookie_content(
-            name=name, value=json.dumps(kwargs), max_age=max_age)
+            name=name, value=json.dumps(kwargs), max_age=max_age
+        )
 
     def set_scopes_handler(self):
         _spec = self.conf.get("scopes_handler")
@@ -279,7 +281,8 @@ class EndpointContext(OidcContext):
                 self.session_manager.userinfo = self.userinfo
             else:
                 logger.warning(
-                    "Cannot init_user_info if no session manager was provided.")
+                    "Cannot init_user_info if no session manager was provided."
+                )
 
     def do_cookie_handler(self):
         _conf = self.conf.get("cookie_handler")
@@ -324,10 +327,8 @@ class EndpointContext(OidcContext):
         if self.jwks_uri and self.keyjar:
             _provider_info["jwks_uri"] = self.jwks_uri
 
-        _provider_info.update(self.idtoken.provider_info)
         if "scopes_supported" not in _provider_info:
-            _provider_info["scopes_supported"] = [
-                s for s in self.scope2claims.keys()]
+            _provider_info["scopes_supported"] = [s for s in self.scope2claims.keys()]
         if "claims_supported" not in _provider_info:
             _provider_info["claims_supported"] = STANDARD_CLAIMS[:]
 

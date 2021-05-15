@@ -23,7 +23,7 @@ def yaml_to_py_stream(file_name):
     d = load_yaml_config(file_name)
     fstream = io.StringIO()
     for i in d:
-        section = '{} = {}\n\n'.format(i, json.dumps(d[i], indent=2))
+        section = "{} = {}\n\n".format(i, json.dumps(d[i], indent=2))
         fstream.write(section)
     fstream.seek(0)
     return fstream

@@ -5,6 +5,7 @@ from typing import Dict
 from cryptojwt.utils import b64e
 from oidcmsg.oauth2 import AuthorizationErrorResponse
 from oidcmsg.oidc import TokenErrorResponse
+
 from oidcop.endpoint import Endpoint
 
 LOGGER = logging.getLogger(__name__)
@@ -36,10 +37,7 @@ def post_authn_parse(request, client_id, endpoint_context, **kwargs):
     :param kwargs:
     :return:
     """
-    if (
-        endpoint_context.args["pkce"]["essential"]
-        and "code_challenge" not in request
-    ):
+    if endpoint_context.args["pkce"]["essential"] and "code_challenge" not in request:
         return AuthorizationErrorResponse(
             error="invalid_request",
             error_description="Missing required code_challenge",
@@ -48,12 +46,9 @@ def post_authn_parse(request, client_id, endpoint_context, **kwargs):
     if "code_challenge_method" not in request:
         request["code_challenge_method"] = "plain"
 
-    if (
-        "code_challenge" in request
-        and (
-            request["code_challenge_method"]
-            not in endpoint_context.args["pkce"]["code_challenge_methods"]
-        )
+    if "code_challenge" in request and (
+        request["code_challenge_method"]
+        not in endpoint_context.args["pkce"]["code_challenge_methods"]
     ):
         return AuthorizationErrorResponse(
             error="invalid_request",
@@ -65,9 +60,7 @@ def post_authn_parse(request, client_id, endpoint_context, **kwargs):
     return request
 
 
-def verify_code_challenge(
-    code_verifier, code_challenge, code_challenge_method="S256"
-):
+def verify_code_challenge(code_verifier, code_challenge, code_challenge_method="S256"):
     """
     Verify a PKCE (RFC7636) code challenge.
 
@@ -96,7 +89,8 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
 
     try:
         _session_info = endpoint_context.session_manager.get_session_info_by_token(
-            request["code"], grant=True)
+            request["code"], grant=True
+        )
     except KeyError:
         return TokenErrorResponse(
             error="invalid_grant", error_description="Unknown access grant"
@@ -107,16 +101,13 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
     if "code_challenge" in _authn_req:
         if "code_verifier" not in request:
             return TokenErrorResponse(
-                error="invalid_grant",
-                error_description="Missing code_verifier",
+                error="invalid_grant", error_description="Missing code_verifier",
             )
 
         _method = _authn_req["code_challenge_method"]
 
         if not verify_code_challenge(
-            request["code_verifier"],
-            _authn_req["code_challenge"],
-            _method,
+            request["code_verifier"], _authn_req["code_challenge"], _method,
         ):
             return TokenErrorResponse(
                 error="invalid_grant", error_description="PKCE check failed"
@@ -128,16 +119,12 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
 def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
     authn_endpoint = endpoint.get("authorization")
     if authn_endpoint is None:
-        LOGGER.warning(
-            "No authorization endpoint found, skipping PKCE configuration"
-        )
+        LOGGER.warning("No authorization endpoint found, skipping PKCE configuration")
         return
 
     token_endpoint = endpoint.get("token")
     if token_endpoint is None:
-        LOGGER.warning(
-            "No token endpoint found, skipping PKCE configuration"
-        )
+        LOGGER.warning("No token endpoint found, skipping PKCE configuration")
         return
 
     authn_endpoint.post_parse_request.append(post_authn_parse)
@@ -146,9 +133,7 @@ def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
     if "essential" not in kwargs:
         kwargs["essential"] = False
 
-    code_challenge_methods = kwargs.get(
-        "code_challenge_methods", CC_METHOD.keys()
-    )
+    code_challenge_methods = kwargs.get("code_challenge_methods", CC_METHOD.keys())
 
     kwargs["code_challenge_methods"] = {}
     for method in code_challenge_methods:

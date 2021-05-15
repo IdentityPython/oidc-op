@@ -7,26 +7,29 @@ from oidcop.session.token import AuthorizationCode
 def test_authorization_code_default():
     code = AuthorizationCode(value="ABCD")
     assert code.usage_rules["max_usage"] == 1
-    assert code.usage_rules["supports_minting"] == ["access_token",
-                                                    "refresh_token"]
+    assert code.usage_rules["supports_minting"] == [
+        "access_token",
+        "refresh_token",
+        "id_token",
+    ]
 
 
 def test_authorization_code_usage():
-    code = AuthorizationCode(value="ABCD",
-                             usage_rules={
-                                 "supports_minting": ["access_token"],
-                                 "max_usage": 1
-                             })
+    code = AuthorizationCode(
+        value="ABCD", usage_rules={"supports_minting": ["access_token"], "max_usage": 1}
+    )
 
     assert code.usage_rules["max_usage"] == 1
     assert code.usage_rules["supports_minting"] == ["access_token"]
 
 
 def test_authorization_code_extras():
-    code = AuthorizationCode(value="ABCD",
-                             scope=["openid", "foo", "bar"],
-                             claims={"userinfo": {"given_name": None}},
-                             resources=["https://api.example.com"])
+    code = AuthorizationCode(
+        value="ABCD",
+        scope=["openid", "foo", "bar"],
+        claims={"userinfo": {"given_name": None}},
+        resources=["https://api.example.com"],
+    )
 
     assert code.scope == ["openid", "foo", "bar"]
     assert code.claims == {"userinfo": {"given_name": None}}
@@ -34,10 +37,12 @@ def test_authorization_code_extras():
 
 
 def test_dump_load():
-    code = AuthorizationCode(value="ABCD",
-                             scope=["openid", "foo", "bar"],
-                             claims={"userinfo": {"given_name": None}},
-                             resources=["https://api.example.com"])
+    code = AuthorizationCode(
+        value="ABCD",
+        scope=["openid", "foo", "bar"],
+        claims={"userinfo": {"given_name": None}},
+        resources=["https://api.example.com"],
+    )
 
     _item = code.dump()
 
@@ -51,8 +56,8 @@ def test_dump_load():
 
 def test_supports_minting():
     code = AuthorizationCode(value="ABCD")
-    assert code.supports_minting('access_token')
-    assert code.supports_minting('refresh_token')
+    assert code.supports_minting("access_token")
+    assert code.supports_minting("refresh_token")
     assert code.supports_minting("authorization_code") is False
 
 

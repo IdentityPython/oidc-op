@@ -1,5 +1,5 @@
-from oidcmsg.oidc import AuthorizationRequest
 import pytest
+from oidcmsg.oidc import AuthorizationRequest
 
 from oidcop.authn_event import create_authn_event
 from oidcop.server import Server
@@ -26,7 +26,7 @@ AREQ_2 = AuthorizationRequest(
     scope=["openid", "address", "email"],
     state="state000",
     nonce="nonce",
-    claims={"id_token": {"nickname": None}}
+    claims={"id_token": {"nickname": None}},
 )
 
 AREQ_3 = AuthorizationRequest(
@@ -38,12 +38,8 @@ AREQ_3 = AuthorizationRequest(
     nonce="nonce",
     claims={
         "id_token": {"nickname": None},
-        "userinfo": {
-            "name": None,
-            "email": None,
-            "email_verified": None
-        }
-    }
+        "userinfo": {"name": None, "email": None, "email_verified": None},
+    },
 )
 
 conf = {
@@ -59,21 +55,18 @@ conf = {
                         "supports_minting": [
                             "access_token",
                             "refresh_token",
-                            "id_token"
+                            "id_token",
                         ],
-                        "max_usage": 1
+                        "max_usage": 1,
                     },
                     "access_token": {},
                     "refresh_token": {
-                        "supports_minting": [
-                            "access_token",
-                            "refresh_token"
-                        ]
-                    }
+                        "supports_minting": ["access_token", "refresh_token"]
+                    },
                 },
-                "expires_in": 43200
+                "expires_in": 43200,
             }
-        }
+        },
     },
     "endpoint": {
         "authorization_endpoint": {
@@ -84,19 +77,40 @@ conf = {
         "token_endpoint": {
             "path": "token",
             "class": "oidcop.oidc.token.Token",
-            "kwargs": {}
+            "kwargs": {},
         },
         "userinfo_endpoint": {
             "path": "userinfo",
             "class": "oidcop.oidc.userinfo.UserInfo",
-            "kwargs": {}
+            "kwargs": {},
         },
         "introspection_endpoint": {
             "path": "introspection",
             "class": "oidcop.oauth2.introspection.Introspection",
-            "kwargs": {}
-        }
-    }
+            "kwargs": {},
+        },
+    },
+    "token_handler_args": {
+        "jwks_def": {
+            "private_path": "private/token_jwks.json",
+            "read_only": False,
+            "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
+        },
+        "code": {"kwargs": {"lifetime": 600}},
+        "token": {
+            "class": "oidcop.token.jwt_token.JWTToken",
+            "kwargs": {
+                "lifetime": 3600,
+                "add_claims_by_scope": True,
+                "aud": ["https://example.org/appl"],
+            },
+        },
+        "refresh": {
+            "class": "oidcop.token.jwt_token.JWTToken",
+            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+        },
+        "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
+    },
 }
 
 USER_ID = "diana"
@@ -121,39 +135,53 @@ class TestEndpoint(object):
         self.server = server
         self.authz = server.endpoint_context.authz
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
 
-        client_id = authz_req['client_id']
+        client_id = authz_req["client_id"]
         ae = create_authn_event(self.user_id)
-        return self.session_manager.create_session(ae, authz_req, self.user_id,
-                                                   client_id=client_id,
-                                                   sub_type=sub_type)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     def test_usage_rules(self):
         _ = self._create_session(AREQ)
         _usage_rules = self.authz.usage_rules(AREQ["client_id"])
-        assert set(_usage_rules.keys()) == {"authorization_code", "access_token", "refresh_token"}
-        assert _usage_rules["authorization_code"]["supports_minting"] == ['access_token',
-                                                                          'refresh_token',
-                                                                          'id_token']
-        assert _usage_rules["refresh_token"]["supports_minting"] == ['access_token',
-                                                                     'refresh_token']
+        assert set(_usage_rules.keys()) == {
+            "authorization_code",
+            "access_token",
+            "refresh_token",
+        }
+        assert _usage_rules["authorization_code"]["supports_minting"] == [
+            "access_token",
+            "refresh_token",
+            "id_token",
+        ]
+        assert _usage_rules["refresh_token"]["supports_minting"] == [
+            "access_token",
+            "refresh_token",
+        ]
 
     def test_usage_rules_client(self):
         _ = self._create_session(AREQ)
         self.server.endpoint_context.cdb["client_1"]["token_usage_rules"] = {
             "authorization_code": {"supports_minting": ["access_token", "id_token"]},
-            "refresh_token": {}
+            "refresh_token": {},
         }
         _usage_rules = self.authz.usage_rules(AREQ["client_id"])
-        assert set(_usage_rules.keys()) == {"authorization_code", "access_token", "refresh_token"}
-        assert _usage_rules["authorization_code"]["supports_minting"] == ['access_token',
-                                                                          'id_token']
+        assert set(_usage_rules.keys()) == {
+            "authorization_code",
+            "access_token",
+            "refresh_token",
+        }
+        assert _usage_rules["authorization_code"]["supports_minting"] == [
+            "access_token",
+            "id_token",
+        ]
         assert _usage_rules["refresh_token"] == {}
 
     def test_authz_handling(self):
@@ -161,4 +189,4 @@ class TestEndpoint(object):
         _grant = self.authz(session_id, AREQ)
         assert isinstance(_grant, Grant)
         # defaults
-        assert _grant.claims["userinfo"] == {'sub': None}
+        assert _grant.claims["userinfo"] == {"sub": None}

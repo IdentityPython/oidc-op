@@ -1,16 +1,15 @@
 import json
 import os
 
+import pytest
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac
-import pytest
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
 from oidcop.cookie_handler import CookieHandler
-from oidcop.id_token import IDToken
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -27,7 +26,7 @@ KEYDEFS = [
 
 COOKIE_KEYDEFS = [
     {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]}
+    {"type": "oct", "kid": "enc", "use": ["enc"]},
 ]
 
 RESPONSE_TYPES_SUPPORTED = [
@@ -85,9 +84,6 @@ class TestEndpoint(object):
         conf = {
             "issuer": "https://example.com/",
             "password": "mycket hemligt",
-            "token_expires_in": 600,
-            "grant_expires_in": 300,
-            "refresh_token_expires_in": 86400,
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
             "cookie_handler": {
@@ -97,12 +93,11 @@ class TestEndpoint(object):
                     "name": {
                         "session": "oidc_op",
                         "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman"
-                    }
+                        "session_management": "oidc_op_sman",
+                    },
                 },
             },
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
-            "id_token": {"class": IDToken, "kwargs": {}},
             "endpoint": {
                 "provider_config": {
                     "path": ".well-known/openid-configuration",
@@ -187,26 +182,26 @@ class TestEndpoint(object):
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
-        client_id = authz_req['client_id']
+        client_id = authz_req["client_id"]
         ae = create_authn_event(self.user_id)
-        return self.session_manager.create_session(ae, authz_req, self.user_id,
-                                                   client_id=client_id,
-                                                   sub_type=sub_type)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     def _mint_code(self, grant, session_id):
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint.server_get("endpoint_context"),
-            token_type='authorization_code',
+            token_type="authorization_code",
             token_handler=self.session_manager.token_handler["code"],
-            expires_at=time_sans_frac() + 300  # 5 minutes from now
+            expires_at=time_sans_frac() + 300,  # 5 minutes from now
         )
 
     def _mint_token(self, token_type, grant, session_id, token_ref=None):
@@ -217,36 +212,38 @@ class TestEndpoint(object):
             token_type=token_type,
             token_handler=self.session_manager.token_handler[token_type],
             expires_at=time_sans_frac() + 900,  # 15 minutes from now
-            based_on=token_ref  # Means the token (tok) was used to mint this token
+            based_on=token_ref,  # Means the token (tok) was used to mint this token
         )
 
     def test_init(self):
         assert self.endpoint
         assert set(
-            self.endpoint.server_get("endpoint_context").provider_info["claims_supported"]
+            self.endpoint.server_get("endpoint_context").provider_info[
+                "claims_supported"
+            ]
         ) == {
-                   "address",
-                   "birthdate",
-                   "email",
-                   "email_verified",
-                   "eduperson_scoped_affiliation",
-                   "family_name",
-                   "gender",
-                   "given_name",
-                   "locale",
-                   "middle_name",
-                   "name",
-                   "nickname",
-                   "phone_number",
-                   "phone_number_verified",
-                   "picture",
-                   "preferred_username",
-                   "profile",
-                   "sub",
-                   "updated_at",
-                   "website",
-                   "zoneinfo",
-               }
+            "address",
+            "birthdate",
+            "email",
+            "email_verified",
+            "eduperson_scoped_affiliation",
+            "family_name",
+            "gender",
+            "given_name",
+            "locale",
+            "middle_name",
+            "name",
+            "nickname",
+            "phone_number",
+            "phone_number_verified",
+            "picture",
+            "preferred_username",
+            "profile",
+            "sub",
+            "updated_at",
+            "website",
+            "zoneinfo",
+        }
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ)
@@ -254,16 +251,18 @@ class TestEndpoint(object):
 
         # Free standing access token, not based on an authorization code
         access_token = self._mint_token("access_token", grant, session_id)
-        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        http_info = {
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
+        }
         _req = self.endpoint.parse_request({}, http_info=http_info)
         assert set(_req.keys()) == {"client_id", "access_token"}
-        assert _req["client_id"] == AUTH_REQ['client_id']
+        assert _req["client_id"] == AUTH_REQ["client_id"]
         assert _req["access_token"] == access_token.value
 
     def test_parse_invalid_token(self):
         http_info = {"headers": {"authorization": "Bearer invalid"}}
         _req = self.endpoint.parse_request({}, http_info=http_info)
-        assert _req['error'] == "invalid_token"
+        assert _req["error"] == "invalid_token"
 
     def test_process_request(self):
         session_id = self._create_session(AUTH_REQ)
@@ -271,7 +270,9 @@ class TestEndpoint(object):
         code = self._mint_code(grant, session_id)
         access_token = self._mint_token("access_token", grant, session_id, code)
 
-        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        http_info = {
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
+        }
 
         _req = self.endpoint.parse_request({}, http_info=http_info)
         args = self.endpoint.process_request(_req, http_info=http_info)
@@ -286,10 +287,12 @@ class TestEndpoint(object):
         # 2 things can make the request invalid.
         # 1) The token is not valid anymore or 2) The event is not valid.
         _event = grant.authentication_event
-        _event['authn_time'] -= 9000
-        _event['valid_until'] -= 9000
+        _event["authn_time"] -= 9000
+        _event["valid_until"] -= 9000
 
-        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        http_info = {
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
+        }
         _req = self.endpoint.parse_request({}, http_info=http_info)
 
         args = self.endpoint.process_request(_req, http_info=http_info)
@@ -301,7 +304,9 @@ class TestEndpoint(object):
         code = self._mint_code(grant, session_id)
         access_token = self._mint_token("access_token", grant, session_id, code)
 
-        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        http_info = {
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
+        }
         _req = self.endpoint.parse_request({}, http_info=http_info)
 
         args = self.endpoint.process_request(_req)
@@ -311,14 +316,17 @@ class TestEndpoint(object):
 
     def test_do_signed_response(self):
         self.endpoint.server_get("endpoint_context").cdb["client_1"][
-            "userinfo_signed_response_alg"] = "ES256"
+            "userinfo_signed_response_alg"
+        ] = "ES256"
 
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
         code = self._mint_code(grant, session_id)
         access_token = self._mint_token("access_token", grant, session_id, code)
 
-        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        http_info = {
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
+        }
         _req = self.endpoint.parse_request({}, http_info=http_info)
 
         args = self.endpoint.process_request(_req)
@@ -335,19 +343,32 @@ class TestEndpoint(object):
         access_token = self._mint_token("access_token", grant, session_id)
 
         self.endpoint.kwargs["add_claims_by_scope"] = True
-        self.endpoint.server_get("endpoint_context").claims_interface.add_claims_by_scope = True
+        self.endpoint.server_get(
+            "endpoint_context"
+        ).claims_interface.add_claims_by_scope = True
         grant.claims = {
-            "userinfo": self.endpoint.server_get("endpoint_context").claims_interface.get_claims(
-                session_id=session_id, scopes=_auth_req["scope"], usage="userinfo")
+            "userinfo": self.endpoint.server_get(
+                "endpoint_context"
+            ).claims_interface.get_claims(
+                session_id=session_id, scopes=_auth_req["scope"], usage="userinfo"
+            )
         }
 
-        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        http_info = {
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
+        }
         _req = self.endpoint.parse_request({}, http_info=http_info)
         args = self.endpoint.process_request(_req, http_info=http_info)
 
-        assert set(args["response_args"].keys()) == {'eduperson_scoped_affiliation', 'given_name',
-                                                     'email_verified', 'email', 'family_name',
-                                                     'name', "sub"}
+        assert set(args["response_args"].keys()) == {
+            "eduperson_scoped_affiliation",
+            "given_name",
+            "email_verified",
+            "email",
+            "family_name",
+            "name",
+            "sub",
+        }
 
     def test_wrong_type_of_token(self):
         _auth_req = AUTH_REQ.copy()
@@ -357,12 +378,14 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
         refresh_token = self._mint_token("refresh_token", grant, session_id)
 
-        http_info = {"headers": {"authorization": "Bearer {}".format(refresh_token.value)}}
+        http_info = {
+            "headers": {"authorization": "Bearer {}".format(refresh_token.value)}
+        }
         _req = self.endpoint.parse_request({}, http_info=http_info)
         args = self.endpoint.process_request(_req, http_info=http_info)
 
         assert isinstance(args, ResponseMessage)
-        assert args['error_description'] == "Wrong type of token"
+        assert args["error_description"] == "Wrong type of token"
 
     def test_invalid_token(self):
         _auth_req = AUTH_REQ.copy()
@@ -372,11 +395,13 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
         access_token = self._mint_token("access_token", grant, session_id)
 
-        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        http_info = {
+            "headers": {"authorization": "Bearer {}".format(access_token.value)}
+        }
         _req = self.endpoint.parse_request({}, http_info=http_info)
 
         access_token.expires_at = time_sans_frac() - 10
         args = self.endpoint.process_request(_req)
 
         assert isinstance(args, ResponseMessage)
-        assert args['error_description'] == "Invalid Token"
+        assert args["error_description"] == "Invalid Token"

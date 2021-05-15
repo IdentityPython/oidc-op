@@ -1,4 +1,3 @@
-
 def add_support(endpoint, **kwargs):
     _context = endpoint["token"].endpoint_context
 

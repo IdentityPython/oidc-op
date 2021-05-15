@@ -4,16 +4,14 @@ from typing import Union
 
 from cryptojwt import KeyJar
 from oidcmsg.impexp import ImpExp
-from oidcop.endpoint_context import init_user_info
-
-from oidcop.configure import OPConfiguration
 
 from oidcop import authz
 from oidcop.client_authn import client_auth_setup
+from oidcop.configure import OPConfiguration
 from oidcop.endpoint import Endpoint
 from oidcop.endpoint_context import EndpointContext
 from oidcop.endpoint_context import init_service
-from oidcop.id_token import IDToken
+from oidcop.endpoint_context import init_user_info
 from oidcop.session.claims import ClaimsInterface
 from oidcop.session.manager import create_session_manager
 from oidcop.user_authn.authn_context import populate_authn_broker
@@ -23,7 +21,8 @@ from oidcop.util import build_endpoints
 
 def do_endpoints(conf, server_get):
     endpoints = build_endpoints(
-        conf["endpoint"], server_get=server_get, issuer=conf["issuer"])
+        conf["endpoint"], server_get=server_get, issuer=conf["issuer"]
+    )
 
     _cap = conf.get("capabilities", {})
 
@@ -55,35 +54,42 @@ def get_capabilities(conf, endpoints):
 
 
 class Server(ImpExp):
-    parameter = {
-        "endpoint": [Endpoint],
-        "endpoint_context": EndpointContext
-    }
+    parameter = {"endpoint": [Endpoint], "endpoint_context": EndpointContext}
 
-    def __init__(self,
-                 conf: Union[dict, OPConfiguration],
-                 keyjar: Optional[KeyJar] = None,
-                 cwd: Optional[str] = "",
-                 cookie_handler: Optional[Any] = None,
-                 httpc: Optional[Any] = None
-                 ):
+    def __init__(
+        self,
+        conf: Union[dict, OPConfiguration],
+        keyjar: Optional[KeyJar] = None,
+        cwd: Optional[str] = "",
+        cookie_handler: Optional[Any] = None,
+        httpc: Optional[Any] = None,
+    ):
         ImpExp.__init__(self)
         self.conf = conf
-        self.endpoint_context = EndpointContext(conf=conf, keyjar=keyjar, cwd=cwd,
-                                                cookie_handler=cookie_handler, httpc=httpc)
+        self.endpoint_context = EndpointContext(
+            conf=conf,
+            keyjar=keyjar,
+            cwd=cwd,
+            cookie_handler=cookie_handler,
+            httpc=httpc,
+        )
         self.endpoint_context.authz = self.do_authz()
-        self.endpoint_context.idtoken = self.do_id_token()
+
         self.do_authentication(self.endpoint_context)
 
         self.endpoint = do_endpoints(conf, self.server_get)
         _cap = get_capabilities(conf, self.endpoint)
 
-        self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
+        self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(
+            _cap
+        )
         self.endpoint_context.do_add_on(endpoints=self.endpoint)
 
         self.endpoint_context.session_manager = create_session_manager(
-            self.server_get, self.endpoint_context.th_args,
-            sub_func=self.endpoint_context._sub_func)
+            self.server_get,
+            self.endpoint_context.th_args,
+            sub_func=self.endpoint_context._sub_func,
+        )
         self.endpoint_context.do_userinfo()
         # Must be done after userinfo
         self.do_login_hint_lookup()
@@ -95,25 +101,34 @@ class Server(ImpExp):
             self.client_authn_method = []
             if _methods:
                 _endpoint.client_authn_method = client_auth_setup(
-                    _methods, self.server_get)
-            elif _methods is not None:  # [] or '' or something not None but regarded as nothing.
+                    _methods, self.server_get
+                )
+            elif (
+                _methods is not None
+            ):  # [] or '' or something not None but regarded as nothing.
                 _endpoint.client_authn_method = [None]  # Ignore default value
             elif _endpoint.default_capabilities:
-                _methods = _endpoint.default_capabilities.get(
-                    "client_authn_method")
+                _methods = _endpoint.default_capabilities.get("client_authn_method")
                 if _methods:
                     _endpoint.client_authn_method = client_auth_setup(
-                        auth_set=_methods, server_get=self.server_get)
+                        auth_set=_methods, server_get=self.server_get
+                    )
 
             _endpoint.server_get = self.server_get
 
         _token_endp = self.endpoint.get("token")
         if _token_endp:
-            _token_endp.allow_refresh = allow_refresh_token(
-                self.endpoint_context)
+            _token_endp.allow_refresh = allow_refresh_token(self.endpoint_context)
 
         self.endpoint_context.claims_interface = ClaimsInterface(
-            server_get=self.server_get)
+            server_get=self.server_get
+        )
+
+        _id_token_handler = self.endpoint_context.session_manager.token_handler.handler.get(
+            "id_token"
+        )
+        if _id_token_handler:
+            self.endpoint_context.provider_info.update(_id_token_handler.provider_info)
 
     def server_get(self, what, *arg):
         _func = getattr(self, "get_{}".format(what), None)
@@ -140,18 +155,12 @@ class Server(ImpExp):
         else:
             return authz.Implicit(self.server_get)
 
-    def do_id_token(self):
-        _conf = self.conf.get("id_token")
-        if _conf:
-            return init_service(_conf, server_get=self.server_get)
-        else:
-            return IDToken(self.server_get)
-
     def do_authentication(self, target):
         _conf = self.conf.get("authentication")
         if _conf:
-            target.authn_broker = populate_authn_broker(_conf, self.server_get,
-                                                        target.template_handler)
+            target.authn_broker = populate_authn_broker(
+                _conf, self.server_get, target.template_handler
+            )
         else:
             target.authn_broker = {}
 
@@ -171,7 +180,8 @@ class Server(ImpExp):
                 _userinfo_conf = _kwargs.get("userinfo")
                 if _userinfo_conf:
                     _userinfo = init_user_info(
-                        _userinfo_conf, self.endpoint_context.cwd)
+                        _userinfo_conf, self.endpoint_context.cwd
+                    )
 
             if _userinfo is None:
                 _userinfo = self.endpoint_context.userinfo

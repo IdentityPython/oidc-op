@@ -100,19 +100,26 @@
       "authz": {
         "class": "oidcop.authz.AuthzHandling",
         "kwargs": {
-            "grant_config": {
-                "usage_rules": {
-                    "authorization_code": {
-                        "supports_minting": ["access_token", "refresh_token", "id_token"],
-                        "max_usage": 1
-                    },
-                    "access_token": {},
-                    "refresh_token": {
-                        "supports_minting": ["access_token", "refresh_token"]
-                    }
-                },
-                "expires_in": 43200
-            }
+          "grant_config": {
+            "usage_rules": {
+              "authorization_code": {
+                "supports_minting": [
+                  "access_token",
+                  "refresh_token",
+                  "id_token"
+                ],
+                "max_usage": 1
+              },
+              "access_token": {},
+              "refresh_token": {
+                "supports_minting": [
+                  "access_token",
+                  "refresh_token"
+                ]
+              }
+            },
+            "expires_in": 43200
+          }
         }
       },
       "authentication": {
@@ -153,8 +160,20 @@
           "keys": {
             "private_path": "private/cookie_jwks.json",
             "key_defs": [
-              {"type": "OCT", "use": ["enc"], "kid": "enc"},
-              {"type": "OCT", "use": ["sig"], "kid": "sig"}
+              {
+                "type": "OCT",
+                "use": [
+                  "enc"
+                ],
+                "kid": "enc"
+              },
+              {
+                "type": "OCT",
+                "use": [
+                  "sig"
+                ],
+                "kid": "sig"
+              }
             ],
             "read_only": false
           },
@@ -275,19 +294,6 @@
       "httpc_params": {
         "verify": false
       },
-      "id_token": {
-        "class": "oidcop.id_token.IDToken",
-        "kwargs": {
-          "default_claims": {
-            "email": {
-              "essential": true
-            },
-            "email_verified": {
-              "essential": true
-            }
-          }
-        }
-      },
       "issuer": "https://{domain}:{port}",
       "keys": {
         "private_path": "private/jwks.json",
@@ -352,6 +358,19 @@
         "refresh": {
           "kwargs": {
             "lifetime": 86400
+          }
+        },
+        "id_token": {
+          "class": "oidcop.id_token.IDToken",
+          "kwargs": {
+            "default_claims": {
+              "email": {
+                "essential": true
+              },
+              "email_verified": {
+                "essential": true
+              }
+            }
           }
         }
       },

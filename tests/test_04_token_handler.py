@@ -180,9 +180,7 @@ def test_token_handler_from_config():
                     {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
                 ],
             },
-            "code": {
-                "kwargs": {"lifetime": 600}
-            },
+            "code": {"kwargs": {"lifetime": 600}},
             "token": {
                 "class": "oidcop.token.jwt_token.JWTToken",
                 "kwargs": {
@@ -193,19 +191,30 @@ def test_token_handler_from_config():
             },
             "refresh": {
                 "class": "oidcop.token.jwt_token.JWTToken",
+                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+            },
+            "id_token": {
+                "class": "oidcop.token.id_token.IDToken",
                 "kwargs": {
-                    "lifetime": 3600,
-                    "aud": ["https://example.org/appl"],
-                }
-            }
-        }
+                    "base_claims": {
+                        "email": {"essential": True},
+                        "email_verified": {"essential": True},
+                    }
+                },
+            },
+        },
     }
 
     server = Server(conf)
     token_handler = factory(server.server_get, **conf["token_handler_args"])
     assert token_handler
-    assert len(token_handler.handler) == 3
-    assert set(token_handler.handler.keys()) == {"code", "access_token", "refresh_token"}
+    assert len(token_handler.handler) == 4
+    assert set(token_handler.handler.keys()) == {
+        "code",
+        "access_token",
+        "refresh_token",
+        "id_token",
+    }
     assert isinstance(token_handler.handler["code"], DefaultToken)
     assert isinstance(token_handler.handler["access_token"], JWTToken)
     assert isinstance(token_handler.handler["refresh_token"], JWTToken)
@@ -220,4 +229,9 @@ def test_token_handler_from_config():
     assert token_handler.handler["refresh_token"].alg == "ES256"
     assert token_handler.handler["refresh_token"].kwargs == {}
     assert token_handler.handler["refresh_token"].lifetime == 3600
-    assert token_handler.handler["refresh_token"].def_aud == ["https://example.org/appl"]
+    assert token_handler.handler["refresh_token"].def_aud == [
+        "https://example.org/appl"
+    ]
+
+    assert token_handler.handler["id_token"].lifetime == 300
+    assert "base_claims" in token_handler.handler["id_token"].kwargs

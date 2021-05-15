@@ -110,6 +110,5 @@ class Authorization(authorization.Authorization):
             if _login_hint:
                 _context = self.server_get("endpoint_context")
                 if _context.login_hint_lookup:
-                    kwargs["req_user"] = _context.login_hint_lookup(
-                        _login_hint)
+                    kwargs["req_user"] = _context.login_hint_lookup(_login_hint)
         return kwargs

@@ -1,17 +1,16 @@
 import json
 import os
 
+import pytest
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oauth2 import TokenExchangeRequest
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
-import pytest
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.client_authn import verify_client
 from oidcop.cookie_handler import CookieHandler
-from oidcop.id_token import IDToken
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.token import Token
 from oidcop.server import Server
@@ -90,11 +89,7 @@ class TestEndpoint(object):
             "capabilities": CAPABILITIES,
             "cookie_handler": {
                 "class": CookieHandler,
-                "kwargs": {
-                    "keys": {
-                        "key_defs": COOKIE_KEYDEFS
-                    }
-                }
+                "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
             },
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "endpoint": {
@@ -118,8 +113,8 @@ class TestEndpoint(object):
                 "introspection": {
                     "path": "introspection",
                     "class": "oidcop.oauth2.introspection.Introspection",
-                    "kwargs": {}
-                }
+                    "kwargs": {},
+                },
             },
             "authentication": {
                 "anon": {
@@ -131,24 +126,44 @@ class TestEndpoint(object):
             "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
             "client_authn": verify_client,
             "template_dir": "template",
-            "id_token": {"class": IDToken, "kwargs": {}},
             "authz": {
                 "class": AuthzHandling,
                 "kwargs": {
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                'supports_minting': ["access_token", "refresh_token", "id_token"],
-                                "max_usage": 1
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
+                                "max_usage": 1,
                             },
                             "access_token": {},
                             "refresh_token": {
-                                'supports_minting': ["access_token", "refresh_token"],
-                            }
+                                "supports_minting": ["access_token", "refresh_token"],
+                            },
                         },
-                        "expires_in": 43200
+                        "expires_in": 43200,
                     }
-                }
+                },
+            },
+            "token_handler_args": {
+                "jwks_file": "private/token_jwks.json",
+                "code": {"kwargs": {"lifetime": 600}},
+                "token": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "add_claims_by_scope": True,
+                        "aud": ["https://example.org/appl"],
+                    },
+                },
+                "refresh": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                },
+                "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
             },
         }
         server = Server(conf)
@@ -166,34 +181,34 @@ class TestEndpoint(object):
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
-        client_id = authz_req['client_id']
+        client_id = authz_req["client_id"]
         ae = create_authn_event(self.user_id)
-        return self.session_manager.create_session(ae, authz_req, self.user_id,
-                                                   client_id=client_id,
-                                                   sub_type=sub_type)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     def _mint_code(self, grant, session_id):
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint.server_get("endpoint_context"),
-            token_type='authorization_code',
-            token_handler=self.session_manager.token_handler["code"]
+            token_type="authorization_code",
+            token_handler=self.session_manager.token_handler["code"],
         )
 
     def _mint_access_token(self, grant, session_id, token_ref=None, resources=None):
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint.server_get("endpoint_context"),
-            token_type='access_token',
+            token_type="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             based_on=token_ref,
-            resources=resources
+            resources=resources,
         )
 
     def exchange_grant(self, session_id, users, targets, scope):
@@ -202,8 +217,8 @@ class TestEndpoint(object):
 
         # the grant is assigned to a session (user_id, client_id)
         self.session_manager.set(
-            [self.user_id, session_info["client_id"], exchange_grant.id],
-            exchange_grant)
+            [self.user_id, session_info["client_id"], exchange_grant.id], exchange_grant
+        )
         return exchange_grant
 
     def test_do_response(self):
@@ -234,7 +249,7 @@ class TestEndpoint(object):
             subject_token=token_response["access_token"],
             subject_token_type="urn:ietf:params:oauth:token-type:access_token",
             grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-            resource="https://backend.example.com/api"
+            resource="https://backend.example.com/api",
         )
 
         exch_grants = []
@@ -246,24 +261,32 @@ class TestEndpoint(object):
         assert exch_grants
         exch_grant = exch_grants[0]
 
-        session_info = self.session_manager.get_session_info_by_token(ter["subject_token"])
-        _token = self.session_manager.find_token(session_info["session_id"],
-                                                 ter["subject_token"])
+        session_info = self.session_manager.get_session_info_by_token(
+            ter["subject_token"]
+        )
+        _token = self.session_manager.find_token(
+            session_info["session_id"], ter["subject_token"]
+        )
 
-        session_id = self.session_manager.encrypted_session_id(session_info['user_id'],
-                                                               session_info["client_id"],
-                                                               exch_grant.id)
+        session_id = self.session_manager.encrypted_session_id(
+            session_info["user_id"], session_info["client_id"], exch_grant.id
+        )
 
-        _token = self._mint_access_token(exch_grant, session_id, token_ref=_token,
-                                         resources=["https://backend.example.com"])
+        _token = self._mint_access_token(
+            exch_grant,
+            session_id,
+            token_ref=_token,
+            resources=["https://backend.example.com"],
+        )
 
         print(_token.value)
         _req = self.introspection_endpoint.parse_request(
             {
                 "token": _token.value,
                 "client_id": "client_1",
-                "client_secret": self.introspection_endpoint.server_get("endpoint_context").cdb[
-                    "client_1"]["client_secret"],
+                "client_secret": self.introspection_endpoint.server_get(
+                    "endpoint_context"
+                ).cdb["client_1"]["client_secret"],
             }
         )
         _resp = self.introspection_endpoint.process_request(_req)

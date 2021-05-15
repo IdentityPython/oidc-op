@@ -1,15 +1,14 @@
 import io
 
+import pytest
+import yaml
 from cryptojwt import JWT
 from cryptojwt.jwt import remove_jwt_parameters
 from cryptojwt.key_jar import init_key_jar
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AuthorizationRequest
-import pytest
-import yaml
 
 from oidcop.cookie_handler import CookieHandler
-from oidcop.id_token import IDToken
 from oidcop.oauth2.authorization import Authorization
 from oidcop.oauth2.pushed_authorization import PushedAuthorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -101,15 +100,6 @@ class TestEndpoint(object):
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
-            "id_token": {
-                "class": IDToken,
-                "kwargs": {
-                    "available_claims": {
-                        "email": {"essential": True},
-                        "email_verified": {"essential": True},
-                    }
-                },
-            },
             "endpoint": {
                 "provider_config": {
                     "path": ".well-known/openid-configuration",
@@ -162,7 +152,7 @@ class TestEndpoint(object):
                     "name": {
                         "session": "oidc_op",
                         "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman"
+                        "session_management": "oidc_op_sman",
                     },
                 },
             },
@@ -181,7 +171,9 @@ class TestEndpoint(object):
             self.rp_keyjar.export_jwks(issuer_id="s6BhdRkqt3"), "s6BhdRkqt3"
         )
 
-        self.pushed_authorization_endpoint = server.server_get("endpoint", "pushed_authorization")
+        self.pushed_authorization_endpoint = server.server_get(
+            "endpoint", "pushed_authorization"
+        )
         self.authorization_endpoint = server.server_get("endpoint", "authorization")
 
     def test_init(self):
@@ -189,9 +181,14 @@ class TestEndpoint(object):
 
     def test_pushed_auth_urlencoded(self):
         http_info = {
-            "headers": {"authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"}}
+            "headers": {
+                "authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"
+            }
+        }
 
-        _req = self.pushed_authorization_endpoint.parse_request(AUTHN_REQUEST, http_info=http_info)
+        _req = self.pushed_authorization_endpoint.parse_request(
+            AUTHN_REQUEST, http_info=http_info
+        )
 
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {
@@ -211,9 +208,14 @@ class TestEndpoint(object):
 
         authn_request = "request={}".format(_jws)
         http_info = {
-            "headers": {"authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"}}
+            "headers": {
+                "authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"
+            }
+        }
 
-        _req = self.pushed_authorization_endpoint.parse_request(authn_request, http_info=http_info)
+        _req = self.pushed_authorization_endpoint.parse_request(
+            authn_request, http_info=http_info
+        )
 
         assert isinstance(_req, AuthorizationRequest)
         _req = remove_jwt_parameters(_req)
@@ -231,9 +233,14 @@ class TestEndpoint(object):
 
     def test_pushed_auth_urlencoded_process(self):
         http_info = {
-            "headers": {"authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"}}
+            "headers": {
+                "authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"
+            }
+        }
 
-        _req = self.pushed_authorization_endpoint.parse_request(AUTHN_REQUEST, http_info=http_info)
+        _req = self.pushed_authorization_endpoint.parse_request(
+            AUTHN_REQUEST, http_info=http_info
+        )
 
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {
