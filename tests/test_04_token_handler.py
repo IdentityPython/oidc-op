@@ -196,7 +196,7 @@ def test_token_handler_from_config():
             "id_token": {
                 "class": "oidcop.token.id_token.IDToken",
                 "kwargs": {
-                    "default_claims": {
+                    "base_claims": {
                         "email": {"essential": True},
                         "email_verified": {"essential": True},
                     }
@@ -234,4 +234,4 @@ def test_token_handler_from_config():
     ]
 
     assert token_handler.handler["id_token"].lifetime == 300
-    assert "default_claims" in token_handler.handler["id_token"].kwargs
+    assert "base_claims" in token_handler.handler["id_token"].kwargs

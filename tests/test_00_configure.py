@@ -78,7 +78,7 @@ def test_op_configure_default():
     id_token_conf = configuration.get("id_token", {})
     assert set(id_token_conf.keys()) == {"kwargs", "class"}
     assert id_token_conf["kwargs"] == {
-        "default_claims": {
+        "base_claims": {
             "email": {"essential": True},
             "email_verified": {"essential": True},
         }
@@ -100,7 +100,7 @@ def test_op_configure_default_from_file():
     id_token_conf = configuration.get("id_token", {})
     assert set(id_token_conf.keys()) == {"kwargs", "class"}
     assert id_token_conf["kwargs"] == {
-        "default_claims": {
+        "base_claims": {
             "email": {"essential": True},
             "email_verified": {"essential": True},
         }
