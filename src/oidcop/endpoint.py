@@ -123,7 +123,6 @@ class Endpoint(object):
             _methods = self.default_capabilities.get("client_authn_method")
             if _methods:
                 self.client_authn_method = client_auth_setup(_methods, server_get)
-
         self.endpoint_info = construct_endpoint_info(
             self.default_capabilities, **kwargs
         )
