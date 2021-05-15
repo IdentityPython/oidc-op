@@ -361,7 +361,7 @@
           }
         },
         "id_token": {
-          "class": "oidcop.id_token.IDToken",
+          "class": "oidcop.token.id_token.IDToken",
           "kwargs": {
             "default_claims": {
               "email": {
