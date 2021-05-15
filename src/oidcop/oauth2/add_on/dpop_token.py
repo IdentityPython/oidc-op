@@ -4,10 +4,10 @@ from typing import Union
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import utc_time_sans_frac
-from oidcop.oidc.token import RefreshTokenHelper
 from oidcmsg.message import Message
 
 from oidcop.oidc.token import AccessTokenHelper
+from oidcop.oidc.token import RefreshTokenHelper
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,7 @@ class DPOPAccessTokenHelper(AccessTokenHelper):
                 error="invalid_request", error_description="Missing code"
             )
 
-        _session_info = _mngr.get_session_info_by_token(
-            _access_code, grant=True)
+        _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
         grant = _session_info["grant"]
 
         code = grant.get_token(_access_code)
@@ -71,12 +70,14 @@ class DPOPAccessTokenHelper(AccessTokenHelper):
         else:
             token_args = {}
 
-        token = self._mint_token(type="access_token",
-                                 grant=grant,
-                                 session_id=_session_info["session_id"],
-                                 client_id=_session_info["client_id"],
-                                 based_on=code,
-                                 token_args=token_args)
+        token = self._mint_token(
+            type="access_token",
+            grant=grant,
+            session_id=_session_info["session_id"],
+            client_id=_session_info["client_id"],
+            based_on=code,
+            token_args=token_args,
+        )
         if "dpop_jkt" in req:
             if token.extension is None:
                 token.extension = {"dpop_jkt": req["dpop_jkt"]}
@@ -87,11 +88,13 @@ class DPOPAccessTokenHelper(AccessTokenHelper):
         _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
         if issue_refresh:
-            refresh_token = self._mint_token(type="refresh_token",
-                                             grant=grant,
-                                             session_id=_session_info["session_id"],
-                                             client_id=_session_info["client_id"],
-                                             based_on=code)
+            refresh_token = self._mint_token(
+                type="refresh_token",
+                grant=grant,
+                session_id=_session_info["session_id"],
+                client_id=_session_info["client_id"],
+                based_on=code,
+            )
             if "dpop_jkt" in req:
                 if refresh_token.extension is None:
                     refresh_token.extension = {"dpop_jkt": req["dpop_jkt"]}
@@ -132,16 +135,17 @@ class DPOPRefreshTokenHelper(RefreshTokenHelper):
             )
 
         token_value = req["refresh_token"]
-        _session_info = _mngr.get_session_info_by_token(
-            token_value, grant=True)
+        _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
         token = _mngr.find_token(_session_info["session_id"], token_value)
 
         _grant = _session_info["grant"]
-        access_token = self._mint_token(type="access_token",
-                                        grant=_grant,
-                                        session_id=_session_info["session_id"],
-                                        client_id=_session_info["client_id"],
-                                        based_on=token)
+        access_token = self._mint_token(
+            type="access_token",
+            grant=_grant,
+            session_id=_session_info["session_id"],
+            client_id=_session_info["client_id"],
+            based_on=token,
+        )
 
         if "dpop_jkt" in req:
             if access_token.extension is None:
@@ -152,20 +156,21 @@ class DPOPRefreshTokenHelper(RefreshTokenHelper):
         _resp = {
             "access_token": access_token.value,
             "token_type": access_token.token_type,
-            "scope": _grant.scope
+            "scope": _grant.scope,
         }
 
         if access_token.expires_at:
-            _resp["expires_in"] = access_token.expires_at - \
-                utc_time_sans_frac()
+            _resp["expires_in"] = access_token.expires_at - utc_time_sans_frac()
 
         _mints = token.usage_rules.get("supports_minting")
         if "refresh_token" in _mints:
-            refresh_token = self._mint_token(type="refresh_token",
-                                             grant=_grant,
-                                             session_id=_session_info["session_id"],
-                                             client_id=_session_info["client_id"],
-                                             based_on=token)
+            refresh_token = self._mint_token(
+                type="refresh_token",
+                grant=_grant,
+                session_id=_session_info["session_id"],
+                client_id=_session_info["client_id"],
+                based_on=token,
+            )
             refresh_token.usage_rules = token.usage_rules.copy()
             if "dpop_jkt" in req:
                 if refresh_token.extension is None:

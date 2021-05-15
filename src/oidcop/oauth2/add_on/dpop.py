@@ -3,10 +3,10 @@ from typing import Optional
 from cryptojwt import JWS
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
-from oidcmsg.message import Message
 from oidcmsg.message import SINGLE_REQUIRED_INT
 from oidcmsg.message import SINGLE_REQUIRED_JSON
 from oidcmsg.message import SINGLE_REQUIRED_STRING
+from oidcmsg.message import Message
 
 from oidcop.client_authn import AuthnFailure
 from oidcop.client_authn import ClientAuthnMethod
@@ -23,7 +23,7 @@ class DPoPProof(Message):
         "jti": SINGLE_REQUIRED_STRING,
         "htm": SINGLE_REQUIRED_STRING,
         "htu": SINGLE_REQUIRED_STRING,
-        "iat": SINGLE_REQUIRED_INT
+        "iat": SINGLE_REQUIRED_INT,
     }
     header_params = {"typ", "alg", "jwk"}
     body_params = {"jti", "htm", "htu", "iat"}
@@ -68,8 +68,7 @@ class DPoPProof(Message):
             if "jwk" in _jwt.headers:
                 _pub_key = key_from_jwk_dict(_jwt.headers["jwk"])
                 _pub_key.deserialize()
-                _info = _jws.verify_compact(
-                    keys=[_pub_key], sigalg=_jwt.headers["alg"])
+                _info = _jws.verify_compact(keys=[_pub_key], sigalg=_jwt.headers["alg"])
                 for k, v in _jwt.headers.items():
                     self[k] = v
 
@@ -126,8 +125,7 @@ def post_parse_request(request, client_id, endpoint_context, **kwargs):
 
 def token_args(endpoint_context, client_id, token_args: Optional[dict] = None):
     if "dpop.jkt" in endpoint_context.cdb[client_id]:
-        token_args.update(
-            {"cnf": {"jkt": endpoint_context.cdb[client_id]["dpop_jkt"]}})
+        token_args.update({"cnf": {"jkt": endpoint_context.cdb[client_id]["dpop_jkt"]}})
 
     return token_args
 
@@ -143,13 +141,15 @@ def add_support(endpoint, **kwargs):
     if not _algs_supported:
         _algs_supported = ["RS256"]
 
-    _endp.server_get(
-        "endpoint_context").provider_info["dpop_signing_alg_values_supported"] = _algs_supported
+    _endp.server_get("endpoint_context").provider_info[
+        "dpop_signing_alg_values_supported"
+    ] = _algs_supported
 
     # Other endpoint this may come in handy
 
 
 # DPoP-bound access token in the "Authorization" header and the DPoP proof in the "DPoP" header
+
 
 class DPoPClientAuth(ClientAuthnMethod):
     tag = "dpop_client_auth"

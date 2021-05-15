@@ -244,19 +244,6 @@ OIDCOP_CONF = {
       "httpc_params": {
         "verify": False
       },
-      "id_token": {
-        "class": "oidcop.id_token.IDToken",
-        "kwargs": {
-          "default_claims": {
-            "email": {
-              "essential": True
-            },
-            "email_verified": {
-              "essential": True
-            }
-          }
-        }
-      },
       "issuer": "https://{domain}:{port}",
       "keys": {
         "private_path": "data/oidc_op/private/jwks.json",

@@ -4,34 +4,30 @@ from typing import Optional
 from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jws.exception import JWSException
-from oidcop.token import Crypt
 
 from oidcop.exception import ToOld
+from oidcop.token import Crypt
 
 from . import Token
 from . import is_expired
 from .exception import UnknownToken
 
-TYPE_MAP = {
-    "A": "code",
-    "T": "access_token",
-    "R": "refresh_token"
-}
+TYPE_MAP = {"A": "code", "T": "access_token", "R": "refresh_token"}
 
 
 class JWTToken(Token):
     def __init__(
-            self,
-            typ,
-            keyjar: KeyJar = None,
-            issuer: str = None,
-            aud: Optional[list] = None,
-            alg: str = "ES256",
-            lifetime: int = 300,
-            server_get: Callable = None,
-            token_type: str = "Bearer",
-            password: str = "",
-            **kwargs
+        self,
+        typ,
+        # keyjar: KeyJar = None,
+        issuer: str = None,
+        aud: Optional[list] = None,
+        alg: str = "ES256",
+        lifetime: int = 300,
+        server_get: Callable = None,
+        token_type: str = "Bearer",
+        password: str = "",
+        **kwargs
     ):
         Token.__init__(self, typ, **kwargs)
         self.token_type = token_type
@@ -40,7 +36,7 @@ class JWTToken(Token):
 
         self.kwargs = kwargs
         _context = server_get("endpoint_context")
-        self.key_jar = keyjar or _context.keyjar
+        # self.key_jar = keyjar or _context.keyjar
         self.issuer = issuer or _context.issuer
         self.cdb = _context.cdb
         self.server_get = server_get
@@ -48,7 +44,7 @@ class JWTToken(Token):
         self.def_aud = aud or []
         self.alg = alg
 
-    def load_claims(self, payload:dict={}):
+    def load_custom_claims(self, payload:dict={}):
         # inherit me and do your things here
         return payload
 
@@ -56,6 +52,7 @@ class JWTToken(Token):
                  session_id: Optional[str] = '',
                  ttype: Optional[str] = '',
                  **payload) -> str:
+
         """
         Return a token.
 
@@ -75,11 +72,12 @@ class JWTToken(Token):
              "ttype": ttype
             }
         )
-        payload = self.load_claims(payload)
+        payload = self.load_custom_claims(payload)
 
         # payload.update(kwargs)
+        _context = self.server_get("endpoint_context")
         signer = JWT(
-            key_jar=self.key_jar,
+            key_jar=_context.keyjar,
             iss=self.issuer,
             lifetime=self.lifetime,
             sign_alg=self.alg,
@@ -95,7 +93,8 @@ class JWTToken(Token):
         :param token: A token
         :return: tuple of token type and session id
         """
-        verifier = JWT(key_jar=self.key_jar, allowed_sign_algs=[self.alg])
+        _context = self.server_get("endpoint_context")
+        verifier = JWT(key_jar=_context.keyjar, allowed_sign_algs=[self.alg])
         try:
             _payload = verifier.unpack(token)
         except JWSException:

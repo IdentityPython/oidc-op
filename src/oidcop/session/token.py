@@ -16,18 +16,19 @@ class Item(ImpExp):
         "not_before": 0,
         "revoked": bool,
         "usage_rules": {},
-        "used": 0
+        "used": 0,
     }
 
-    def __init__(self,
-                 usage_rules: Optional[dict] = None,
-                 issued_at: int = 0,
-                 expires_in: int = 0,
-                 expires_at: int = 0,
-                 not_before: int = 0,
-                 revoked: bool = False,
-                 used: int = 0
-                 ):
+    def __init__(
+        self,
+        usage_rules: Optional[dict] = None,
+        issued_at: int = 0,
+        expires_in: int = 0,
+        expires_at: int = 0,
+        not_before: int = 0,
+        revoked: bool = False,
+        used: int = 0,
+    ):
         ImpExp.__init__(self)
         self.issued_at = issued_at or time_sans_frac()
         self.not_before = not_before
@@ -45,7 +46,7 @@ class Item(ImpExp):
 
     def max_usage_reached(self):
         if "max_usage" in self.usage_rules:
-            return self.used >= self.usage_rules['max_usage']
+            return self.used >= self.usage_rules["max_usage"]
         else:
             return False
 
@@ -75,37 +76,48 @@ class Item(ImpExp):
 
 class SessionToken(Item):
     parameter = Item.parameter.copy()
-    parameter.update({
-        "based_on": "",
-        "claims": {},
-        "id": "",
-        "name": "",
-        "resources": [],
-        "scope": [],
-        "type": "",
-        "usage_rules": {},
-        "used": 0,
-        "value": "",
-    })
+    parameter.update(
+        {
+            "based_on": "",
+            "claims": {},
+            "id": "",
+            "name": "",
+            "resources": [],
+            "scope": [],
+            "type": "",
+            "usage_rules": {},
+            "used": 0,
+            "value": "",
+        }
+    )
 
-    def __init__(self,
-                 type: str = '',
-                 value: str = '',
-                 based_on: Optional[str] = None,
-                 usage_rules: Optional[dict] = None,
-                 issued_at: int = 0,
-                 expires_in: int = 0,
-                 expires_at: int = 0,
-                 not_before: int = 0,
-                 revoked: bool = False,
-                 used: int = 0,
-                 id: str = "",
-                 scope: Optional[list] = None,
-                 claims: Optional[dict] = None,
-                 resources: Optional[list] = None,
-                 ):
-        Item.__init__(self, usage_rules=usage_rules, issued_at=issued_at, expires_in=expires_in,
-                      expires_at=expires_at, not_before=not_before, revoked=revoked, used=used)
+    def __init__(
+        self,
+        type: str = "",
+        value: str = "",
+        based_on: Optional[str] = None,
+        usage_rules: Optional[dict] = None,
+        issued_at: int = 0,
+        expires_in: int = 0,
+        expires_at: int = 0,
+        not_before: int = 0,
+        revoked: bool = False,
+        used: int = 0,
+        id: str = "",
+        scope: Optional[list] = None,
+        claims: Optional[dict] = None,
+        resources: Optional[list] = None,
+    ):
+        Item.__init__(
+            self,
+            usage_rules=usage_rules,
+            issued_at=issued_at,
+            expires_in=expires_in,
+            expires_at=expires_at,
+            not_before=not_before,
+            revoked=revoked,
+            used=used,
+        )
 
         self.type = type
         self.value = value
@@ -141,21 +153,23 @@ class AccessToken(SessionToken):
 class AuthorizationCode(SessionToken):
     def set_defaults(self):
         if "supports_minting" not in self.usage_rules:
-            self.usage_rules['supports_minting'] = [
-                "access_token", "refresh_token"]
+            self.usage_rules["supports_minting"] = [
+                "access_token",
+                "refresh_token",
+                "id_token",
+            ]
 
-        self.usage_rules['max_usage'] = 1
+        self.usage_rules["max_usage"] = 1
 
 
 class RefreshToken(SessionToken):
     def set_defaults(self):
         if "supports_minting" not in self.usage_rules:
-            self.usage_rules['supports_minting'] = [
-                "access_token", "refresh_token"]
+            self.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
 
-SHORT_TYPE_NAME = {
-    "authorization_code": "A",
-    "access_token": "T",
-    "refresh_token": "R"
-}
+class IDToken(SessionToken):
+    pass
+
+
+SHORT_TYPE_NAME = {"authorization_code": "A", "access_token": "T", "refresh_token": "R"}

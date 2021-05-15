@@ -40,7 +40,7 @@ class TestEndpoint(object):
             "template_dir": "template",
         }
         server = Server(conf)
-        self.endpoint = server.server_get("endpoint","discovery")
+        self.endpoint = server.server_get("endpoint", "discovery")
 
     def test_do_response(self):
         args = self.endpoint.process_request({"resource": "acct:foo@example.com"})

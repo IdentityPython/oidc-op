@@ -12,6 +12,7 @@ from oidcop.constant import DIVIDER
 from oidcop.util import Crypt
 from oidcop.util import lv_pack
 from oidcop.util import lv_unpack
+
 from .grant import Grant
 from .info import ClientSessionInfo
 from .info import SessionInfo
@@ -33,10 +34,7 @@ class InconsistentDatabase(TypeError):
 
 
 class Database(ImpExp):
-    parameter = {
-        "db": DLDict,
-        "key": ""
-    }
+    parameter = {"db": DLDict, "key": ""}
 
     def __init__(self, key: Optional[str] = ""):
         ImpExp.__init__(self)
@@ -184,7 +182,8 @@ class Database(ImpExp):
     def encrypted_session_id(self, *args) -> str:
         rnd = rndstr(32)
         return base64.b64encode(
-            self.crypt.encrypt(lv_pack(rnd, self.session_key(*args)).encode())).decode("utf-8")
+            self.crypt.encrypt(lv_pack(rnd, self.session_key(*args)).encode())
+        ).decode("utf-8")
 
     def decrypt_session_id(self, key: str) -> List[str]:
         try:

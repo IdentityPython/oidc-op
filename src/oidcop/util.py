@@ -7,17 +7,18 @@ from urllib.parse import parse_qs
 from urllib.parse import urlparse
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
+import uuid
 
 from cryptography.fernet import Fernet
 from cryptojwt import as_unicode
 from cryptojwt.utils import as_bytes
+from oidcop.session.info import SessionInfo
 
 from oidcop.exception import OidcEndpointError
 
 logger = logging.getLogger(__name__)
 
-OAUTH2_NOCACHE_HEADERS = [("Pragma", "no-cache"),
-                          ("Cache-Control", "no-store")]
+OAUTH2_NOCACHE_HEADERS = [("Pragma", "no-cache"), ("Cache-Control", "no-store")]
 
 
 def modsplit(s):
@@ -67,8 +68,7 @@ def build_endpoints(conf, server_get, issuer):
         kwargs = spec.get("kwargs", {})
 
         if isinstance(spec["class"], str):
-            _instance = importer(spec["class"])(
-                server_get=server_get, **kwargs)
+            _instance = importer(spec["class"])(server_get=server_get, **kwargs)
         else:
             _instance = spec["class"](server_get=server_get, **kwargs)
 
@@ -85,8 +85,7 @@ def build_endpoints(conf, server_get, issuer):
             try:
                 _instance.endpoint_info[_instance.endpoint_name] = _instance.full_path
             except TypeError:
-                _instance.endpoint_info = {
-                    _instance.endpoint_name: _instance.full_path}
+                _instance.endpoint_info = {_instance.endpoint_name: _instance.full_path}
 
         endpoint[_instance.name] = _instance
 
@@ -137,7 +136,7 @@ def lv_unpack(txt):
     while txt:
         l, v = txt.split(":", 1)
         res.append(v[: int(l)])
-        txt = v[int(l):]
+        txt = v[int(l) :]
     return res
 
 
@@ -202,7 +201,8 @@ def split_uri(uri):
 def allow_refresh_token(endpoint_context):
     # Are there a refresh_token handler
     refresh_token_handler = endpoint_context.session_manager.token_handler.handler[
-        "refresh_token"]
+        "refresh_token"
+    ]
 
     # Is refresh_token grant type supported
     _token_supported = False
@@ -215,8 +215,7 @@ def allow_refresh_token(endpoint_context):
     if refresh_token_handler and _token_supported:
         return True
     elif refresh_token_handler:
-        logger.warning(
-            "Refresh Token handler available but grant type not supported")
+        logger.warning("Refresh Token handler available but grant type not supported")
     elif _token_supported:
         logger.error(
             "refresh_token grant type to be supported but no refresh_token handler available"
@@ -241,3 +240,18 @@ def sector_id_from_redirect_uris(uris):
             )
 
     return urlunsplit((scheme, hostname, "", "", ""))
+
+
+def get_logout_id(endpoint_context, user_id, client_id):
+    _item = SessionInfo()
+    _item.user_id = user_id
+    _item.client_id = client_id
+
+    # Note that this session ID is not the session ID the session manager is using.
+    # It must be possible to map from one to the other.
+    logout_session_id = uuid.uuid4().hex
+    # Store the map
+    _mngr = endpoint_context.session_manager
+    _mngr.set([logout_session_id], _item)
+
+    return logout_session_id

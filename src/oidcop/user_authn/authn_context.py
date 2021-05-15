@@ -34,8 +34,7 @@ class AuthnBroker(object):
 
         for attr in ["acr", "method"]:
             if attr not in info:
-                raise ValueError(
-                    'Required attribute "{}" missing'.format(attr))
+                raise ValueError('Required attribute "{}" missing'.format(attr))
 
         self.db[key] = info
         try:
@@ -151,8 +150,7 @@ def pick_auth(endpoint_context, areq, all=False):
 
         for acr in acrs:
             res = endpoint_context.authn_broker.pick(acr)
-            logger.debug("Picked AuthN broker for ACR %s: %s" %
-                         (str(acr), str(res)))
+            logger.debug("Picked AuthN broker for ACR %s: %s" % (str(acr), str(res)))
             if res:
                 if all:
                     return res
@@ -161,8 +159,7 @@ def pick_auth(endpoint_context, areq, all=False):
                     return res[0]
 
     except KeyError as exc:
-        logger.debug(
-            "An error occurred while picking the authN broker: %s" % str(exc))
+        logger.debug("An error occurred while picking the authN broker: %s" % str(exc))
 
     return None
 
@@ -179,8 +176,7 @@ def init_method(authn_spec, server_get, template_handler=None):
     _args["server_get"] = server_get
 
     args = {"method": instantiate(authn_spec["class"], **_args)}
-    args.update({k: v for k, v in authn_spec.items()
-                 if k not in ["class", "kwargs"]})
+    args.update({k: v for k, v in authn_spec.items() if k not in ["class", "kwargs"]})
     return args
 
 

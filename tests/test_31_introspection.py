@@ -2,6 +2,7 @@ import base64
 import json
 import os
 
+import pytest
 from cryptojwt import JWT
 from cryptojwt import as_unicode
 from cryptojwt.key_jar import build_keyjar
@@ -11,7 +12,6 @@ from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac
 from oidcmsg.time_util import utc_time_sans_frac
-import pytest
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
@@ -85,7 +85,7 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 MAP = {
     "authorization_code": "code",
     "access_token": "access_token",
-    "refresh_token": "refresh_token"
+    "refresh_token": "refresh_token",
 }
 
 
@@ -104,21 +104,29 @@ class TestEndpoint:
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
-                "jwks_def": {
-                    # These keys are used for encrypting the access code, the
-                    # refresh token and the access token(when it's not a JWT),
-                    # I don't think these should be configurable.
-                    # Should these keys be stored somewhere?
-                    "read_only": False,
-                    "key_defs": [
-                        {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "code"},
-                        {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "refresh"},
-                        {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "token"},
-                    ],
+                "jwks_file": "private/token_jwks.json",
+                "code": {"kwargs": {"lifetime": 600}},
+                "token": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "add_claims_by_scope": True,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
-                "code": {"lifetime": 600},
-                "token": {"lifetime": 3600},
-                "refresh": {"lifetime": 86400},
+                "refresh": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                },
+                "id_token": {
+                    "class": "oidcop.token.id_token.IDToken",
+                    "kwargs": {
+                        "base_claims": {
+                            "email": {"essential": True},
+                            "email_verified": {"essential": True},
+                        }
+                    },
+                },
             },
             "endpoint": {
                 "authorization": {
@@ -167,18 +175,22 @@ class TestEndpoint:
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                'supports_minting': ["access_token", "refresh_token", "id_token"],
-                                "max_usage": 1
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
+                                "max_usage": 1,
                             },
                             "access_token": {},
                             "refresh_token": {
-                                'supports_minting': ["access_token", "refresh_token"],
-                            }
+                                "supports_minting": ["access_token", "refresh_token"],
+                            },
                         },
-                        "expires_in": 43200
+                        "expires_in": 43200,
                     }
-                }
-            }
+                },
+            },
         }
         if jwt_token:
             conf["token_handler_args"]["token"] = {
@@ -195,7 +207,7 @@ class TestEndpoint:
             "response_types": ["code", "token", "code id_token", "id_token"],
             "introspection_claims": {
                 "nickname": None,
-                "eduperson_scoped_affiliation": None
+                "eduperson_scoped_affiliation": None,
             },
         }
         endpoint_context.keyjar.import_jwks_as_json(
@@ -207,17 +219,17 @@ class TestEndpoint:
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
-        client_id = authz_req['client_id']
+        client_id = authz_req["client_id"]
         ae = create_authn_event(self.user_id)
-        return self.session_manager.create_session(ae, authz_req, self.user_id,
-                                                   client_id=client_id,
-                                                   sub_type=sub_type)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     def _mint_token(self, type, grant, session_id, based_on=None, **kwargs):
         # Constructing an authorization code is now done
@@ -234,7 +246,9 @@ class TestEndpoint:
     def _get_access_token(self, areq):
         session_id = self._create_session(areq)
         # Consent handling
-        grant = self.token_endpoint.server_get("endpoint_context").authz(session_id, areq)
+        grant = self.token_endpoint.server_get("endpoint_context").authz(
+            session_id, areq
+        )
         self.session_manager[session_id] = grant
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
@@ -266,15 +280,17 @@ class TestEndpoint:
         _basic_token = "{}:{}".format(
             "client_1",
             self.introspection_endpoint.server_get("endpoint_context").cdb["client_1"][
-                "client_secret"]
+                "client_secret"
+            ],
         )
         _basic_token = as_unicode(base64.b64encode(as_bytes(_basic_token)))
         _basic_authz = "Basic {}".format(_basic_token)
         http_info = {"headers": {"authorization": _basic_authz}}
 
         with pytest.raises(UnAuthorizedClient):
-            self.introspection_endpoint.parse_request({"token": access_token.value},
-                                                      http_info=http_info)
+            self.introspection_endpoint.parse_request(
+                {"token": access_token.value}, http_info=http_info
+            )
 
     def test_process_request(self):
         access_token = self._get_access_token(AUTH_REQ)
@@ -283,21 +299,22 @@ class TestEndpoint:
             {
                 "token": access_token.value,
                 "client_id": "client_1",
-                "client_secret": self.introspection_endpoint.server_get("endpoint_context").cdb[
-                    "client_1"]["client_secret"],
+                "client_secret": self.introspection_endpoint.server_get(
+                    "endpoint_context"
+                ).cdb["client_1"]["client_secret"],
             }
         )
         _resp = self.introspection_endpoint.process_request(_req)
 
         assert _resp
         assert set(_resp.keys()) == {"response_args"}
-        assert 'username' not in _resp["response_args"]
+        assert "username" not in _resp["response_args"]
 
         _resp = self.introspection_endpoint.process_request(_req, release=["username"])
 
         assert _resp
         assert set(_resp.keys()) == {"response_args"}
-        assert 'username' in _resp["response_args"]
+        assert "username" in _resp["response_args"]
 
     def test_do_response(self):
         access_token = self._get_access_token(AUTH_REQ)
@@ -306,8 +323,9 @@ class TestEndpoint:
             {
                 "token": access_token.value,
                 "client_id": "client_1",
-                "client_secret": self.introspection_endpoint.server_get("endpoint_context").cdb[
-                    "client_1"]["client_secret"],
+                "client_secret": self.introspection_endpoint.server_get(
+                    "endpoint_context"
+                ).cdb["client_1"]["client_secret"],
             }
         )
         _resp = self.introspection_endpoint.process_request(_req)
@@ -329,7 +347,7 @@ class TestEndpoint:
             "exp",
             "iat",
             "scope",
-            "aud"
+            "aud",
         }
         assert _payload["active"] is True
 
@@ -365,7 +383,9 @@ class TestEndpoint:
         session_id = self._create_session(AUTH_REQ)
 
         # Apply consent
-        grant = self.token_endpoint.server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = self.token_endpoint.server_get("endpoint_context").authz(
+            session_id, AUTH_REQ
+        )
         self.session_manager[session_id] = grant
 
         code = self._mint_token("authorization_code", grant, session_id)
@@ -386,7 +406,9 @@ class TestEndpoint:
     def test_introspection_claims(self):
         session_id = self._create_session(AUTH_REQ)
         # Apply consent
-        grant = self.token_endpoint.server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = self.token_endpoint.server_get("endpoint_context").authz(
+            session_id, AUTH_REQ
+        )
         self.session_manager[session_id] = grant
 
         code = self._mint_token("authorization_code", grant, session_id)
@@ -394,11 +416,13 @@ class TestEndpoint:
 
         self.introspection_endpoint.kwargs["enable_claims_per_client"] = True
 
-        _c_interface = self.introspection_endpoint.server_get("endpoint_context").claims_interface
+        _c_interface = self.introspection_endpoint.server_get(
+            "endpoint_context"
+        ).claims_interface
         grant.claims = {
-            "introspection": _c_interface.get_claims(session_id,
-                                                     scopes=AUTH_REQ["scope"],
-                                                     usage="introspection")
+            "introspection": _c_interface.get_claims(
+                session_id, scopes=AUTH_REQ["scope"], usage="introspection"
+            )
         }
 
         _context = self.introspection_endpoint.server_get("endpoint_context")

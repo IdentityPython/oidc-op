@@ -13,7 +13,7 @@ class AuthnEvent(Message):
         "authn_info": SINGLE_REQUIRED_STRING,
         "authn_time": SINGLE_OPTIONAL_INT,
         "valid_until": SINGLE_OPTIONAL_INT,
-        "sub": SINGLE_OPTIONAL_STRING
+        "sub": SINGLE_OPTIONAL_STRING,
     }
 
     def is_valid(self, now=0):
@@ -26,9 +26,15 @@ class AuthnEvent(Message):
         return self["valid_until"] - time_sans_frac()
 
 
-def create_authn_event(uid, authn_info=None, authn_time: int = 0,
-                       valid_until: int = 0, expires_in: int = 0,
-                       sub: str = "", **kwargs):
+def create_authn_event(
+    uid,
+    authn_info=None,
+    authn_time: int = 0,
+    valid_until: int = 0,
+    expires_in: int = 0,
+    sub: str = "",
+    **kwargs
+):
     """
 
     :param uid: User ID. This is the identifier used by the user DB

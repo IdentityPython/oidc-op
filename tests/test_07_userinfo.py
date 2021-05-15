@@ -1,11 +1,10 @@
 import json
 import os
 
-from oidcmsg.oidc import OpenIDRequest
 import pytest
+from oidcmsg.oidc import OpenIDRequest
 
 from oidcop.authn_event import create_authn_event
-from oidcop.id_token import IDToken
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -13,8 +12,8 @@ from oidcop.oidc.registration import Registration
 from oidcop.scopes import SCOPE2CLAIMS
 from oidcop.scopes import convert_scopes2claims
 from oidcop.server import Server
-from oidcop.session.claims import ClaimsInterface
 from oidcop.session.claims import STANDARD_CLAIMS
+from oidcop.session.claims import ClaimsInterface
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_info import UserInfo
 
@@ -133,27 +132,27 @@ def test_custom_scopes():
 
     assert set(
         convert_scopes2claims(["email"], _available_claims, map=_scopes).keys()
-    ) == {"email", "email_verified", }
+    ) == {"email", "email_verified",}
     assert set(
         convert_scopes2claims(["address"], _available_claims, map=_scopes).keys()
     ) == {"address"}
     assert set(
         convert_scopes2claims(["phone"], _available_claims, map=_scopes).keys()
-    ) == {"phone_number", "phone_number_verified", }
+    ) == {"phone_number", "phone_number_verified",}
 
     assert set(
         convert_scopes2claims(
             ["research_and_scholarship"], _available_claims, map=_scopes
         ).keys()
     ) == {
-               "name",
-               "given_name",
-               "family_name",
-               "email",
-               "email_verified",
-               "sub",
-               "eduperson_scoped_affiliation",
-           }
+        "name",
+        "given_name",
+        "family_name",
+        "email",
+        "email_verified",
+        "sub",
+        "eduperson_scoped_affiliation",
+    }
 
 
 PROVIDER_INFO = {
@@ -178,86 +177,96 @@ KEYDEFS = [
 class TestCollectUserInfo:
     @pytest.fixture(autouse=True)
     def create_endpoint_context(self):
-        conf = (
-            {
-                "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_DB}},
-                "password": "we didn't start the fire",
-                "issuer": "https://example.com/op",
-                "token_expires_in": 900,
-                "grant_expires_in": 600,
-                "refresh_token_expires_in": 86400,
-                "endpoint": {
-                    "provider_config": {
-                        "path": "{}/.well-known/openid-configuration",
-                        "class": ProviderConfiguration,
-                        "kwargs": {},
-                    },
-                    "registration": {
-                        "path": "{}/registration",
-                        "class": Registration,
-                        "kwargs": {},
-                    },
-                    "authorization": {
-                        "path": "{}/authorization",
-                        "class": Authorization,
-                        "kwargs": {
-                            "response_types_supported": [
-                                " ".join(x) for x in RESPONSE_TYPES_SUPPORTED
-                            ],
-                            "response_modes_supported": [
-                                "query",
-                                "fragment",
-                                "form_post",
-                            ],
-                            "claims_parameter_supported": True,
-                            "request_parameter_supported": True,
-                            "request_uri_parameter_supported": True,
-                        },
-                    },
-                    "userinfo": {
-                        "path": "userinfo",
-                        "class": userinfo.UserInfo,
-                        "kwargs": {
-                            "claim_types_supported": [
-                                "normal",
-                                "aggregated",
-                                "distributed",
-                            ],
-                            "client_authn_method": ["bearer_header"],
-                            "base_claims": {
-                                "eduperson_scoped_affiliation": None,
-                                "email": None,
-                            },
-                            "add_claims_by_scope": True,
-                            "enable_claims_per_client": True
-                        },
-                    },
+        conf = {
+            "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_DB}},
+            "password": "we didn't start the fire",
+            "issuer": "https://example.com/op",
+            "token_handler_args": {
+                "jwks_def": {
+                    "private_path": "private/token_jwks.json",
+                    "read_only": False,
+                    "key_defs": [
+                        {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
+                    ],
                 },
-                "keys": {
-                    "public_path": "jwks.json",
-                    "key_defs": KEYDEFS,
-                    "uri_path": "static/jwks.json",
-                },
-                "authentication": {
-                    "anon": {
-                        "acr": INTERNETPROTOCOLPASSWORD,
-                        "class": "oidcop.user_authn.user.NoAuthn",
-                        "kwargs": {"user": "diana"},
-                    }
-                },
-                "template_dir": "template",
-                "id_token": {
-                    "class": IDToken,
+                "code": {"kwargs": {"lifetime": 600}},
+                "token": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
                     "kwargs": {
-                        "base_claims": {
-                            "email": None,
-                            "email_verified": None,
-                        },
-                        "enable_claims_per_client": True
+                        "lifetime": 3600,
+                        "add_claims_by_scope": True,
+                        "aud": ["https://example.org/appl"],
                     },
                 },
-            }
-        )
+                "refresh": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                },
+                "id_token": {
+                    "class": "oidcop.token.id_token.IDToken",
+                    "kwargs": {
+                        "base_claims": {"email": None, "email_verified": None,},
+                        "enable_claims_per_client": True,
+                    },
+                },
+            },
+            "endpoint": {
+                "provider_config": {
+                    "path": "{}/.well-known/openid-configuration",
+                    "class": ProviderConfiguration,
+                    "kwargs": {},
+                },
+                "registration": {
+                    "path": "{}/registration",
+                    "class": Registration,
+                    "kwargs": {},
+                },
+                "authorization": {
+                    "path": "{}/authorization",
+                    "class": Authorization,
+                    "kwargs": {
+                        "response_types_supported": [
+                            " ".join(x) for x in RESPONSE_TYPES_SUPPORTED
+                        ],
+                        "response_modes_supported": ["query", "fragment", "form_post",],
+                        "claims_parameter_supported": True,
+                        "request_parameter_supported": True,
+                        "request_uri_parameter_supported": True,
+                    },
+                },
+                "userinfo": {
+                    "path": "userinfo",
+                    "class": userinfo.UserInfo,
+                    "kwargs": {
+                        "claim_types_supported": [
+                            "normal",
+                            "aggregated",
+                            "distributed",
+                        ],
+                        "client_authn_method": ["bearer_header"],
+                        "base_claims": {
+                            "eduperson_scoped_affiliation": None,
+                            "email": None,
+                        },
+                        "add_claims_by_scope": True,
+                        "enable_claims_per_client": True,
+                    },
+                },
+            },
+            "keys": {
+                "public_path": "jwks.json",
+                "key_defs": KEYDEFS,
+                "uri_path": "static/jwks.json",
+            },
+            "authentication": {
+                "anon": {
+                    "acr": INTERNETPROTOCOLPASSWORD,
+                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "kwargs": {"user": "diana"},
+                }
+            },
+            "template_dir": "template",
+        }
 
         server = Server(conf)
         self.endpoint_context = server.endpoint_context
@@ -268,17 +277,17 @@ class TestCollectUserInfo:
         self.user_id = "diana"
         self.server = server
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
-        client_id = authz_req['client_id']
+        client_id = authz_req["client_id"]
         ae = create_authn_event(self.user_id)
-        return self.session_manager.create_session(ae, authz_req, self.user_id,
-                                                   client_id=client_id,
-                                                   sub_type=sub_type)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     def test_collect_user_info(self):
         _req = OIDR.copy()
@@ -286,22 +295,22 @@ class TestCollectUserInfo:
 
         session_id = self._create_session(_req)
 
-        _userinfo_restriction = self.claims_interface.get_claims(session_id=session_id,
-                                                                 scopes=OIDR["scope"],
-                                                                 usage="userinfo")
+        _userinfo_restriction = self.claims_interface.get_claims(
+            session_id=session_id, scopes=OIDR["scope"], usage="userinfo"
+        )
 
         res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
 
         assert res == {
-            'eduperson_scoped_affiliation': ['staff@example.org'],
+            "eduperson_scoped_affiliation": ["staff@example.org"],
             "email": "diana@example.org",
             "nickname": "Dina",
-            "email_verified": False
+            "email_verified": False,
         }
 
-        _id_token_restriction = self.claims_interface.get_claims(session_id=session_id,
-                                                                 scopes=OIDR["scope"],
-                                                                 usage="id_token")
+        _id_token_restriction = self.claims_interface.get_claims(
+            session_id=session_id, scopes=OIDR["scope"], usage="id_token"
+        )
 
         res = self.claims_interface.get_user_claims("diana", _id_token_restriction)
 
@@ -310,8 +319,9 @@ class TestCollectUserInfo:
             "email_verified": False,
         }
 
-        _restriction = self.claims_interface.get_claims(session_id=session_id, scopes=OIDR["scope"],
-                                                        usage="introspection")
+        _restriction = self.claims_interface.get_claims(
+            session_id=session_id, scopes=OIDR["scope"], usage="introspection"
+        )
 
         res = self.claims_interface.get_user_claims("diana", _restriction)
 
@@ -325,22 +335,22 @@ class TestCollectUserInfo:
         session_id = self._create_session(_req)
         _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
 
-        _userinfo_restriction = self.claims_interface.get_claims(session_id=session_id,
-                                                                 scopes=_req["scope"],
-                                                                 usage="userinfo")
+        _userinfo_restriction = self.claims_interface.get_claims(
+            session_id=session_id, scopes=_req["scope"], usage="userinfo"
+        )
 
         res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
 
         assert res == {
-            'address': {
-                'country': 'Sweden',
-                'locality': 'Umeå',
-                'postal_code': 'SE-90187',
-                'street_address': 'Umeå Universitet'
+            "address": {
+                "country": "Sweden",
+                "locality": "Umeå",
+                "postal_code": "SE-90187",
+                "street_address": "Umeå Universitet",
             },
-            'eduperson_scoped_affiliation': ['staff@example.org'],
-            'email': 'diana@example.org',
-            'email_verified': False
+            "eduperson_scoped_affiliation": ["staff@example.org"],
+            "email": "diana@example.org",
+            "email_verified": False,
         }
 
     def test_collect_user_info_scope_not_supported_no_base_claims(self):
@@ -351,14 +361,14 @@ class TestCollectUserInfo:
         session_id = self._create_session(_req)
         _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
 
-        _userinfo_endpoint = self.server.server_get("endpoint","userinfo")
+        _userinfo_endpoint = self.server.server_get("endpoint", "userinfo")
         _userinfo_endpoint.kwargs["add_claims_by_scope"] = False
         _userinfo_endpoint.kwargs["enable_claims_per_client"] = False
         del _userinfo_endpoint.kwargs["base_claims"]
 
-        _userinfo_restriction = self.claims_interface.get_claims(session_id=session_id,
-                                                                 scopes=_req["scope"],
-                                                                 usage="userinfo")
+        _userinfo_restriction = self.claims_interface.get_claims(
+            session_id=session_id, scopes=_req["scope"], usage="userinfo"
+        )
 
         res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
 
@@ -372,20 +382,22 @@ class TestCollectUserInfo:
         session_id = self._create_session(_req)
         _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
 
-        _userinfo_endpoint = self.server.server_get("endpoint","userinfo")
+        _userinfo_endpoint = self.server.server_get("endpoint", "userinfo")
         _userinfo_endpoint.kwargs["add_claims_by_scope"] = False
         _userinfo_endpoint.kwargs["enable_claims_per_client"] = True
         del _userinfo_endpoint.kwargs["base_claims"]
 
-        self.endpoint_context.cdb[_req["client_id"]]["userinfo_claims"] = {"phone_number": None}
+        self.endpoint_context.cdb[_req["client_id"]]["userinfo_claims"] = {
+            "phone_number": None
+        }
 
-        _userinfo_restriction = self.claims_interface.get_claims(session_id=session_id,
-                                                                 scopes=_req["scope"],
-                                                                 usage="userinfo")
+        _userinfo_restriction = self.claims_interface.get_claims(
+            session_id=session_id, scopes=_req["scope"], usage="userinfo"
+        )
 
         res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
 
-        assert res == {'phone_number': '+46907865000'}
+        assert res == {"phone_number": "+46907865000"}
 
 
 class TestCollectUserInfoCustomScopes:
@@ -442,7 +454,7 @@ class TestCollectUserInfoCustomScopes:
                                 "email": None,
                             },
                             "add_claims_by_scope": True,
-                            "enable_claims_per_client": True
+                            "enable_claims_per_client": True,
                         },
                     },
                 },
@@ -476,16 +488,6 @@ class TestCollectUserInfoCustomScopes:
                     }
                 },
                 "template_dir": "template",
-                "id_token": {
-                    "class": IDToken,
-                    "kwargs": {
-                        "base_claims": {
-                            "email": None,
-                            "email_verified": None,
-                        },
-                        "enable_claims_per_client": True
-                    },
-                },
             }
         )
         self.endpoint_context = self.server.endpoint_context
@@ -494,17 +496,17 @@ class TestCollectUserInfoCustomScopes:
         self.claims_interface = ClaimsInterface(self.server.server_get)
         self.user_id = "diana"
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=''):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
-        client_id = authz_req['client_id']
+        client_id = authz_req["client_id"]
         ae = create_authn_event(self.user_id)
-        return self.session_manager.create_session(ae, authz_req, self.user_id,
-                                                   client_id=client_id,
-                                                   sub_type=sub_type)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     # def _do_grant(self, auth_req):
     #     client_id = auth_req['client_id']
@@ -522,17 +524,17 @@ class TestCollectUserInfoCustomScopes:
 
         session_id = self._create_session(_req)
 
-        _restriction = self.claims_interface.get_claims(session_id=session_id,
-                                                        scopes=_req["scope"],
-                                                        usage="userinfo")
+        _restriction = self.claims_interface.get_claims(
+            session_id=session_id, scopes=_req["scope"], usage="userinfo"
+        )
 
         res = self.claims_interface.get_user_claims("diana", _restriction)
 
         assert res == {
-            'eduperson_scoped_affiliation': ['staff@example.org'],
-            'email': 'diana@example.org',
-            'email_verified': False,
-            'family_name': 'Krall',
-            'given_name': 'Diana',
-            'name': 'Diana Krall'
+            "eduperson_scoped_affiliation": ["staff@example.org"],
+            "email": "diana@example.org",
+            "email_verified": False,
+            "family_name": "Krall",
+            "given_name": "Diana",
+            "name": "Diana Krall",
         }

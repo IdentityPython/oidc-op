@@ -28,20 +28,23 @@ LOGGER = logging.getLogger(__name__)
 # The only thing I want to be able to do is to set names, values, expires and max-age on cookies.
 # I don't care about the remaining attributes of a cookie.
 
-class CookieHandler():
-    def __init__(self,
-                 sign_key: Optional[SYMKey] = None,
-                 enc_key: Optional[SYMKey] = None,
-                 keys: Optional[dict] = None,
-                 sign_alg: [str] = "SHA256",
-                 name: Optional[dict] = None):
+
+class CookieHandler:
+    def __init__(
+        self,
+        sign_key: Optional[SYMKey] = None,
+        enc_key: Optional[SYMKey] = None,
+        keys: Optional[dict] = None,
+        sign_alg: [str] = "SHA256",
+        name: Optional[dict] = None,
+    ):
 
         if keys:
             key_jar = init_key_jar(**keys)
-            _keys = key_jar.get_signing_key(key_type='oct', kid="sig")
+            _keys = key_jar.get_signing_key(key_type="oct", kid="sig")
             if _keys:
                 self.sign_key = _keys[0]
-            _keys = key_jar.get_encrypt_key(key_type='oct', kid="enc")
+            _keys = key_jar.get_encrypt_key(key_type="oct", kid="enc")
             if _keys:
                 self.enc_key = _keys[0]
         else:
@@ -69,15 +72,12 @@ class CookieHandler():
             self.name = {
                 "session": "oidc_op",
                 "register": "oidc_op_reg",
-                "session_management": "oidc_op_sman"
+                "session_management": "oidc_op_sman",
             }
         else:
             self.name = name
 
-    def _sign_enc_payload(self,
-                          payload: str,
-                          timestamp: Optional[Union[int, str]] = 0
-                          ):
+    def _sign_enc_payload(self, payload: str, timestamp: Optional[Union[int, str]] = 0):
         """
         Creates signed and/or encrypted information.
 
@@ -109,8 +109,7 @@ class CookieHandler():
             encrypter = AES_GCMEncrypter(key=self.enc_key.key)
             iv = os.urandom(12)
             if mac:
-                msg = lv_pack(payload, timestamp,
-                              base64.b64encode(mac).decode("utf-8"))
+                msg = lv_pack(payload, timestamp, base64.b64encode(mac).decode("utf-8"))
             else:
                 msg = lv_pack(payload, timestamp)
 
@@ -124,8 +123,7 @@ class CookieHandler():
                 base64.b64encode(tag),
             ]
         else:
-            cookie_payload = [bytes_timestamp,
-                              bytes_load, base64.b64encode(mac)]
+            cookie_payload = [bytes_timestamp, bytes_load, base64.b64encode(mac)]
 
         return (b"|".join(cookie_payload)).decode("utf-8")
 
@@ -144,8 +142,11 @@ class CookieHandler():
             timestamp, payload, b64_mac = parts
             mac = base64.b64decode(b64_mac)
             verifier = HMACSigner(algorithm=self.sign_alg)
-            if verifier.verify(payload.encode("utf-8") + timestamp.encode("utf-8"), mac,
-                               self.sign_key.key):
+            if verifier.verify(
+                payload.encode("utf-8") + timestamp.encode("utf-8"),
+                mac,
+                self.sign_key.key,
+            ):
                 return payload, timestamp
             else:
                 raise VerificationError()
@@ -166,22 +167,24 @@ class CookieHandler():
             if len(p) == 3:
                 verifier = HMACSigner(algorithm=self.sign_alg)
                 if verifier.verify(
-                        payload.encode("utf-8") + timestamp.encode("utf-8"),
-                        base64.b64decode(p[2]),
-                        self.sign_key.key,
+                    payload.encode("utf-8") + timestamp.encode("utf-8"),
+                    base64.b64decode(p[2]),
+                    self.sign_key.key,
                 ):
                     return payload, timestamp
             else:
                 return payload, timestamp
         return None
 
-    def make_cookie_content(self,
-                            name: str,
-                            value: str,
-                            typ: Optional[str] = "",
-                            timestamp: Optional[Union[int, str]] = "",
-                            max_age: Optional[int] = 0,
-                            **kwargs) -> dict:
+    def make_cookie_content(
+        self,
+        name: str,
+        value: str,
+        typ: Optional[str] = "",
+        timestamp: Optional[Union[int, str]] = "",
+        max_age: Optional[int] = 0,
+        **kwargs
+    ) -> dict:
         """
         Create and return information to put in a cookie
 
@@ -216,9 +219,7 @@ class CookieHandler():
 
         return content
 
-    def parse_cookie(self,
-                     name: str,
-                     cookies: List[dict]) -> Optional[List[dict]]:
+    def parse_cookie(self, name: str, cookies: List[dict]) -> Optional[List[dict]]:
         """Parses and verifies a cookie value
 
         Parses a cookie created by `make_cookie` and verifies
@@ -238,11 +239,9 @@ class CookieHandler():
         res = []
         for _cookie in cookies:
             if _cookie["name"] == name:
-                payload, timestamp = self._ver_dec_content(
-                    _cookie['value'].split("|"))
+                payload, timestamp = self._ver_dec_content(_cookie["value"].split("|"))
                 value, typ = payload.split("::")
-                res.append({"value": value, "type": typ,
-                            "timestamp": timestamp})
+                res.append({"value": value, "type": typ, "timestamp": timestamp})
         return res
 
 

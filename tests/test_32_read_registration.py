@@ -1,8 +1,8 @@
 # -*- coding: latin-1 -*-
 import json
 
-from oidcmsg.oidc import RegistrationRequest
 import pytest
+from oidcmsg.oidc import RegistrationRequest
 
 from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc.authorization import Authorization
@@ -19,7 +19,7 @@ KEYDEFS = [
 
 COOKIE_KEY_DEFS = [
     {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]}
+    {"type": "oct", "kid": "enc", "use": ["enc"]},
 ]
 
 RESPONSE_TYPES_SUPPORTED = [
@@ -84,11 +84,7 @@ class TestEndpoint(object):
             "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
             "cookie_handler": {
                 "class": CookieHandler,
-                "kwargs": {
-                    "keys": {
-                        "key_defs": COOKIE_KEY_DEFS
-                    }
-                }
+                "kwargs": {"keys": {"key_defs": COOKIE_KEY_DEFS}},
             },
             "endpoint": {
                 "registration": {
@@ -124,7 +120,9 @@ class TestEndpoint(object):
         }
         server = Server(conf)
         self.registration_endpoint = server.server_get("endpoint", "registration")
-        self.registration_api_endpoint = server.server_get("endpoint", "registration_read")
+        self.registration_api_endpoint = server.server_get(
+            "endpoint", "registration_read"
+        )
 
     def test_do_response(self):
         _req = self.registration_endpoint.parse_request(CLI_REQ.to_json())
@@ -138,11 +136,13 @@ class TestEndpoint(object):
             "headers": {
                 "authorization": "Bearer {}".format(
                     _resp["response_args"]["registration_access_token"]
-                )}}
+                )
+            }
+        }
 
         _api_req = self.registration_api_endpoint.parse_request(
             "client_id={}".format(_resp["response_args"]["client_id"]),
-            http_info=http_info
+            http_info=http_info,
         )
         assert set(_api_req.keys()) == {"client_id"}
 
@@ -152,4 +152,6 @@ class TestEndpoint(object):
 
         _endp_response = self.registration_api_endpoint.do_response(_info)
         assert set(_endp_response.keys()) == {"response", "http_headers"}
-        assert ("Content-type", "application/json; charset=utf-8") in _endp_response["http_headers"]
+        assert ("Content-type", "application/json; charset=utf-8") in _endp_response[
+            "http_headers"
+        ]

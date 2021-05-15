@@ -19,9 +19,11 @@ def test_op_configure():
     _str = open(full_path("op_config.json")).read()
     _conf = json.loads(_str)
 
-    configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
+    configuration = OPConfiguration(
+        conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443
+    )
     assert configuration
-    assert 'add_on' in configuration
+    assert "add_on" in configuration
     authz_conf = configuration["authz"]
     assert set(authz_conf.keys()) == {"kwargs", "class"}
     id_token_conf = configuration.get("id_token")
@@ -39,12 +41,16 @@ def test_op_configure():
 
 
 def test_op_configure_from_file():
-    configuration = create_from_config_file(OPConfiguration,
-                                            filename=full_path("op_config.json"),
-                                            base_path=BASEDIR, domain="127.0.0.1", port=443)
+    configuration = create_from_config_file(
+        OPConfiguration,
+        filename=full_path("op_config.json"),
+        base_path=BASEDIR,
+        domain="127.0.0.1",
+        port=443,
+    )
 
     assert configuration
-    assert 'add_on' in configuration
+    assert "add_on" in configuration
     authz_conf = configuration["authz"]
     assert set(authz_conf.keys()) == {"kwargs", "class"}
     id_token_conf = configuration.get("id_token")
@@ -62,51 +68,59 @@ def test_op_configure_default():
     _str = open(full_path("op_config.json")).read()
     _conf = json.loads(_str)
 
-    configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
+    configuration = OPConfiguration(
+        conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443
+    )
     assert configuration
-    assert 'add_on' in configuration
+    assert "add_on" in configuration
     authz = configuration["authz"]
     assert set(authz.keys()) == {"kwargs", "class"}
     id_token_conf = configuration.get("id_token", {})
-    assert set(id_token_conf.keys()) == {'kwargs', 'class'}
+    assert set(id_token_conf.keys()) == {"kwargs", "class"}
     assert id_token_conf["kwargs"] == {
-        'default_claims': {
-            'email': {'essential': True},
-            'email_verified': {'essential': True}}}
+        "base_claims": {
+            "email": {"essential": True},
+            "email_verified": {"essential": True},
+        }
+    }
 
 
 def test_op_configure_default_from_file():
-    configuration = create_from_config_file(OPConfiguration,
-                                            filename=full_path("op_config.json"),
-                                            base_path=BASEDIR, domain="127.0.0.1", port=443)
+    configuration = create_from_config_file(
+        OPConfiguration,
+        filename=full_path("op_config.json"),
+        base_path=BASEDIR,
+        domain="127.0.0.1",
+        port=443,
+    )
     assert configuration
-    assert 'add_on' in configuration
+    assert "add_on" in configuration
     authz = configuration["authz"]
     assert set(authz.keys()) == {"kwargs", "class"}
     id_token_conf = configuration.get("id_token", {})
-    assert set(id_token_conf.keys()) == {'kwargs', 'class'}
+    assert set(id_token_conf.keys()) == {"kwargs", "class"}
     assert id_token_conf["kwargs"] == {
-        'default_claims': {
-            'email': {'essential': True},
-            'email_verified': {'essential': True}}}
+        "base_claims": {
+            "email": {"essential": True},
+            "email_verified": {"essential": True},
+        }
+    }
 
 
 def test_server_configure():
-    configuration = create_from_config_file(Configuration,
-                                            entity_conf=[
-                                                {
-                                                    "class": OPConfiguration,
-                                                    "attr": "op",
-                                                    "path": ['op', 'server_info']
-                                                }
-                                            ],
-                                            filename=full_path("srv_config.yaml"),
-                                            base_path=BASEDIR)
+    configuration = create_from_config_file(
+        Configuration,
+        entity_conf=[
+            {"class": OPConfiguration, "attr": "op", "path": ["op", "server_info"]}
+        ],
+        filename=full_path("srv_config.yaml"),
+        base_path=BASEDIR,
+    )
     assert configuration
-    assert 'logger' in configuration
-    assert 'op' in configuration
+    assert "logger" in configuration
+    assert "op" in configuration
     op_conf = configuration["op"]
-    assert 'add_on' in op_conf
+    assert "add_on" in op_conf
     authz = op_conf["authz"]
     assert set(authz.keys()) == {"kwargs", "class"}
     id_token_conf = op_conf.get("id_token", {})
@@ -133,27 +147,18 @@ def test_loggin_conf_default():
 
 CONF = {
     "version": 1,
-    "root": {
-        "handlers": ["default"],
-        "level": "DEBUG"
-    },
-    "loggers": {
-        "bobcat": {
-            "level": "DEBUG"
-        }
-    },
+    "root": {"handlers": ["default"], "level": "DEBUG"},
+    "loggers": {"bobcat": {"level": "DEBUG"}},
     "handlers": {
         "default": {
             "class": "logging.FileHandler",
             "filename": "debug.log",
-            "formatter": "default"
+            "formatter": "default",
         },
     },
     "formatters": {
-        "default": {
-            "format": "%(asctime)s %(name)s %(levelname)s %(message)s"
-        }
-    }
+        "default": {"format": "%(asctime)s %(name)s %(levelname)s %(message)s"}
+    },
 }
 
 

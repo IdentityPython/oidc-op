@@ -9,12 +9,12 @@ from oidcmsg.exception import MissingRequiredAttribute
 from oidcmsg.exception import MissingRequiredValue
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
-from oidcop.endpoint_context import EndpointContext
 
 from oidcop import sanitize
 from oidcop.client_authn import client_auth_setup
 from oidcop.client_authn import verify_client
 from oidcop.construct import construct_endpoint_info
+from oidcop.endpoint_context import EndpointContext
 from oidcop.exception import UnAuthorizedClient
 from oidcop.util import OAUTH2_NOCACHE_HEADERS
 
@@ -91,9 +91,7 @@ class Endpoint(object):
     client_authn_method = ""
     default_capabilities = None
 
-    def __init__(self,
-                 server_get: Callable,
-                 **kwargs):
+    def __init__(self, server_get: Callable, **kwargs):
         self.server_get = server_get
         self.pre_construct = []
         self.post_construct = []
@@ -117,16 +115,18 @@ class Endpoint(object):
         self.client_authn_method = []
         if _methods:
             self.client_authn_method = client_auth_setup(_methods, server_get)
-        elif _methods is not None:  # [] or '' or something not None but regarded as nothing.
+        elif (
+            _methods is not None
+        ):  # [] or '' or something not None but regarded as nothing.
             self.client_authn_method = [None]  # Ignore default value
         elif self.default_capabilities:
             _methods = self.default_capabilities.get("client_authn_method")
             if _methods:
-                self.client_authn_method = client_auth_setup(
-                    _methods, server_get)
+                self.client_authn_method = client_auth_setup(_methods, server_get)
 
         self.endpoint_info = construct_endpoint_info(
-            self.default_capabilities, **kwargs)
+            self.default_capabilities, **kwargs
+        )
 
         # This is for matching against aud in JWTs
         # By default the endpoint's endpoint URL is an allowed target
@@ -137,10 +137,12 @@ class Endpoint(object):
         res = context.cookie_handler.parse_cookie(name, cookies)
         return res
 
-    def parse_request(self,
-                      request: Union[Message, dict, str],
-                      http_info: Optional[dict] = None,
-                      **kwargs):
+    def parse_request(
+        self,
+        request: Union[Message, dict, str],
+        http_info: Optional[dict] = None,
+        **kwargs
+    ):
         """
 
         :param request: The request the server got
@@ -181,8 +183,7 @@ class Endpoint(object):
 
         # Verify that the client is allowed to do this
         _client_id = ""
-        auth_info = self.client_authentication(
-            req, http_info, endpoint=self, **kwargs)
+        auth_info = self.client_authentication(req, http_info, endpoint=self, **kwargs)
 
         if "client_id" in auth_info:
             req["client_id"] = auth_info["client_id"]
@@ -203,16 +204,17 @@ class Endpoint(object):
         # Do any endpoint specific parsing
         return self.do_post_parse_request(request=req, client_id=_client_id, **kwargs)
 
-    def get_client_id_from_token(self,
-                                 endpoint_context: EndpointContext,
-                                 token: str,
-                                 request: Optional[Union[Message, dict]] = None):
+    def get_client_id_from_token(
+        self,
+        endpoint_context: EndpointContext,
+        token: str,
+        request: Optional[Union[Message, dict]] = None,
+    ):
         return ""
 
-    def client_authentication(self,
-                              request: Message,
-                              http_info: Optional[dict] = None,
-                              **kwargs):
+    def client_authentication(
+        self, request: Message, http_info: Optional[dict] = None, **kwargs
+    ):
         """
         Do client authentication
 
@@ -234,32 +236,31 @@ class Endpoint(object):
 
         LOGGER.debug("authn_info: %s", authn_info)
         if (
-                authn_info == {}
-                and self.client_authn_method
-                and len(self.client_authn_method)
+            authn_info == {}
+            and self.client_authn_method
+            and len(self.client_authn_method)
         ):
             LOGGER.debug("client_authn_method: %s", self.client_authn_method)
             raise UnAuthorizedClient("Authorization failed")
 
         return authn_info
 
-    def do_post_parse_request(self,
-                              request: Message,
-                              client_id: Optional[str] = "",
-                              **kwargs) -> Message:
+    def do_post_parse_request(
+        self, request: Message, client_id: Optional[str] = "", **kwargs
+    ) -> Message:
         _context = self.server_get("endpoint_context")
         for meth in self.post_parse_request:
             if isinstance(request, self.error_cls):
                 break
-            request = meth(
-                request, client_id, endpoint_context=_context, **kwargs
-            )
+            request = meth(request, client_id, endpoint_context=_context, **kwargs)
         return request
 
-    def do_pre_construct(self,
-                         response_args: dict,
-                         request: Optional[Union[Message, dict]] = None,
-                         **kwargs) -> dict:
+    def do_pre_construct(
+        self,
+        response_args: dict,
+        request: Optional[Union[Message, dict]] = None,
+        **kwargs
+    ) -> dict:
         _context = self.server_get("endpoint_context")
         for meth in self.pre_construct:
             response_args = meth(
@@ -268,10 +269,12 @@ class Endpoint(object):
 
         return response_args
 
-    def do_post_construct(self,
-                          response_args: Union[Message, dict],
-                          request: Optional[Union[Message, dict]] = None,
-                          **kwargs) -> dict:
+    def do_post_construct(
+        self,
+        response_args: Union[Message, dict],
+        request: Optional[Union[Message, dict]] = None,
+        **kwargs
+    ) -> dict:
         _context = self.server_get("endpoint_context")
         for meth in self.post_construct:
             response_args = meth(
@@ -280,10 +283,12 @@ class Endpoint(object):
 
         return response_args
 
-    def process_request(self,
-                        request: Optional[Union[Message, dict]] = None,
-                        http_info: Optional[dict] = None,
-                        **kwargs):
+    def process_request(
+        self,
+        request: Optional[Union[Message, dict]] = None,
+        http_info: Optional[dict] = None,
+        **kwargs
+    ):
         """
 
         :param http_info: Information on the HTTP request
@@ -292,10 +297,12 @@ class Endpoint(object):
         """
         return {}
 
-    def construct(self,
-                  response_args: Optional[dict] = None,
-                  request: Optional[Union[Message, dict]] = None,
-                  **kwargs):
+    def construct(
+        self,
+        response_args: Optional[dict] = None,
+        request: Optional[Union[Message, dict]] = None,
+        **kwargs
+    ):
         """
         Construct the response
 
@@ -311,16 +318,21 @@ class Endpoint(object):
 
         return self.do_post_construct(response, request, **kwargs)
 
-    def response_info(self,
-                      response_args: Optional[dict] = None,
-                      request: Optional[Union[Message, dict]] = None,
-                      **kwargs) -> dict:
+    def response_info(
+        self,
+        response_args: Optional[dict] = None,
+        request: Optional[Union[Message, dict]] = None,
+        **kwargs
+    ) -> dict:
         return self.construct(response_args, request, **kwargs)
 
-    def do_response(self,
-                    response_args: Optional[dict] = None,
-                    request: Optional[Union[Message, dict]] = None,
-                    error: Optional[str] = "", **kwargs) -> dict:
+    def do_response(
+        self,
+        response_args: Optional[dict] = None,
+        request: Optional[Union[Message, dict]] = None,
+        error: Optional[str] = "",
+        **kwargs
+    ) -> dict:
         """
         :param response_args: Information to use when constructing the response
         :param request: The original request
@@ -372,7 +384,7 @@ class Endpoint(object):
                         content_type = "application/x-www-form-urlencoded"
                         resp = _response.to_urlencoded()
                 elif self.response_placement == "url":
-                    content_type = 'application/x-www-form-urlencoded'
+                    content_type = "application/x-www-form-urlencoded"
                     fragment_enc = kwargs.get("fragment_enc")
                     if not fragment_enc:
                         _ret_type = kwargs.get("return_type")
@@ -387,14 +399,12 @@ class Endpoint(object):
                         resp = _response.request(kwargs["return_uri"])
                 else:
                     raise ValueError(
-                        "Don't know where that is: '{}".format(
-                            self.response_placement)
+                        "Don't know where that is: '{}".format(self.response_placement)
                     )
 
         if content_type:
             try:
-                http_headers = set_content_type(
-                    kwargs["http_headers"], content_type)
+                http_headers = set_content_type(kwargs["http_headers"], content_type)
             except KeyError:
                 http_headers = [("Content-type", content_type)]
         else:
