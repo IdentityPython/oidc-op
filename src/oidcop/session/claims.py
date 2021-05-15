@@ -99,7 +99,9 @@ class ClaimsInterface:
                     client_id, _context, scopes
                 )
 
-                _claims = convert_scopes2claims(_scopes, map=_context.scope2claims)
+                _claims = convert_scopes2claims(
+                    _scopes, scope2claim_map=_context.scope2claims
+                )
                 claims.update(_claims)
 
         # Bring in claims specification from the authorization request

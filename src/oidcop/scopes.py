@@ -33,19 +33,22 @@ def available_scopes(endpoint_context):
         return [s for s in endpoint_context.scope2claims.keys()]
 
 
-def convert_scopes2claims(scopes, allowed_claims=None, map=None):
-    if map is None:
-        map = SCOPE2CLAIMS
+def convert_scopes2claims(scopes, allowed_claims=None, scope2claim_map=None):
+    scope2claim_map = scope2claim_map or SCOPE2CLAIMS
 
     res = {}
     if allowed_claims is None:
         for scope in scopes:
-            claims = {name: None for name in map[scope]}
+            claims = {name: None for name in scope2claim_map[scope]}
             res.update(claims)
     else:
         for scope in scopes:
             try:
-                claims = {name: None for name in map[scope] if name in allowed_claims}
+                claims = {
+                    name: None
+                    for name in scope2claim_map[scope]
+                    if name in allowed_claims
+                }
                 res.update(claims)
             except KeyError:
                 continue
