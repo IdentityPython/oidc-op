@@ -327,7 +327,7 @@
         "id_token": {
           "class": "oidcop.token.id_token.IDToken",
           "kwargs": {
-            "default_claims": {
+            "base_claims": {
               "email": {
                 "essential": true
               },
