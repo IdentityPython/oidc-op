@@ -129,23 +129,6 @@ def is_defined(key_defs, kid):
 
     return False
 
-def add_key_def(typ, key_def: Optional[dict]):
-    if key_def is not None:
-        if not is_defined(key_def, typ):
-            key_defs.append(
-                {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "code"}
-            )
-    if refresh_key_def is not None:
-        if not is_defined(key_defs, "refresh"):
-            key_defs.append(
-                {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "refresh"}
-            )
-    if token_key_def is not None:
-        if not is_defined(key_defs, "token"):
-            key_defs.append(
-                {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "token"}
-            )
-
 
 JWKS_FILE = "private/token_jwks.json"
 
