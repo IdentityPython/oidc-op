@@ -147,20 +147,42 @@ def factory(
     TTYPE = {"code": "A", "token": "T", "refresh": "R"}
 
     key_defs = []
-    if code is not None:
-        key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": "code"})
-    if refresh is not None:
-        key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": "refresh"})
-    if token is not None:
-        key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": "token"})
+    read_only = False
+    if kwargs.get('jwks_def'):
+        defs = kwargs['jwks_def']
+        jwks_file = defs.get('private_path', jwks_file)
+        read_only = defs.get('read_only', read_only)
+        key_defs = defs.get('key_defs', [])
 
-    kj = init_key_jar(key_defs=key_defs, private_path=jwks_file, read_only=False)
+    for _keyd in key_defs:
+        if _keyd['kid'] == 'code':
+            code = _keyd
+        elif _keyd['kid'] == 'refresh':
+            refresh = _keyd
+        elif _keyd['kid'] == 'token':
+            token = _keyd
+
+    if code is not None:
+        key_defs.append(
+            {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "code"}
+        )
+    if refresh is not None:
+        key_defs.append(
+            {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "refresh"}
+        )
+    if token is not None:
+        key_defs.append(
+            {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "token"}
+        )
+
+    kj = init_key_jar(key_defs=key_defs, private_path=jwks_file, read_only=read_only)
 
     args = {}
-
     if code:
         _add_passwd(kj, code, "code")
-        args["code_handler"] = init_token_handler(server_get, code, TTYPE["code"])
+        args["code_handler"] = init_token_handler(
+            server_get, code, TTYPE["code"]
+        )
 
     if token:
         _add_passwd(kj, token, "token")
