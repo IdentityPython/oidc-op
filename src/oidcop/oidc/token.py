@@ -75,7 +75,7 @@ class TokenEndpointHelper(object):
             session_id,
             endpoint_context=_context,
             token_type=type,
-            token_handler=_mngr.token_handler["access_token"],
+            token_handler=_mngr.token_handler[type],
             based_on=based_on,
             usage_rules=usage_rules,
             **_args,

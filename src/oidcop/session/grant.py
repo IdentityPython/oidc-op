@@ -189,7 +189,7 @@ class Grant(Item):
         payload = {
             "scope": scope,
             "aud": self.resources,
-            "jti" : uuid1().hex
+            "jti": uuid1().hex
         }
 
         if extra_payload:

@@ -2,12 +2,10 @@ from typing import Callable
 from typing import Optional
 
 from cryptojwt import JWT
-from cryptojwt import KeyJar
 from cryptojwt.jws.exception import JWSException
 
 from oidcop.exception import ToOld
 from oidcop.token import Crypt
-
 from . import Token
 from . import is_expired
 from .exception import UnknownToken
@@ -17,17 +15,17 @@ TYPE_MAP = {"A": "code", "T": "access_token", "R": "refresh_token"}
 
 class JWTToken(Token):
     def __init__(
-        self,
-        typ,
-        # keyjar: KeyJar = None,
-        issuer: str = None,
-        aud: Optional[list] = None,
-        alg: str = "ES256",
-        lifetime: int = 300,
-        server_get: Callable = None,
-        token_type: str = "Bearer",
-        password: str = "",
-        **kwargs
+            self,
+            typ,
+            # keyjar: KeyJar = None,
+            issuer: str = None,
+            aud: Optional[list] = None,
+            alg: str = "ES256",
+            lifetime: int = 300,
+            server_get: Callable = None,
+            token_type: str = "Bearer",
+            password: str = "",
+            **kwargs
     ):
         Token.__init__(self, typ, **kwargs)
         self.token_type = token_type
@@ -44,7 +42,7 @@ class JWTToken(Token):
         self.def_aud = aud or []
         self.alg = alg
 
-    def load_custom_claims(self, payload:dict={}):
+    def load_custom_claims(self, payload: dict = None):
         # inherit me and do your things here
         return payload
 
@@ -70,7 +68,7 @@ class JWTToken(Token):
         payload.update(
             {"sid": session_id,
              "ttype": ttype
-            }
+             }
         )
         payload = self.load_custom_claims(payload)
 
