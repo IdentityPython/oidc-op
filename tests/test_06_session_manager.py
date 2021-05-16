@@ -300,7 +300,8 @@ class TestSessionManager:
             authn_event=self.authn_event,
             auth_req=AUTH_REQ,
             user_id="diana",
-            client_id="client_1",
+            # test taking the client_id from the authn request
+            # client_id="client_1",
         )
 
         _info = self.session_manager.get_session_info(
@@ -311,6 +312,11 @@ class TestSessionManager:
         assert isinstance(authn_event, AuthnEvent)
         assert authn_event["uid"] == "uid"
         assert authn_event["authn_info"] == "authn_class_ref"
+
+        # cover the remaining one ...
+        _info = self.session_manager.get_session_info(
+            session_id, authorization_request=True
+        )
 
     def test_get_client_session_info(self):
         _session_id = self.session_manager.create_session(
@@ -541,3 +547,125 @@ class TestSessionManager:
         # Not allowed to mint refresh token for this client
         with pytest.raises(MintingNotAllowed):
             self._mint_token("refresh_token", grant, _session_id, code)
+
+        # test revoke token
+        self.session_manager.revoke_token(_session_id, code.value, recursive=1)
+
+    def test_authentication_events(self):
+        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        _session_id = self.session_manager.create_session(
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
+            token_usage_rules=token_usage_rules,
+        )
+        res = self.session_manager.get_authentication_events(_session_id)
+
+        assert isinstance(res[0], AuthnEvent)
+
+        res = self.session_manager.get_authentication_events(
+            user_id= "diana",
+            client_id="client_1"
+        )
+
+        assert isinstance(res[0], AuthnEvent)
+
+        try:
+            self.session_manager.get_authentication_events(
+            user_id="diana",
+            )
+        except AttributeError:
+            pass
+        else:
+            raise Exception(
+                "get_authentication_events MUST return a list of AuthnEvent"
+            )
+
+    def test_user_info(self):
+        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        _session_id = self.session_manager.create_session(
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
+            token_usage_rules=token_usage_rules,
+        )
+        self.session_manager.get_user_info("diana")
+
+    def test_revoke_client_session(self):
+        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        _session_id = self.session_manager.create_session(
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
+            token_usage_rules=token_usage_rules,
+        )
+        self.session_manager.revoke_client_session(_session_id)
+
+
+    def test_revoke_grant(self):
+        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        _session_id = self.session_manager.create_session(
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
+            token_usage_rules=token_usage_rules,
+        )
+        grant = self.session_manager[_session_id]
+        self.session_manager.revoke_grant(_session_id)
+
+    def test_revoke_dependent(self):
+        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        _session_id = self.session_manager.create_session(
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
+            token_usage_rules=token_usage_rules,
+        )
+        grant = self.session_manager[_session_id]
+
+        code = self._mint_token("authorization_code", grant, _session_id)
+        token = self._mint_token("access_token", grant, _session_id, code)
+        self.session_manager._revoke_dependent(grant, token)
+
+    def test_grants(self):
+        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        _session_id = self.session_manager.create_session(
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
+            token_usage_rules=token_usage_rules,
+        )
+        res = self.session_manager.grants(_session_id)
+
+        assert isinstance(res, list)
+
+        res = self.session_manager.grants(
+            user_id= "diana",
+            client_id="client_1"
+        )
+
+        assert isinstance(res, list)
+
+        try:
+            self.session_manager.grants(
+            user_id="diana",
+            )
+        except AttributeError:
+            pass
+        else:
+            raise Exception(
+                "get_authentication_events MUST return a list of AuthnEvent"
+            )
+
+        # and now cove add_grant
+        grant = self.session_manager[_session_id]
+        grant_kwargs = grant.parameter
+        for i in ('not_before', 'used'):
+            grant_kwargs.pop(i)
+        self.session_manager.add_grant("diana", "client_1", **grant_kwargs )

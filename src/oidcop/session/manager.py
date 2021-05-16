@@ -37,7 +37,7 @@ class PairWiseID(object):
         elif filename:
             if os.path.isfile(filename):
                 self.salt = open(filename).read()
-            elif os.path.exists(filename):  # Not a file, Something else
+            elif not os.path.isfile(filename) and os.path.exists(filename):  # Not a file, Something else
                 raise ConfigurationError(
                     "Salt filename points to something that is not a file"
                 )
@@ -109,7 +109,7 @@ class SessionManager(Database):
         usi = self.get([uid])
         if isinstance(usi, UserSessionInfo):
             return usi
-        else:
+        else: # pragma: no cover
             raise ValueError("Not UserSessionInfo")
 
     def find_token(self, session_id: str, token_value: str) -> Optional[SessionToken]:
@@ -125,7 +125,7 @@ class SessionManager(Database):
             if token.value == token_value:
                 return token
 
-        return None
+        return None # pragma: no cover
 
     def create_grant(
             self,
@@ -148,10 +148,7 @@ class SessionManager(Database):
         :param token_usage_rules:
         :return:
         """
-        try:
-            sector_identifier = auth_req.get("sector_identifier_uri")
-        except AttributeError:
-            sector_identifier = ""
+        sector_identifier = auth_req.get("sector_identifier_uri", "")
 
         grant = Grant(
             authorization_request=auth_req,
@@ -231,7 +228,7 @@ class SessionManager(Database):
         csi = self.get([_user_id, _client_id])
         if isinstance(csi, ClientSessionInfo):
             return csi
-        else:
+        else: # pragma: no cover
             raise ValueError("Wrong type of session info")
 
     def get_user_session_info(self, session_id: str) -> UserSessionInfo:
@@ -245,7 +242,7 @@ class SessionManager(Database):
         usi = self.get([_user_id])
         if isinstance(usi, UserSessionInfo):
             return usi
-        else:
+        else: # pragma: no cover
             raise ValueError("Wrong type of session info")
 
     def get_grant(self, session_id: str) -> Grant:
@@ -259,13 +256,13 @@ class SessionManager(Database):
         grant = self.get([_user_id, _client_id, _grant_id])
         if isinstance(grant, Grant):
             return grant
-        else:
+        else: # pragma: no cover
             raise ValueError("Wrong type of item")
 
     def _revoke_dependent(self, grant: Grant, token: SessionToken):
         for t in grant.issued_token:
             if t.based_on == token.value:
-                t.revoked = True
+                t.revoked = True # TODO: not covered yet!
                 self._revoke_dependent(grant, t)
 
     def revoke_token(self, session_id: str, token_value: str, recursive: bool = False):
@@ -278,11 +275,11 @@ class SessionManager(Database):
             tokens minted by this token. Recursively.
         """
         token = self.find_token(session_id, token_value)
-        if token is None:
+        if token is None: # pragma: no cover
             raise UnknownToken()
 
         token.revoked = True
-        if recursive:
+        if recursive: # TODO: not covered yet!
             grant = self[session_id]
             self._revoke_dependent(grant, token)
 
