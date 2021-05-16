@@ -186,10 +186,22 @@ class Grant(Item):
         if not scope:
             scope = self.scope
 
-        payload = {"scope": scope, "aud": self.resources}
+        payload = {
+            "scope": scope,
+            "aud": self.resources,
+            "jti" : uuid1().hex
+        }
 
         if extra_payload:
             payload.update(extra_payload)
+
+        if self.authorization_request:
+            client_id = self.authorization_request.get('client_id')
+            if client_id:
+                payload.update({
+                    "client_id": client_id,
+                    'sub': client_id
+                })
 
         _claims_restriction = endpoint_context.claims_interface.get_claims(
             session_id, scopes=scope, usage=token_type
@@ -262,19 +274,16 @@ class Grant(Item):
             )
             if token_handler is None:
                 token_handler = endpoint_context.session_manager.token_handler.handler[
-                    GRANT_TYPE_MAP[token_type]
-                ]
+                    GRANT_TYPE_MAP[token_type]]
 
-            item.value = token_handler(
-                session_id=session_id,
-                **self.payload_arguments(
-                    session_id,
-                    endpoint_context,
-                    token_type=token_type,
-                    scope=scope,
-                    extra_payload=handler_args,
-                ),
-            )
+            token_payload = self.payload_arguments(session_id,
+                                                   endpoint_context,
+                                                   token_type=token_type,
+                                                   scope=scope,
+                                                   extra_payload=handler_args)
+            item.value = token_handler(session_id=session_id,
+                                       **token_payload)
+
         else:
             raise ValueError("Can not mint that kind of token")
 

@@ -44,9 +44,15 @@ class JWTToken(Token):
         self.def_aud = aud or []
         self.alg = alg
 
-    def __call__(
-        self, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload
-    ) -> str:
+    def load_custom_claims(self, payload:dict={}):
+        # inherit me and do your things here
+        return payload
+
+    def __call__(self,
+                 session_id: Optional[str] = '',
+                 ttype: Optional[str] = '',
+                 **payload) -> str:
+
         """
         Return a token.
 
@@ -61,7 +67,12 @@ class JWTToken(Token):
         else:
             ttype = "A"
 
-        payload.update({"sid": session_id, "ttype": ttype})
+        payload.update(
+            {"sid": session_id,
+             "ttype": ttype
+            }
+        )
+        payload = self.load_custom_claims(payload)
 
         # payload.update(kwargs)
         _context = self.server_get("endpoint_context")
