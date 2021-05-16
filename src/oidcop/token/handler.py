@@ -1,6 +1,6 @@
 import logging
-import warnings
 from typing import Optional
+import warnings
 
 from cryptography.fernet import InvalidToken
 from cryptojwt.exception import Invalid
@@ -24,11 +24,11 @@ class TokenHandler(ImpExp):
     parameter = {"handler": DLDict, "handler_order": [""]}
 
     def __init__(
-        self,
-        access_token_handler: Optional[Token] = None,
-        code_handler: Optional[Token] = None,
-        refresh_token_handler: Optional[Token] = None,
-        id_token_handler: Optional[Token] = None,
+            self,
+            access_token_handler: Optional[Token] = None,
+            code_handler: Optional[Token] = None,
+            refresh_token_handler: Optional[Token] = None,
+            id_token_handler: Optional[Token] = None,
     ):
         ImpExp.__init__(self)
         self.handler = {"code": code_handler, "access_token": access_token_handler}
@@ -122,17 +122,42 @@ def _add_passwd(keyjar, conf, kid):
                 conf["password"] = pw
 
 
+def is_defined(key_defs, kid):
+    for _def in key_defs:
+        if _def["kid"] == kid:
+            return True
+
+    return False
+
+def add_key_def(typ, key_def: Optional[dict]):
+    if key_def is not None:
+        if not is_defined(key_def, typ):
+            key_defs.append(
+                {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "code"}
+            )
+    if refresh_key_def is not None:
+        if not is_defined(key_defs, "refresh"):
+            key_defs.append(
+                {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "refresh"}
+            )
+    if token_key_def is not None:
+        if not is_defined(key_defs, "token"):
+            key_defs.append(
+                {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "token"}
+            )
+
+
 JWKS_FILE = "private/token_jwks.json"
 
 
 def factory(
-    server_get,
-    code: Optional[dict] = None,
-    token: Optional[dict] = None,
-    refresh: Optional[dict] = None,
-    id_token: Optional[dict] = None,
-    jwks_file: Optional[str] = JWKS_FILE,
-    **kwargs
+        server_get,
+        code: Optional[dict] = None,
+        token: Optional[dict] = None,
+        refresh: Optional[dict] = None,
+        id_token: Optional[dict] = None,
+        jwks_file: Optional[str] = JWKS_FILE,
+        **kwargs
 ) -> TokenHandler:
     """
     Create a token handler
@@ -154,26 +179,21 @@ def factory(
         read_only = defs.get('read_only', read_only)
         key_defs = defs.get('key_defs', [])
 
-    for _keyd in key_defs:
-        if _keyd['kid'] == 'code':
-            code = _keyd
-        elif _keyd['kid'] == 'refresh':
-            refresh = _keyd
-        elif _keyd['kid'] == 'token':
-            token = _keyd
+    additional = []
+    for kid in ["code", "refresh", "token"]:
+        exists = False
+        for _keyd in key_defs:
+            if _keyd["kid"] == kid:
+                exists = True
+                break
 
-    if code is not None:
-        key_defs.append(
-            {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "code"}
-        )
-    if refresh is not None:
-        key_defs.append(
-            {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "refresh"}
-        )
-    if token is not None:
-        key_defs.append(
-            {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "token"}
-        )
+        if not exists:
+            additional.append(
+                {"type": "oct", "bytes": 24, "use": ["enc"], "kid": kid}
+            )
+
+    if additional:
+        key_defs.extend(additional)
 
     kj = init_key_jar(key_defs=key_defs, private_path=jwks_file, read_only=read_only)
 

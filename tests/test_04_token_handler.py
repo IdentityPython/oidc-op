@@ -12,7 +12,7 @@ from oidcop.token import Crypt
 from oidcop.token import is_expired
 from oidcop.token.handler import DefaultToken
 from oidcop.token.handler import TokenHandler
-from oidcop.token.handler import factory
+from oidcop.token.id_token import IDToken
 from oidcop.token.jwt_token import JWTToken
 
 
@@ -206,7 +206,7 @@ def test_token_handler_from_config():
     }
 
     server = Server(conf)
-    token_handler = factory(server.server_get, **conf["token_handler_args"])
+    token_handler = server.endpoint_context.session_manager.token_handler
     assert token_handler
     assert len(token_handler.handler) == 4
     assert set(token_handler.handler.keys()) == {
@@ -218,6 +218,7 @@ def test_token_handler_from_config():
     assert isinstance(token_handler.handler["code"], DefaultToken)
     assert isinstance(token_handler.handler["access_token"], JWTToken)
     assert isinstance(token_handler.handler["refresh_token"], JWTToken)
+    assert isinstance(token_handler.handler["id_token"], IDToken)
 
     assert token_handler.handler["code"].lifetime == 600
 
