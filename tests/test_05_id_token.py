@@ -201,7 +201,7 @@ class TestEndpoint(object):
         )
 
     def _mint_access_token(self, grant, session_id, token_ref):
-        return grant.mint_token(
+        access_token = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
             token_type="access_token",
@@ -209,6 +209,7 @@ class TestEndpoint(object):
             expires_at=time_sans_frac() + 900,  # 15 minutes from now
             based_on=token_ref,  # Means the token (tok) was used to mint this token
         )
+        return access_token
 
     def _mint_id_token(
         self, grant, session_id, token_ref=None, code=None, access_token=None

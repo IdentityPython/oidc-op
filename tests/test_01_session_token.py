@@ -2,6 +2,7 @@ from oidcmsg.time_util import time_sans_frac
 
 from oidcop.session.token import AccessToken
 from oidcop.session.token import AuthorizationCode
+from oidcop.session.token import IDToken
 
 
 def test_authorization_code_default():
@@ -36,22 +37,34 @@ def test_authorization_code_extras():
     assert code.resources == ["https://api.example.com"]
 
 
-def test_dump_load():
-    code = AuthorizationCode(
-        value="ABCD",
-        scope=["openid", "foo", "bar"],
-        claims={"userinfo": {"given_name": None}},
-        resources=["https://api.example.com"],
-    )
+def test_dump_load(cls=AuthorizationCode,
+                   kwargs=dict(
+                        value="ABCD",
+                        scope=["openid", "foo", "bar"],
+                        claims={"userinfo": {"given_name": None}},
+                        resources=["https://api.example.com"],
+                    )
+    ):
+    code = cls(**kwargs)
 
     _item = code.dump()
-
-    _new_code = AuthorizationCode().load(_item)
-
-    for attr in AuthorizationCode.parameter.keys():
+    _new_code = cls().load(_item)
+    for attr in cls.parameter.keys():
         val = getattr(code, attr)
         if val:
             assert val == getattr(_new_code, attr)
+
+def test_dump_load_access_token():
+    test_dump_load(
+        cls=AccessToken,
+        kwargs={}
+    )
+
+def test_dump_load_idtoken():
+    test_dump_load(
+        cls=IDToken,
+        kwargs={}
+    )
 
 
 def test_supports_minting():
