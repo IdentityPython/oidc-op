@@ -96,6 +96,23 @@ def do_response(endpoint, req_args, error='', **args):
     if 'cookie' in info:
         add_cookie(resp, info['cookie'])
 
+    # have a session dump
+    # session db mngmtn
+    if endpoint.__class__.__name__ in (
+            'Authorization',
+            'Token',
+            'UserInfo'
+        ):
+
+        ec = endpoint.server_get('endpoint_context')
+        ses_man_dump = ec.session_manager.dump()
+
+        # do this to have your own data persistence
+        #session = OidcSession.load(ses_man_dump)
+        #ec.session_manager.flush()
+        # if ses_man_dump != session.serialize():
+            # raise InconsinstentSessionDump(endpoint.__class__.__name__)
+
     return resp
 
 
