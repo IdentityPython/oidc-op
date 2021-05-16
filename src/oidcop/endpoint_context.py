@@ -328,7 +328,9 @@ class EndpointContext(OidcContext):
             _provider_info["jwks_uri"] = self.jwks_uri
 
         if "scopes_supported" not in _provider_info:
-            _provider_info["scopes_supported"] = [s for s in self.scope2claims.keys()]
+            _provider_info["scopes_supported"] = [
+                s for s in self.scope2claims.keys()
+            ]
         if "claims_supported" not in _provider_info:
             _provider_info["claims_supported"] = STANDARD_CLAIMS[:]
 

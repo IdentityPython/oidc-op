@@ -131,18 +131,18 @@ def test_custom_scopes():
     _available_claims.append("eduperson_scoped_affiliation")
 
     assert set(
-        convert_scopes2claims(["email"], _available_claims, map=_scopes).keys()
+        convert_scopes2claims(["email"], _available_claims, scope2claim_map=_scopes).keys()
     ) == {"email", "email_verified",}
     assert set(
-        convert_scopes2claims(["address"], _available_claims, map=_scopes).keys()
+        convert_scopes2claims(["address"], _available_claims, scope2claim_map=_scopes).keys()
     ) == {"address"}
     assert set(
-        convert_scopes2claims(["phone"], _available_claims, map=_scopes).keys()
+        convert_scopes2claims(["phone"], _available_claims, scope2claim_map=_scopes).keys()
     ) == {"phone_number", "phone_number_verified",}
 
     assert set(
         convert_scopes2claims(
-            ["research_and_scholarship"], _available_claims, map=_scopes
+            ["research_and_scholarship"], _available_claims, scope2claim_map=_scopes
         ).keys()
     ) == {
         "name",
