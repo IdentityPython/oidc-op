@@ -11,7 +11,7 @@ from django.http import (HttpResponse,
                          JsonResponse)
 from django.http.request import QueryDict
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from oidcop.authn_event import create_authn_event
 from oidcop.exception import UnAuthorizedClient
 from oidcop.exception import UnAuthorizedClientScope  # experimental
@@ -27,6 +27,9 @@ from urllib.parse import urlparse
 
 
 from . application import oidcop_application
+from . exceptions import InconsinstentSessionDump
+from . models import OidcRelyingParty, OidcSession, OidcIssuedToken
+
 oidcop_app = oidcop_application()
 
 logger = logging.getLogger(__name__)
@@ -70,7 +73,7 @@ def do_response(endpoint, req_args, error='', **args):
 
     if error:
         if _response_placement == 'body':
-            logger.debug('Error Response [Body]: {}'.format(info_response))
+            logger.error('Error Response [Body]: {}'.format(info_response))
             resp = HttpResponse(info_response, status=400)
         else:  # _response_placement == 'url':
             logger.debug('Redirect to: {}'.format(info_response))
@@ -89,6 +92,31 @@ def do_response(endpoint, req_args, error='', **args):
 
     if 'cookie' in info:
         add_cookie(resp, info['cookie'])
+
+    ec = oidcop_app.endpoint_context
+    ses_man_dump = ec.endpoint_context.session_manager.dump()
+
+    # session db mngmtn
+    if endpoint.__class__.__name__ in (
+            'Authorization',
+            'Token',
+            'UserInfo'
+        ):
+        try:
+            session = OidcSession.load(ses_man_dump)
+        except InconsinstentSessionDump as e:
+            logger.critical(e)
+            ec.endpoint_context.session_manager.flush()
+            return JsonResponse(json.dumps({
+                'error': 'invalid_request',
+                'error_description': str(e),
+                'method': request.method
+            }), safe=False, status=500)
+
+        ec.endpoint_context.session_manager.flush()
+        if ses_man_dump != session.serialize():
+            logger.critical(ses_man_dump, session)
+            raise InconsinstentSessionDump(endpoint.__class__.__name__)
 
     return resp
 
@@ -194,8 +222,14 @@ def well_known(request, service):
 @csrf_exempt
 def registration(request):
     logger.info('registration request')
-    _endpoint = oidcop_app.endpoint_context.endpoint['registration']
-    return service_endpoint(request, _endpoint)
+    ec = oidcop_app.endpoint_context
+    _endpoint = ec.endpoint['registration']
+    response = service_endpoint(request, _endpoint)
+    # update db
+    OidcRelyingParty.import_from_cdb(
+        oidcop_app.endpoint_context.endpoint_context.cdb
+    )
+    return response
 
 
 @csrf_exempt
@@ -206,9 +240,45 @@ def registration_api():
         oidcop_app.endpoint_context.endpoint['registration_api']
     )
 
+def _fill_cdb(request)->None:
+    client_id = request.GET.get('client_id') or request.POST.get('client_id')
+    _msg = f'Client {client_id} not found!'
+    if client_id:
+        client = OidcRelyingParty.objects.filter(
+                client_id = client_id,
+                # TODO active/expired filters
+        )
+        if client:
+            client = client.first()
+            ec = oidcop_app.endpoint_context
+            ec.endpoint_context.cdb = {
+                client_id: client.serialize()
+            }
+            return
+
+    logger.warning(_msg)
+    raise InvalidClient(_msg)
+
+
+def _fill_cdb_by_client(client):
+    ec = oidcop_app.endpoint_context
+    ec.endpoint_context.cdb = {
+        client.client_id: client.serialize()
+    }
+
 
 def authorization(request):
-    _endpoint = oidcop_app.endpoint_context.endpoint['authorization']
+    try:
+        _fill_cdb(request)
+    except InvalidClient as e:
+        return JsonResponse(json.dumps({
+            'error': 'invalid_request',
+            'error_description': str(e),
+            'method': request.method
+        }), safe=False, status=403)
+    ec = oidcop_app.endpoint_context
+    _endpoint = ec.endpoint['authorization']
+    session_manager = ec.endpoint_context.session_manager
     return service_endpoint(request, _endpoint)
 
 
@@ -219,7 +289,9 @@ def verify_user(request):
     token = request.POST.get('token')
     if not token:
         return HttpResponse('Access forbidden: invalid token.', status=403)
-    authn_method = oidcop_app.endpoint_context.endpoint_context.authn_broker.get_method_by_id('user')
+
+    ec = oidcop_app.endpoint_context
+    authn_method = ec.endpoint_context.authn_broker.get_method_by_id('user')
 
     kwargs = dict([(k, v) for k, v in request.POST.items()])
     user = authn_method.verify(**kwargs)
@@ -239,13 +311,18 @@ def verify_user(request):
     )
 
     endpoint = oidcop_app.endpoint_context.endpoint['authorization']
-    # cinfo = endpoint.endpoint_context.cdb[authz_request["client_id"]]
-
     # {'session_id': 'diana;;client_3;;38044288819611eb905343ee297b1c98', 'identity': {'uid': 'diana'}, 'user': 'diana'}
     client_id = authz_request["client_id"]
     _token_usage_rules = endpoint.server_get("endpoint_context").authn_broker.get_method_by_id('user')
 
-    session_manager = oidcop_app.endpoint_context.endpoint_context.session_manager
+    session_manager = ec.endpoint_context.session_manager
+
+    # TODO - remove it when rohe fixes this bug
+    dump = session_manager.dump()
+    if not dump.get('db'):
+        dump['db'] = {}
+        session_manager.load(dump)
+
     _session_id = session_manager.create_session(
                                 authn_event=authn_event,
                                 auth_req=authz_request,
@@ -270,17 +347,78 @@ def verify_user(request):
     return response
 
 
+def _get_session_by_token(request):
+    bearer = request.META.get('HTTP_AUTHORIZATION')
+    if bearer and not request.POST:
+        token = OidcIssuedToken.objects.filter(
+            value = bearer.split(' ')[1]
+        ).first()
+    else:
+        token = OidcIssuedToken.objects.filter(
+            type = request.POST.get('grant_type'),
+            value = request.POST.get('code')
+        ).first()
+
+    if token:
+        return token.session
+    else:
+        return {}
+
+
 @csrf_exempt
 def token(request):
     logger.info('token request')
-    _endpoint = oidcop_app.endpoint_context.endpoint['token']
-    return service_endpoint(request, _endpoint)
+    ec = oidcop_app.endpoint_context
+    _endpoint = ec.endpoint['token']
+
+    _fill_cdb(request)
+    session = _get_session_by_token(request).serialize()
+    if session:
+        ec.endpoint_context.session_manager.load(
+            session,
+            init_args={
+                'server_get': ec.server_get,
+                'handler': ec.endpoint_context.session_manager.token_handler
+            }
+        )
+    if ec.endpoint_context.session_manager.dump() != session:
+        logger.critical(
+            ec.endpoint_context.session_manager.dump(),
+            session
+        )
+        ec.endpoint_context.session_manager.flush()
+        raise InconsinstentSessionDump()
+
+    response = service_endpoint(request, _endpoint)
+    return response
 
 
 @csrf_exempt
 def userinfo(request):
     logger.info('userinfo request')
-    _endpoint = oidcop_app.endpoint_context.endpoint['userinfo']
+    ec = oidcop_app.endpoint_context
+    _endpoint = ec.endpoint['userinfo']
+
+    session = _get_session_by_token(request)
+    _fill_cdb_by_client(session.client)
+    session = session.serialize()
+
+    if session:
+        ec.endpoint_context.session_manager.load(
+            session,
+            # init_args={
+                # 'server_get': ec.server_get,
+                # 'handler': ec.endpoint_context.session_manager.token_handler
+            # }
+        )
+    if ec.endpoint_context.session_manager.dump() != session:
+        logger.critical(
+            ec.endpoint_context.session_manager.dump(),
+            session
+        )
+        ec.endpoint_context.session_manager.flush()
+        raise InconsinstentSessionDump('userinfo endpoint')
+
     return service_endpoint(request, _endpoint)
 
 

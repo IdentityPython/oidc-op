@@ -1,28 +1,28 @@
 import logging
 import os
+import json
 
 from django.conf import settings
 from oidcop.endpoint_context import EndpointContext
 from oidcop.server import Server
 
 from urllib.parse import urlparse
-from oidcop.configure import Configuration
+from oidcop.configure import OPConfiguration
 
 folder = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger(__name__)
 
 
 def init_oidc_op_endpoints(app):
-    _config = app.srv_config.op
-    _server_info_config = _config['server_info']
+    op_config = app.srv_config
 
-    iss = _server_info_config['issuer']
-    if '{domain}' in iss:
-        iss = iss.format(domain=app.srv_config.domain,
-                         port=app.srv_config.port)
-        _server_info_config['issuer'] = iss
+    iss = op_config['issuer']
+    # if '{domain}' in iss:
+        # iss = iss.format(domain=app.srv_config.domain,
+                         # port=app.srv_config.port)
+        # op_config['issuer'] = iss
 
-    server = Server(_server_info_config, cwd=folder)
+    server = Server(op_config, cwd=folder)
 
     for endp in server.endpoint.values():
         p = urlparse(endp.endpoint_path)
@@ -43,7 +43,12 @@ def oidc_provider_init_app(config, name='oidc_op', **kwargs):
     return app
 
 
-def oidcop_application(conf = settings.OIDCOP_CONF):
-    config = Configuration(conf = conf)
+def oidcop_application(conf = settings.OIDCOP_CONFIG):
+    domain = getattr(settings, 'DOMAIN', None)
+    port = getattr(settings, 'PORT', None)
+    config = OPConfiguration(conf = conf['op']['server_info'],
+                             domain = domain,
+                             port = port)
     app = oidc_provider_init_app(config)
+    os.environ['OIDCOP_CONFIG'] = json.dumps(conf)
     return app

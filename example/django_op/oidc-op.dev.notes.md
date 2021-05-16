@@ -73,6 +73,7 @@ endpoint; current_app.server.endpoint_context.session_manager.dump()
 Session dump
 ````
 {'eWM0Hi7tcdJ5': {'client_id': 'eWM0Hi7tcdJ5', 'client_salt': 'mb45L2cF', 'registration_access_token': 'Tob3Jw0hZ29yqd2HMJj7VhdF98G6jnqu', 'registration_client_uri': 'https://127.0.0.1:5000/registration_api?client_id=eWM0Hi7tcdJ5', 'client_id_issued_at': 1619260359, 'client_secret': 'a7439bd659c5058dbe667a1a5f6c837336f31102d35d435e9f090a2e', 'client_secret_expires_at': 1621852359, 'application_type': 'web', 'response_types': ['code'], 'contacts': ['ops@example.com'], 'token_endpoint_auth_method': 'client_secret_basic', 'post_logout_redirect_uris': [('https://127.0.0.1:8090/session_logout/local', '')], 'jwks_uri': 'https://127.0.0.1:8090/static/jwks.json', 'frontchannel_logout_uri': 'https://127.0.0.1:8090/fc_logout/local', 'frontchannel_logout_session_required': True, 'backchannel_logout_uri': 'https://127.0.0.1:8090/bc_logout/local', 'grant_types': ['authorization_code'], 'redirect_uris': [('https://127.0.0.1:8090/authz_cb/local', {})]}}
+
 {'db': {}, 'salt': 'P3e1EPrBvoml1VDE8hBHXzALYI0AsMUP'}
 ````
 
