@@ -1,9 +1,15 @@
+import logging
+import re
+
 from functools import cmp_to_key
 
 from cryptojwt import jwe
 from cryptojwt.jws.jws import SIGNER_ALGS
 
 ALG_SORT_ORDER = {"RS": 0, "ES": 1, "HS": 2, "PS": 3, "no": 4}
+WEAK_ALGS = ['RSA1_5', 'none']
+
+logger = logging.getLogger(__name__)
 
 
 def sort_sign_alg(alg1, alg2):
@@ -35,43 +41,45 @@ def assign_algorithms(typ):
 
 
 def construct_endpoint_info(default_capabilities, **kwargs):
-    if default_capabilities is not None:
-        _info = {}
-        for attr, default_val in default_capabilities.items():
-            try:
-                _proposal = kwargs[attr]
-            except KeyError:
-                if default_val is not None:
-                    _info[attr] = default_val
-                elif "signing_alg_values_supported" in attr:
-                    _info[attr] = assign_algorithms("signing_alg")
-                    if attr == "token_endpoint_auth_signing_alg_values_supported":
-                        # none must not be in
-                        # token_endpoint_auth_signing_alg_values_supported
-                        if "none" in _info[attr]:
-                            _info[attr].remove("none")
-                elif "encryption_alg_values_supported" in attr:
-                    _info[attr] = assign_algorithms("encryption_alg")
-                elif "encryption_enc_values_supported" in attr:
-                    _info[attr] = assign_algorithms("encryption_enc")
-            else:
-                _permitted = None
+    if default_capabilities is None:
+        return default_capabilities
 
-                if "signing_alg_values_supported" in attr:
-                    _permitted = set(assign_algorithms("signing_alg"))
-                elif "encryption_alg_values_supported" in attr:
-                    _permitted = set(assign_algorithms("encryption_alg"))
-                elif "encryption_enc_values_supported" in attr:
-                    _permitted = set(assign_algorithms("encryption_enc"))
+    _info = {}
+    for attr, default_val in default_capabilities.items():
+        if attr in kwargs:
+            _proposal = kwargs[attr]
+            _permitted = None
 
-                if _permitted and not _permitted.issuperset(set(_proposal)):
-                    raise ValueError(
-                        "Proposed set of values outside set of permitted ({})".__format__(
-                            attr
-                        )
+            if "signing_alg_values_supported" in attr:
+                _permitted = set(assign_algorithms("signing_alg"))
+            elif "encryption_alg_values_supported" in attr:
+                _permitted = set(assign_algorithms("encryption_alg"))
+            elif "encryption_enc_values_supported" in attr:
+                _permitted = set(assign_algorithms("encryption_enc"))
+
+            if _permitted and not _permitted.issuperset(set(_proposal)):
+                raise ValueError(
+                    "Proposed set of values outside set of permitted, "
+                    f"'{attr}' sould be {_permitted} it's instead {_proposal}"
+                )
+            _info[attr] = _proposal
+        else:
+            if default_val is not None:
+                _info[attr] = default_val
+            elif "signing_alg_values_supported" in attr:
+                _info[attr] = assign_algorithms("signing_alg")
+                if "none" in _info[attr]:
+                    _info[attr].remove("none")
+            elif "encryption_alg_values_supported" in attr:
+                _info[attr] = assign_algorithms("encryption_alg")
+            elif "encryption_enc_values_supported" in attr:
+                _info[attr] = assign_algorithms("encryption_enc")
+
+        if re.match(r'.*(alg|enc).*_values_supported', attr):
+            for i in _info[attr]:
+                if i in WEAK_ALGS:
+                    logger.warning(
+                        f"Found {i} in {attr}. This is a weak algorithm "
+                        "that MUST not be used in production!"
                     )
-
-                _info[attr] = _proposal
-        return _info
-    else:
-        return None
+    return _info
