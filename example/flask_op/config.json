@@ -35,42 +35,6 @@
   "domain": "127.0.0.1",
   "server_name": "{domain}:{port}",
   "base_url": "https://{domain}:{port}",
-  "key_def": [
-    {
-      "type": "RSA",
-      "use": [
-        "sig"
-      ]
-    },
-    {
-      "type": "EC",
-      "crv": "P-256",
-      "use": [
-        "sig"
-      ]
-    }
-  ],
-  "OIDC_KEYS": {
-    "private_path": "private/jwks.json",
-    "key_defs": [
-      {
-        "type": "RSA",
-        "use": [
-          "sig"
-        ]
-      },
-      {
-        "type": "EC",
-        "crv": "P-256",
-        "use": [
-          "sig"
-        ]
-      }
-    ],
-    "public_path": "static/jwks.json",
-    "read_only": false,
-    "uri_path": "static/jwks.json"
-  },
   "op": {
     "server_info": {
       "add_on": {
