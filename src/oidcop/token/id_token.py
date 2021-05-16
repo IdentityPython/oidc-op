@@ -9,6 +9,7 @@ from cryptojwt.jwt import JWT
 
 from oidcop.construct import construct_endpoint_info
 from oidcop.exception import ToOld
+from oidcop.session import token
 from oidcop.session.claims import claims_match
 from oidcop.token import is_expired
 from . import Token
@@ -115,7 +116,7 @@ def get_sign_and_encrypt_algorithms(
     return args
 
 
-class IDToken(Token):
+class IDToken(Token, token.IDToken):
     default_capabilities = {
         "id_token_signing_alg_values_supported": None,
         "id_token_encryption_alg_values_supported": None,
@@ -322,3 +323,8 @@ class IDToken(Token):
             "exp": _payload["exp"],
             "handler": self,
         }
+
+    def dump(self, *args, **kwargs):
+        _dump = super().dump(*args, **kwargs)
+        # do your customization here, if any
+        return _dump

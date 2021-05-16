@@ -70,10 +70,19 @@ def qualified_name(cls):
     :return: fully qualified class name
     """
 
-    try:
-        return cls.__module__ + "." + cls.name
-    except AttributeError:
-        return cls.__module__ + "." + cls.__name__
+    base = f"{cls.__module__}"
+
+    if hasattr(cls, 'name'):
+        return f"{base}.{cls.name}"
+    elif hasattr(cls, '__name__'):
+        return f"{base}.{cls.__name__}"
+    elif hasattr(cls, '__class__'):
+        # it an object!
+        return f"{base}.{cls.__class__.__name__}"
+    else:
+        raise Exception(
+            f"Can't find a qualified name for {cls}"
+        )
 
 
 def issued_token_load(items: List[dict], **kwargs):
