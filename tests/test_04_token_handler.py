@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import os
 import secrets
 import time
 
@@ -14,6 +15,12 @@ from oidcop.token.handler import DefaultToken
 from oidcop.token.handler import TokenHandler
 from oidcop.token.id_token import IDToken
 from oidcop.token.jwt_token import JWTToken
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
+
+
+def full_path(local_file):
+    return os.path.join(BASEDIR, local_file)
 
 
 def test_is_expired():
@@ -191,7 +198,7 @@ def test_token_handler_from_config():
             },
             "refresh": {
                 "class": "oidcop.token.jwt_token.JWTToken",
-                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
             },
             "id_token": {
                 "class": "oidcop.token.id_token.IDToken",
@@ -205,7 +212,7 @@ def test_token_handler_from_config():
         },
     }
 
-    server = Server(conf)
+    server = Server(conf, cwd=BASEDIR)
     token_handler = server.endpoint_context.session_manager.token_handler
     assert token_handler
     assert len(token_handler.handler) == 4
@@ -236,3 +243,82 @@ def test_token_handler_from_config():
 
     assert token_handler.handler["id_token"].lifetime == 300
     assert "base_claims" in token_handler.handler["id_token"].kwargs
+
+
+@pytest.mark.parametrize("jwks", [
+    {"jwks_file": "private/token_jwks_1.json"},
+    {"jwks_def": {
+        "private_path": "private/token_jwks_2.json",
+        "read_only": False,
+        "key_defs": [
+            {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
+        ],
+    }},
+    {
+        "jwks_file": "private/token_jwks_1.json",
+        "jwks_def": {
+            "private_path": "private/token_jwks_2.json",
+            "read_only": False,
+            "key_defs": [
+                {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
+            ],
+        }
+    },
+    None
+])
+def test_file(jwks):
+    conf = {
+        "issuer": "https://example.com/op",
+        "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+        "endpoint": {
+            "endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}},
+        },
+        "token_handler_args": {
+            "code": {"kwargs": {"lifetime": 600}},
+            "token": {
+                "class": "oidcop.token.jwt_token.JWTToken",
+                "kwargs": {
+                    "lifetime": 3600,
+                    "add_claims_by_scope": True,
+                    "aud": ["https://example.org/appl"],
+                },
+            },
+            "refresh": {
+                "class": "oidcop.token.jwt_token.JWTToken",
+                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+            },
+            "id_token": {
+                "class": "oidcop.token.id_token.IDToken",
+                "kwargs": {
+                    "base_claims": {
+                        "email": {"essential": True},
+                        "email_verified": {"essential": True},
+                    }
+                },
+            },
+        },
+    }
+    for arg in ["jwks_file", "jwks_def"]:
+        try:
+            del conf["token_handler_args"][arg]
+        except KeyError:
+            pass
+
+    for _file in ["private/token_jwks_1.json", "private/token_jwks_2.json",
+                  "private/token_jwks.json"]:
+        if os.path.exists(full_path(_file)):
+            os.unlink(full_path(_file))
+
+    if jwks:
+        conf["token_handler_args"].update(jwks)
+
+    server = Server(conf, cwd=BASEDIR)
+    token_handler = server.endpoint_context.session_manager.token_handler
+    assert token_handler
+
+    if "jwks_file" in conf["token_handler_args"]:
+        assert os.path.exists(full_path("private/token_jwks_1.json"))
+    elif "jwks_def" in conf["token_handler_args"]:
+        assert os.path.exists(full_path("private/token_jwks_2.json"))
+    else:
+        assert os.path.exists(full_path("private/token_jwks.json"))

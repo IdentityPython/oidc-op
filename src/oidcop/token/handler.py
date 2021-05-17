@@ -139,7 +139,7 @@ def factory(
         token: Optional[dict] = None,
         refresh: Optional[dict] = None,
         id_token: Optional[dict] = None,
-        jwks_file: Optional[str] = JWKS_FILE,
+        jwks_file: Optional[str] = "",
         **kwargs
 ) -> TokenHandler:
     """
@@ -158,9 +158,13 @@ def factory(
     read_only = False
     if kwargs.get('jwks_def'):
         defs = kwargs['jwks_def']
-        jwks_file = defs.get('private_path', jwks_file)
+        if not jwks_file:
+            jwks_file = defs.get('private_path', JWKS_FILE)
         read_only = defs.get('read_only', read_only)
         key_defs = defs.get('key_defs', [])
+
+    if not jwks_file:
+        jwks_file = JWKS_FILE
 
     additional = []
     for kid in ["code", "refresh", "token"]:
