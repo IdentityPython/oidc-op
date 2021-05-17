@@ -51,7 +51,7 @@ MSG = {
     "subject_type": "pairwise",
     "token_endpoint_auth_method": "client_secret_basic",
     "jwks_uri": "https://client.example.org/my_public_keys.jwks",
-    "userinfo_encrypted_response_alg": "RSA1_5",
+    "userinfo_encrypted_response_alg": "RSA-OAEP",
     "userinfo_encrypted_response_enc": "A128CBC-HS256",
     "contacts": ["ve7jtb@example.org", "mary@example.org"],
     "request_uris": [
