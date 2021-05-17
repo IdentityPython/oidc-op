@@ -40,6 +40,8 @@ def do_endpoints(conf, server_get):
 
 def get_capabilities(conf, endpoints):
     _cap = conf.get("capabilities", {})
+    if _cap is None:
+        _cap = {}
 
     for endpoint, endpoint_instance in endpoints.items():
         if endpoint in ["webfinger", "provider_config"]:

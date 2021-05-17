@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Optional
 import warnings
 
@@ -130,6 +131,13 @@ def is_defined(key_defs, kid):
     return False
 
 
+def default_token(spec):
+    if "class" not in spec or spec["class"] in ["oidcop.token.DefaultToken", DefaultToken]:
+        return True
+    else:
+        return False
+
+
 JWKS_FILE = "private/token_jwks.json"
 
 
@@ -156,52 +164,37 @@ def factory(
 
     key_defs = []
     read_only = False
+    cwd = server_get("endpoint_context").cwd
     if kwargs.get('jwks_def'):
         defs = kwargs['jwks_def']
         if not jwks_file:
-            jwks_file = defs.get('private_path', JWKS_FILE)
+            jwks_file = defs.get('private_path', os.path.join(cwd, JWKS_FILE))
         read_only = defs.get('read_only', read_only)
         key_defs = defs.get('key_defs', [])
 
     if not jwks_file:
-        jwks_file = JWKS_FILE
+        jwks_file = os.path.join(cwd, JWKS_FILE)
 
-    additional = []
-    for kid in ["code", "refresh", "token"]:
-        exists = False
-        for _keyd in key_defs:
-            if _keyd["kid"] == kid:
-                exists = True
-                break
-
-        if not exists:
-            additional.append(
-                {"type": "oct", "bytes": 24, "use": ["enc"], "kid": kid}
-            )
-
-    if additional:
-        key_defs.extend(additional)
+    if not key_defs:
+        for kid, cnf in [("code", code), ("refresh", refresh), ("token", token)]:
+            if cnf is not None:
+                if default_token(cnf):
+                    key_defs.append(
+                        {"type": "oct", "bytes": 24, "use": ["enc"], "kid": kid}
+                    )
 
     kj = init_key_jar(key_defs=key_defs, private_path=jwks_file, read_only=read_only)
 
     args = {}
-    if code:
-        _add_passwd(kj, code, "code")
-        args["code_handler"] = init_token_handler(
-            server_get, code, TTYPE["code"]
-        )
-
-    if token:
-        _add_passwd(kj, token, "token")
-        args["access_token_handler"] = init_token_handler(
-            server_get, token, TTYPE["token"]
-        )
-
-    if refresh is not None:
-        _add_passwd(kj, refresh, "refresh")
-        args["refresh_token_handler"] = init_token_handler(
-            server_get, refresh, TTYPE["refresh"]
-        )
+    for typ, cnf, attr in [("code", code, "code_handler"),
+                           ("token", token, "access_token_handler"),
+                           ("refresh", refresh, "refresh_token_handler")]:
+        if cnf is not None:
+            if default_token(cnf):
+                _add_passwd(kj, cnf, typ)
+            args[attr] = init_token_handler(
+                server_get, cnf, TTYPE[typ]
+            )
 
     if id_token is not None:
         args["id_token_handler"] = init_token_handler(server_get, id_token, typ="")
