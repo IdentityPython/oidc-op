@@ -7,6 +7,7 @@ import os
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 from oidcop.logging import configure_logging
 from oidcop.utils import load_yaml_config
@@ -19,6 +20,7 @@ DEFAULT_FILE_ATTRIBUTE_NAMES = [
     "private_path",
     "public_path",
     "db_file",
+    "jwks_file"
 ]
 
 DEFAULT_CONFIG = {
@@ -89,17 +91,25 @@ DEFAULT_CONFIG = {
 }
 
 
-def add_base_path(conf: dict, base_path: str, file_attributes: List[str]):
-    for key, val in conf.items():
-        if key in file_attributes:
-            if val.startswith("/"):
-                continue
-            elif val == "":
-                conf[key] = "./" + val
-            else:
-                conf[key] = os.path.join(base_path, val)
-        if isinstance(val, dict):
-            conf[key] = add_base_path(val, base_path, file_attributes)
+def add_base_path(conf: Union[dict, str], base_path: str, file_attributes: List[str]):
+    if isinstance(conf, str):
+        if conf.startswith("/"):
+            pass
+        elif conf == "":
+            conf = "./" + conf
+        else:
+            conf = os.path.join(base_path, conf)
+    elif isinstance(conf, dict):
+        for key, val in conf.items():
+            if key in file_attributes:
+                if val.startswith("/"):
+                    continue
+                elif val == "":
+                    conf[key] = "./" + val
+                else:
+                    conf[key] = os.path.join(base_path, val)
+            if isinstance(val, dict):
+                conf[key] = add_base_path(val, base_path, file_attributes)
 
     return conf
 
@@ -225,18 +235,16 @@ class OPConfiguration(Base):
         self.token_handler_args = {}
         self.userinfo = None
 
-        if not domain:
-            domain = conf.get("domain", "127.0.0.1")
+        if file_attributes is None:
+            file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
 
-        if not port:
-            port = conf.get("port", 80)
-
-        set_domain_and_port(conf, URIS, domain=domain, port=port)
         for key in self.__dict__.keys():
             _val = conf.get(key)
             if not _val:
                 if key in DEFAULT_CONFIG:
-                    _val = DEFAULT_CONFIG[key]
+                    _dc = copy.deepcopy(DEFAULT_CONFIG[key])
+                    add_base_path(_dc, base_path, file_attributes)
+                    _val = _dc
                 else:
                     continue
             setattr(self, key, _val)
@@ -245,6 +253,14 @@ class OPConfiguration(Base):
             self.template_dir = os.path.abspath("templates")
         else:
             self.template_dir = os.path.abspath(self.template_dir)
+
+        if not domain:
+            domain = conf.get("domain", "127.0.0.1")
+
+        if not port:
+            port = conf.get("port", 80)
+
+        set_domain_and_port(conf, URIS, domain=domain, port=port)
 
 
 class Configuration(Base):
