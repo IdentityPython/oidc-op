@@ -279,6 +279,89 @@ Example ::
         "verify": false
       },
 
+
+------------------
+token_handler_args
+------------------
+
+An example::
+
+    "token_handler_args": {
+        "jwks_def": {
+          "private_path": "private/token_jwks.json",
+          "read_only": false,
+          "key_defs": [
+            {
+              "type": "oct",
+              "bytes": 24,
+              "use": [
+                "enc"
+              ],
+              "kid": "code"
+            },
+            {
+              "type": "oct",
+              "bytes": 24,
+              "use": [
+                "enc"
+              ],
+              "kid": "refresh"
+            }
+          ]
+        },
+        "code": {
+          "kwargs": {
+            "lifetime": 600
+          }
+        },
+        "token": {
+          "class": "oidcop.token.jwt_token.JWTToken",
+          "kwargs": {
+              "lifetime": 3600,
+              "add_claims": [
+                "email",
+                "email_verified",
+                "phone_number",
+                "phone_number_verified"
+              ],
+              "add_claim_by_scope": true,
+              "aud": ["https://example.org/appl"]
+           }
+        },
+        "refresh": {
+            "kwargs": {
+                "lifetime": 86400
+            }
+        }
+      }
+
+Another example::
+
+    {
+     'jwks_file': 'data/oidc_op/private/token_jwks.json',
+     'code': {'kwargs': {'lifetime': 600}},
+     'token': {
+      'class': 'oidcop.token.jwt_token.JWTToken',
+      'kwargs': {'lifetime': 3600}
+     },
+     'refresh': {'kwargs': {'lifetime': 86400}},
+     'id_token': {
+        'class': 'oidcop.token.id_token.IDToken',
+          'kwargs': {
+            'id_token_signing_alg_values_supported': [
+                'RS256', 'RS512', 'ES256', 'ES512', 'PS256', 'PS512'
+            ],
+           'id_token_encryption_alg_values_supported': [
+                'RSA-OAEP', 'RSA-OAEP-256', 'A192KW', 'A256KW', 'ECDH-ES',
+                'ECDH-ES+A128KW', 'ECDH-ES+A192KW', 'ECDH-ES+A256KW'
+            ],
+           'id_token_encryption_enc_values_supported': [
+                'A128CBC-HS256', 'A192CBC-HS384', 'A256CBC-HS512', 'A128GCM', 'A192GCM', 'A256GCM'
+            ]
+           }
+        }
+    }
+
 --------
 id_token
 --------
@@ -397,60 +480,6 @@ An example::
 
       "template_dir": "templates"
 
-------------------
-token_handler_args
-------------------
-
-An example::
-
-    "token_handler_args": {
-        "jwks_def": {
-          "private_path": "private/token_jwks.json",
-          "read_only": false,
-          "key_defs": [
-            {
-              "type": "oct",
-              "bytes": 24,
-              "use": [
-                "enc"
-              ],
-              "kid": "code"
-            },
-            {
-              "type": "oct",
-              "bytes": 24,
-              "use": [
-                "enc"
-              ],
-              "kid": "refresh"
-            }
-          ]
-        },
-        "code": {
-          "kwargs": {
-            "lifetime": 600
-          }
-        },
-        "token": {
-          "class": "oidcop.token.jwt_token.JWTToken",
-          "kwargs": {
-              "lifetime": 3600,
-              "add_claims": [
-                "email",
-                "email_verified",
-                "phone_number",
-                "phone_number_verified"
-              ],
-              "add_claim_by_scope": true,
-              "aud": ["https://example.org/appl"]
-           }
-        },
-        "refresh": {
-            "kwargs": {
-                "lifetime": 86400
-            }
-        }
-      }
 
 --------
 userinfo

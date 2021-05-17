@@ -23,18 +23,6 @@ It also comes with the following `add_on` modules.
 * Custom scopes, that extends `[OIDC standard ScopeClaims] <https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims>`_
 * `Proof Key for Code Exchange by OAuth Public Clients (PKCE) <https://tools.ietf.org/html/rfc7636>`_
 
-All these are services you can access at endpoints. The total set of endpoints
-that this package supports are
-
-- webfinger
-- provider_info
-- registration
-- authorization
-- token
-- refresh_token
-- userinfo
-- end_session
-
 The entire project code is open sourced and therefore licensed
 under the `Apache 2.0 <https://en.wikipedia.org/wiki/Apache_License>`_.
 
