@@ -227,7 +227,8 @@ class AccessTokenHelper(TokenEndpointHelper):
                 error="invalid_grant", error_description="Unknown code"
             )
 
-        code = _mngr.find_token(_session_info["session_id"], request["code"])
+        grant = _session_info["grant"]
+        code = grant.get_token(request["code"])
         if not isinstance(code, AuthorizationCode):
             return self.error_cls(
                 error="invalid_request", error_description="Wrong token type"
@@ -238,7 +239,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 error="invalid_request", error_description="Code inactive"
             )
 
-        _auth_req = _session_info["grant"].authorization_request
+        _auth_req = grant.authorization_request
 
         if "client_id" not in request:  # Optional for access token request
             request["client_id"] = _auth_req["client_id"]
@@ -259,10 +260,12 @@ class RefreshTokenHelper(TokenEndpointHelper):
             )
 
         token_value = req["refresh_token"]
-        _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
-        token = _mngr.find_token(_session_info["session_id"], token_value)
+        _session_info = _mngr.get_session_info_by_token(
+            token_value, grant=True
+        )
 
         _grant = _session_info["grant"]
+        token = _grant.get_token(token_value)
         access_token = self._mint_token(
             type="access_token",
             grant=_grant,
@@ -337,12 +340,14 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         _mngr = _context.session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["refresh_token"])
+            _session_info = _mngr.get_session_info_by_token(
+                request["refresh_token"], grant=True
+            )
         except KeyError:
             logger.error("Access Code invalid")
             return self.error_cls(error="invalid_grant")
 
-        token = _mngr.find_token(_session_info["session_id"], request["refresh_token"])
+        token = _session_info["grant"].get_token(request["refresh_token"])
 
         if not isinstance(token, RefreshToken):
             return self.error_cls(
