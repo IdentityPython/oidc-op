@@ -387,10 +387,19 @@ class TestEndpoint(object):
     def test_get_sign_algorithm(self):
         client_info = self.endpoint_context.cdb[AREQ["client_id"]]
         algs = get_sign_and_encrypt_algorithms(
-            self.endpoint_context, client_info, "id_token", sign=True
+            self.endpoint_context, client_info, "id_token", sign=True,
         )
         # default signing alg
         assert algs == {"sign": True, "encrypt": False, "sign_alg": "RS256"}
+
+        algs = get_sign_and_encrypt_algorithms(
+            self.endpoint_context, client_info, "id_token", sign=True, encrypt=True
+        )
+        # default signing alg
+        assert algs == {
+            'sign': True, 'encrypt': True, 'sign_alg': 'RS256',
+            'enc_alg': 'RSA-OAEP', 'enc_enc': 'A128CBC-HS256'
+        }
 
     def test_available_claims(self):
         session_id = self._create_session(AREQ)
@@ -542,3 +551,35 @@ class TestEndpoint(object):
         assert "email" not in res
         # Scope -> claims
         assert "address" in res
+
+
+    def test_id_token_info(self):
+        session_id = self._create_session(AREQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, session_id)
+        access_token = self._mint_access_token(grant, session_id, code)
+
+        id_token = self._mint_id_token(
+            grant, session_id, token_ref=code, access_token=access_token.value
+        )
+
+        endpoint_context = self.endpoint_context
+        sman = endpoint_context.session_manager
+        server_get = sman.token_handler.handler['id_token'].server_get
+        _info = self.session_manager.token_handler.info(id_token.value)
+        assert 'sid' in _info
+        assert 'exp' in _info
+        assert 'aud' in _info
+
+        client_id = AREQ.get('client_id')
+        _id_token = sman.token_handler.handler['id_token']
+        _id_token.sign_encrypt(session_id, client_id)
+
+        # TODO: we need an authentication event for this id_token for a better coverage
+        _id_token.payload(session_id)
+
+        client_info = endpoint_context.cdb[client_id]
+        get_sign_and_encrypt_algorithms(
+            endpoint_context, client_info, payload_type="id_token",
+            sign=True, encrypt=True
+        )

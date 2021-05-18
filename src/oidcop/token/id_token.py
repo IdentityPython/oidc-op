@@ -298,16 +298,21 @@ class IDToken(Token):
         :param token: A token
         :return: tuple of token type and session id
         """
+
         _context = self.server_get("endpoint_context")
 
         _jwt = factory(token)
         _payload = _jwt.jwt.payload()
-        client_info = _context.cdb[_payload["aud"][0]]
+        client_id = _payload["aud"][0]
+        client_info = _context.cdb[client_id]
         alg_dict = get_sign_and_encrypt_algorithms(
             _context, client_info, "id_token", sign=True
         )
 
-        verifier = JWT(key_jar=_context.keyjar, allowed_sign_algs=alg_dict["sign_alg"])
+        verifier = JWT(
+            key_jar=_context.keyjar,
+            allowed_sign_algs=alg_dict["sign_alg"]
+        )
         try:
             _payload = verifier.unpack(token)
         except JWSException:
@@ -317,8 +322,9 @@ class IDToken(Token):
             raise ToOld("Token has expired")
         # All the token metadata
         return {
-            "sid": _payload["sid"],
+            "sid": _payload.get("sid", ''), # TODO: would sid be there?
             # "type": _payload["ttype"],
             "exp": _payload["exp"],
+            "aud": client_id,
             "handler": self,
         }
