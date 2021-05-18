@@ -3,7 +3,9 @@ import logging
 from typing import Dict
 
 from cryptojwt.utils import b64e
-from oidcmsg.oauth2 import AuthorizationErrorResponse
+from oidcmsg.oauth2 import (
+    AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest
+)
 from oidcmsg.oidc import TokenErrorResponse
 
 from oidcop.endpoint import Endpoint
@@ -84,7 +86,10 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
     :param token_request:
     :return:
     """
-    if isinstance(request, AuthorizationErrorResponse):
+    if isinstance(
+        request,
+        (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest),
+    ):
         return request
 
     try:
