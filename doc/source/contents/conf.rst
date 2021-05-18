@@ -279,24 +279,6 @@ Example ::
         "verify": false
       },
 
---------
-id_token
---------
-
-Defines which class that handles creating an ID Token and possibly also
-arguments used when initiating that class.
-An example::
-
-      "id_token": {
-        "class": "oidcop.id_token.IDToken",
-        "kwargs": {
-            "base_claims": {
-                "email": None,
-                "email_verified": None,
-            },
-        }
-      },
-
 ----
 keys
 ----
@@ -449,6 +431,14 @@ An example::
             "kwargs": {
                 "lifetime": 86400
             }
+        }
+        "id_token": {
+            "class": "oidcop.token.id_token.IDToken",
+            "kwargs": {
+                "base_claims": {
+                    "email": None,
+                    "email_verified": None,
+            },
         }
       }
 

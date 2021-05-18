@@ -37,14 +37,6 @@ key_def: &key_def
     use:
       - sig
 
-OIDC_KEYS: &oidc_keys
-  'private_path': "private/jwks.json"
-  'key_defs': *key_def
-  'public_path': 'static/jwks.json'
-  'read_only': False
-  # otherwise OP metadata will have jwks_uri: https://127.0.0.1:5000/None!
-  'uri_path': 'static/jwks.json'
-
 
 op:
   server_info:
@@ -65,14 +57,6 @@ op:
         - urn:ietf:params:oauth:grant-type:jwt-bearer
         - refresh_token
     template_dir: templates
-    id_token:
-      class: oidcop.id_token.IDToken
-      kwargs:
-        base_claims:
-          email:
-            essential: True
-          email_verified:
-            essential: True
     token_handler_args:
       jwks_def:
         private_path: 'private/token_jwks.json'
@@ -92,6 +76,14 @@ op:
             kid: refresh
       code:
         lifetime: 600
+      id_token:
+        class: oidcop.token.id_token.IDToken
+        kwargs:
+          base_claims:
+            email:
+              essential: True
+            email_verified:
+              essential: True
       token:
         class: oidcop.token.jwt_token.JWTToken
         lifetime: 3600
@@ -106,7 +98,12 @@ op:
       refresh:
         lifetime: 86400
     keys:
-      *oidc_keys
+      private_path: "private/jwks.json"
+      key_defs: *key_def
+      public_path: 'static/jwks.json'
+      read_only: False
+      # otherwise OP metadata will have jwks_uri: https://127.0.0.1:5000/None!
+      uri_path: 'static/jwks.json'
     endpoint:
       webfinger:
         path: '.well-known/webfinger'
