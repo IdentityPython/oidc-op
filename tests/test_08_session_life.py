@@ -106,6 +106,10 @@ class TestSession:
             expires_at=time_sans_frac() + 300,  # 5 minutes from now
         )
 
+        # get user info
+        user_info = self.session_manager.get_user_info(
+            uid = user_id,
+        )
         return grant.id, code
 
     def test_code_flow(self):
