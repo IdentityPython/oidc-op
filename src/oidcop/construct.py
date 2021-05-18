@@ -72,7 +72,7 @@ def construct_endpoint_info(default_capabilities, **kwargs):
                     _info[attr].remove("none")
             elif "encryption_alg_values_supported" in attr:
                 # RSA1_5 not among defaults
-                _info[attr] = [s for s in assign_algorithms("encryption_alg") if s != "RSA1_5"]
+                _info[attr] = [s for s in assign_algorithms("encryption_alg") if s not in WEAK_ALGS]
             elif "encryption_enc_values_supported" in attr:
                 _info[attr] = assign_algorithms("encryption_enc")
 
