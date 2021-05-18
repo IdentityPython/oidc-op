@@ -12,8 +12,9 @@ Install
 
 Get the usage examples
 
-    git clone https://github.com/rohe/oidc-op.git
-    cd oidc-op/example/
+    git clone https://github.com/identitypython/oidc-op.git
+    cd oidc-op/example/flask_op/
+    bash run.sh
 
 
 To configure a standard OIDC Provider you have to edit the oidcop configuration file.
@@ -72,8 +73,7 @@ In genral configuration:
       "domain": DOMAIN,
       "server_name": SERVER_NAME,
       "base_url": f"https://{SERVER_NAME}",
-      "key_def": OIDC_KEY_DEFS,
-      "OIDC_KEYS": {
+      "keys": {
         "private_path": "data/oidc_op/private/jwks.json",
         "key_defs": OIDC_KEY_DEFS,
         "public_path": "data/static/jwks.json",
