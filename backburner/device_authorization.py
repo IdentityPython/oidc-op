@@ -6,7 +6,7 @@ from oidcop import rndstr
 from oidcop.endpoint import Endpoint
 
 
-class AuthorizationEndpoint(Endpoint):
+class DeviceAuthorizationEndpoint(Endpoint):
     request_cls = AuthorizationRequest
     response_cls = AuthorizationResponse
     request_format = "urlencoded"
@@ -20,6 +20,9 @@ class AuthorizationEndpoint(Endpoint):
         self.verification_uri = kwargs.get("verification_uri")
         self.expires_in = kwargs.get("expires_in", 300)
         self.interval = kwargs.get("interval", 5)
+
+        _context = server_get("endpoint_context")
+        _context.dev_auth_db = {}
 
     def process_request(self, request=None, **kwargs):
         """
