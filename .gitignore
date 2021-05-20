@@ -1,5 +1,3 @@
-django_op/db.sqlite3
-templates
 static/
 private/
 conf.yaml

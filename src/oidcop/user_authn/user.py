@@ -169,12 +169,14 @@ class UserPassJinja2(UserAuthnMethod):
             ),
             OnlyForTestingWarning,
         )
-
+        if not self.server_get:
+            raise Exception(
+                f"{self.__class__.__name__} doesn't have a working server_get"
+            )
         _context = self.server_get("endpoint_context")
         # Stores information need afterwards in a signed JWT that then
         # appears as a hidden input in the form
         jws = create_signed_jwt(_context.issuer, _context.keyjar, **kwargs)
-
         _kwargs = self.kwargs.copy()
         for attr in ["policy", "tos", "logo"]:
             _uri = "{}_uri".format(attr)
@@ -220,8 +222,8 @@ class BasicAuthn(UserAuthnMethod):
             authorization = authorization[6:]
 
         (user, pwd) = base64.b64decode(authorization).split(b":")
-        user = unquote(user)
-        self.verify_password(user, pwd)
+        user = unquote(user.decode())
+        self.verify_password(user, pwd.decode())
         res = {"uid": user}
         if cookie:
             res.update(self.cookie_info(cookie, client_id))
@@ -237,7 +239,7 @@ class SymKeyAuthn(UserAuthnMethod):
         if symkey is not None and symkey == "":
             msg = "SymKeyAuthn.symkey cannot be an empty value"
             raise ImproperlyConfigured(msg)
-        self.symkey = symkey
+        self.symkey = symkey.encode() if isinstance(symkey, str) else symkey
         self.ttl = ttl
 
     def authenticated_as(self, client_id, cookie=None, authorization="", **kwargs):
@@ -252,7 +254,7 @@ class SymKeyAuthn(UserAuthnMethod):
         try:
             aesgcm = AESGCM(self.symkey)
             user = aesgcm.decrypt(iv, encmsg, None)
-        except (AssertionError, KeyError):
+        except (AssertionError, KeyError): # pragma: no-cover
             raise FailedAuthentication("Decryption failed")
 
         res = {"uid": user}
@@ -278,8 +280,7 @@ class NoAuthn(UserAuthnMethod):
         :param kwargs: extra key word arguments
         :return:
         """
-
-        if self.fail:
+        if self.fail: # pragma: no-cover
             raise self.fail()
 
         res = {"uid": self.user}

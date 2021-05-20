@@ -86,6 +86,7 @@ MAP = {
     "authorization_code": "code",
     "access_token": "access_token",
     "refresh_token": "refresh_token",
+    "id_token": "id_token"
 }
 
 
