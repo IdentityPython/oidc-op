@@ -1,3 +1,4 @@
+from typing import Dict
 from typing import List
 from typing import Optional
 from uuid import uuid1
@@ -140,6 +141,7 @@ class Grant(Item):
             revoked: bool = False,
             token_map: Optional[dict] = None,
             sub: Optional[str] = "",
+            extra: Optional[Dict[str, str]] = None
     ):
         Item.__init__(
             self,
