@@ -78,15 +78,12 @@ class SessionManager(Database):
             conf: Optional[dict] = None,
             sub_func: Optional[dict] = None,
     ):
-        if conf:
-            _key = conf.get("password", rndstr(24))
-        else:
-            _key = rndstr(24)
+        self.conf = conf or {}
+        self._key = self.conf.get("password", rndstr(24))
 
-        Database.__init__(self, key=_key)
+        self._init_db()
         self.token_handler = handler
         self.salt = rndstr(32)
-        self.conf = conf or {}
 
         # this allows the subject identifier minters to be defined by someone
         # else then me.
@@ -104,6 +101,9 @@ class SessionManager(Database):
                 self.sub_func["pairwise"] = pairwise_id
             if "ephemeral" not in sub_func:
                 self.sub_func["ephemeral"] = ephemeral_id
+
+    def _init_db(self):
+        Database.__init__(self, key=self._key)
 
     def get_user_info(self, uid: str) -> UserSessionInfo:
         usi = self.get([uid])
@@ -469,6 +469,10 @@ class SessionManager(Database):
 
     def local_load_adjustments(self, **kwargs):
         self.crypt = Crypt(self.key)
+
+    def flush(self):
+        super().flush()
+        self._init_db()
 
 
 def create_session_manager(server_get, token_handler_args, sub_func=None):
