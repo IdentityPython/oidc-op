@@ -79,8 +79,8 @@ class SessionManager(Database):
             sub_func: Optional[dict] = None,
     ):
         self.conf = conf or {}
-        self.key = self.conf.get("password") or rndstr(24)
-        self.salt = self.conf.get("salt") or rndstr(32)
+        self.load_key()
+        self.load_salt()
         self._init_db()
         self.token_handler = handler
 
@@ -101,8 +101,20 @@ class SessionManager(Database):
             if "ephemeral" not in sub_func:
                 self.sub_func["ephemeral"] = ephemeral_id
 
+    def load_key(self):
+        self.key = self.conf.get("password") or rndstr(24)
+        return self.key
+
+    def load_salt(self):
+        self.salt = self.conf.get("salt") or rndstr(32)
+        return self.salt
+
     def _init_db(self):
-        Database.__init__(self, key=self.key, salt=self.salt)
+        Database.__init__(
+                    self,
+                    key=self.key or self.load_key(),
+                    salt=self.salt or self.load_salt()
+        )
 
     def get_user_info(self, uid: str) -> UserSessionInfo:
         usi = self.get([uid])
@@ -474,6 +486,7 @@ class SessionManager(Database):
     def flush(self):
         super().flush()
         self._init_db()
+
 
 def create_session_manager(server_get, token_handler_args, sub_func=None, conf=None):
     _token_handler = handler.factory(server_get, **token_handler_args)
