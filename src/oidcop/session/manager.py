@@ -80,7 +80,6 @@ class SessionManager(Database):
     ):
         self.conf = conf or {}
         self._key = self.conf.get("password", rndstr(24))
-
         self._init_db()
         self.token_handler = handler
         self.salt = rndstr(32)
@@ -475,6 +474,6 @@ class SessionManager(Database):
         self._init_db()
 
 
-def create_session_manager(server_get, token_handler_args, sub_func=None):
+def create_session_manager(server_get, token_handler_args, sub_func=None, conf=None):
     _token_handler = handler.factory(server_get, **token_handler_args)
-    return SessionManager(_token_handler, sub_func=sub_func)
+    return SessionManager(_token_handler, sub_func=sub_func, conf=conf)
