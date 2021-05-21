@@ -80,9 +80,9 @@ class SessionManager(Database):
     ):
         self.conf = conf or {}
         self._key = self.conf.get("password", rndstr(24))
+        self._salt = self.conf.get("salt", rndstr(32))
         self._init_db()
         self.token_handler = handler
-        self.salt = rndstr(32)
 
         # this allows the subject identifier minters to be defined by someone
         # else then me.
@@ -102,7 +102,7 @@ class SessionManager(Database):
                 self.sub_func["ephemeral"] = ephemeral_id
 
     def _init_db(self):
-        Database.__init__(self, key=self._key)
+        Database.__init__(self, key=self._key, salt=self._salt)
 
     def get_user_info(self, uid: str) -> UserSessionInfo:
         usi = self.get([uid])
