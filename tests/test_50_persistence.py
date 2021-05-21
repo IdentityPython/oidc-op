@@ -484,4 +484,3 @@ class TestEndpoint(object):
             "email_verified",
             "eduperson_scoped_affiliation",
         }
-

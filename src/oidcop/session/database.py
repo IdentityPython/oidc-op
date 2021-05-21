@@ -1,4 +1,5 @@
 import base64
+import cryptography
 import logging
 
 from typing import List
@@ -189,6 +190,9 @@ class Database(ImpExp):
     def decrypt_session_id(self, key: str) -> List[str]:
         try:
             plain = self.crypt.decrypt(base64.b64decode(key))
+        except cryptography.fernet.InvalidToken as err:
+            logger.error(f"cryptography.fernet.InvalidToken: {key}")
+            raise ValueError(err)
         except Exception as err:
             raise ValueError(err)
         # order: rnd, type, sid
