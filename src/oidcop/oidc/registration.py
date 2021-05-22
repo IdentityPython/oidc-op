@@ -239,7 +239,7 @@ class Registration(Endpoint):
                         for iss in ["", _context.issuer]:
                             _k.extend(
                                 _context.keyjar.get_signing_key(
-                                    ktyp, alg=request[item], owner=iss
+                                    ktyp, alg=request[item], issuer_id=iss
                                 )
                             )
                         if not _k:
