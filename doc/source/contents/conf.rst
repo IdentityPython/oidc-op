@@ -8,6 +8,38 @@ issuer
 
 The issuer ID of the OP, a unique value in URI format.
 
+----
+seed
+----
+
+Used in dynamic client registration endpoint when creating a new client_secret.
+If unset it will be random.
+
+--------
+password
+--------
+
+Encryption key used to encrypt the SessionID (sid) in access_token.
+If unset it will be random.
+
+----
+salt
+----
+
+Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
+
+-----------
+session_key
+-----------
+
+An example::
+
+    "session_key": {
+        "filename": "private/session_jwk.json",
+        "type": "OCT",
+        "use": "sig"
+      },
+
 ------
 add_on
 ------
@@ -266,6 +298,15 @@ An example::
         }
       }
 
+You can specify which algoritms are supported, for example in userinfo_endpoint::
+
+    "userinfo_signing_alg_values_supported": OIDC_SIGN_ALGS,
+    "userinfo_encryption_alg_values_supported": OIDC_ENC_ALGS,
+
+Or in authorization endpoint::
+
+    "request_object_encryption_alg_values_supported": OIDC_ENC_ALGS,
+
 ------------
 httpc_params
 ------------
@@ -306,6 +347,9 @@ An example::
         "read_only": false,
         "uri_path": "static/jwks.json"
       },
+
+*read_only* means that on each restart the keys will created and overwritten with new ones.
+This can be useful during the first time the project have been executed, then to keep them as they are *read_only* would be configured to *True*.
 
 ---------------
 login_hint2acrs
@@ -356,19 +400,6 @@ An example::
                 "expires_in": 43200
             }
         }
-      },
-
-
------------
-session_key
------------
-
-An example::
-
-    "session_key": {
-        "filename": "private/session_jwk.json",
-        "type": "OCT",
-        "use": "sig"
       },
 
 ------------
@@ -441,6 +472,44 @@ An example::
             },
         }
       }
+
+jwks_defs can be replaced eventually by `jwks_file`::
+
+    "jwks_file": f"{OIDC_JWKS_PRIVATE_PATH}/token_jwks.json",
+
+You can even select wich algorithms to support in id_token, eg::
+
+    "id_token": {
+        "class": "oidcop.token.id_token.IDToken",
+        "kwargs": {
+            "id_token_signing_alg_values_supported": [
+                    "RS256",
+                    "RS512",
+                    "ES256",
+                    "ES512",
+                    "PS256",
+                    "PS512",
+                ],
+            "id_token_encryption_alg_values_supported": [
+                    "RSA-OAEP",
+                    "RSA-OAEP-256",
+                    "A192KW",
+                    "A256KW",
+                    "ECDH-ES",
+                    "ECDH-ES+A128KW",
+                    "ECDH-ES+A192KW",
+                    "ECDH-ES+A256KW",
+                ],
+            "id_token_encryption_enc_values_supported": [
+                    'A128CBC-HS256',
+                    'A192CBC-HS384',
+                    'A256CBC-HS512',
+                    'A128GCM',
+                    'A192GCM',
+                    'A256GCM'
+                ],
+        }
+    }
 
 --------
 userinfo

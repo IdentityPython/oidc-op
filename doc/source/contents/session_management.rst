@@ -372,16 +372,16 @@ max_usage
 
 used
 ::::
-How many times the token has been used
+    How many times the token has been used
 
 based_on
 ::::::::
-Reference to the token that was used to mint this token. Might be empty if the
-token was minted based on the grant it belongs to.
+    Reference to the token that was used to mint this token. Might be empty if the
+    token was minted based on the grant it belongs to.
 
 id
 ::
-Token identifier
+    Token identifier
 
 Session Info API
 ----------------
@@ -391,37 +391,55 @@ add_subordinate
 +++++++++++++++
 .. _`add_subordinate`:
 
+    ...
+
 remove_subordinate
 ++++++++++++++++++
 .. _`removed_subordinate`:
+
+    ...
 
 revoke
 ++++++
 .. _`revoke`:
 
+    ...
+
 is_revoked
 ++++++++++
 .. _`is_revoked`:
+
+    ...
 
 to_json
 +++++++
 .. _`to_json`:
 
+    ...
+
 from_json
 +++++++++
 .. _`from_json`:
+
+    ...
 
 Grant API
 ---------
 .. _`Grant API`:
 
+    ...
+
 Token API
 ---------
 .. _`Token API`:
 
+    ...
+
 Session Manager API
 -------------------
 .. _`Session Manager API`:
+
+    ...
 
 create_session
 ++++++++++++++
@@ -463,77 +481,77 @@ add_grant
 +++++++++
 .. _add_grant:
 
-add_grant(self, user_id, client_id, **kwargs)
+    add_grant(self, user_id, client_id, **kwargs)
 
 find_token
 ++++++++++
 .. _find_token:
 
-find_token(self, session_id, token_value)
+    find_token(self, session_id, token_value)
 
 get_authentication_event
 ++++++++++++++++++++++++
 .. _get_authentication_event:
 
-get_authentication_event(self, session_id)
+    get_authentication_event(self, session_id)
 
 
 get_client_session_info
 +++++++++++++++++++++++
 .. _get_client_session_info:
 
-get_client_session_info(self, session_id)
+    get_client_session_info(self, session_id)
 
 get_grant_by_response_type
 ++++++++++++++++++++++++++
 .. _get_grant_by_response_type:
 
-get_grant_by_response_type(self, user_id, client_id)
+    get_grant_by_response_type(self, user_id, client_id)
 
 get_session_info
 ++++++++++++++++
 .. _get_session_info:
 
-get_session_info(self, session_id)
+    get_session_info(self, session_id)
 
 get_session_info_by_token
 +++++++++++++++++++++++++
 .. _get_session_info_by_token:
 
-get_session_info_by_token(self, token_value)
+    get_session_info_by_token(self, token_value)
 
 get_sids_by_user_id
 +++++++++++++++++++
 .. _get_sids_by_user_id:
 
-get_sids_by_user_id(self, user_id)
+    get_sids_by_user_id(self, user_id)
 
 get_user_info
 +++++++++++++
 .. _get_user_info:
 
-get_user_info(self, uid)
+    get_user_info(self, uid)
 
 grants
 ++++++
 .. _grants:
 
-grants(self, session_id)
+    grants(self, session_id)
 
 revoke_client_session
 +++++++++++++++++++++
 .. _revoke_client_session:
 
-revoke_client_session(self, session_id)
+    revoke_client_session(self, session_id)
 
 revoke_grant
 ++++++++++++
 .. _revoke_grant:
 
-revoke_grant(self, session_id)
+    revoke_grant(self, session_id)
 
 revoke_token
 ++++++++++++
 .. _revoke_token:
 
-revoke_token(self, session_id, token_value, recursive=False)
+    revoke_token(self, session_id, token_value, recursive=False)
