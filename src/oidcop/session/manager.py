@@ -10,7 +10,6 @@ from oidcmsg.oauth2 import AuthorizationRequest
 from oidcop import rndstr
 from oidcop.authn_event import AuthnEvent
 from oidcop.exception import ConfigurationError
-from oidcop.session.info import SessionInfo
 from oidcop.token import handler
 from oidcop.util import Crypt
 from .database import Database

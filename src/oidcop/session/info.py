@@ -1,6 +1,5 @@
 from typing import List
 from typing import Optional
-from typing import Tuple
 
 from oidcmsg.impexp import ImpExp
 
