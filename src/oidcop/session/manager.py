@@ -79,8 +79,14 @@ class SessionManager(Database):
             sub_func: Optional[dict] = None,
     ):
         self.conf = conf or {}
-        self.load_key()
-        self.load_salt()
+
+        # these won't change runtime
+        self._key = self.conf.get("password") or rndstr(24)
+        self._salt = self.conf.get("salt") or rndstr(32)
+
+        self.key = self.load_key()
+        self.salt = self.load_key()
+
         self._init_db()
         self.token_handler = handler
 
@@ -102,18 +108,28 @@ class SessionManager(Database):
                 self.sub_func["ephemeral"] = ephemeral_id
 
     def load_key(self):
-        self.key = self.conf.get("password") or rndstr(24)
-        return self.key
+        """returns the original key assigned in init"""
+        return self._key
 
     def load_salt(self):
-        self.salt = self.conf.get("salt") or rndstr(32)
-        return self.salt
+        """returns the original salt assigned in init"""
+        return self._salt
+
+    def __setattr__(self, key, value):
+        if key in ('_key', '_salt'):
+            if hasattr(self, key):
+                # not first time we configure it!
+                raise AttributeError(
+                    f"{key} is a ReadOnly attribute "
+                    "that can't be overwritten!"
+                )
+        super().__setattr__(key, value)
 
     def _init_db(self):
         Database.__init__(
                     self,
-                    key=self.key or self.load_key(),
-                    salt=self.salt or self.load_salt()
+                    key=self.load_key(),
+                    salt=self.load_salt()
         )
 
     def get_user_info(self, uid: str) -> UserSessionInfo:
