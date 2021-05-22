@@ -1,5 +1,3 @@
-django_op/db.sqlite3
-templates
 static/
 private/
 conf.yaml
@@ -117,3 +115,5 @@ venv.bak/
 src/oidcendpoint.egg-info/
 
 .iframes/
+tests/pairwise.salt
+tests/public.salt
