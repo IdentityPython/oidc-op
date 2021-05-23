@@ -183,6 +183,10 @@ def token():
     return service_endpoint(
         current_app.server.server_get("endpoint", 'token'))
 
+@oidc_op_views.route('/introspection', methods=['POST'])
+def introspection_endpoint():
+    return service_endpoint(
+        current_app.server.server_get("endpoint", 'introspection'))
 
 @oidc_op_views.route('/userinfo', methods=['GET', 'POST'])
 def userinfo():
@@ -244,7 +248,6 @@ def service_endpoint(endpoint):
     _log.info('request: {}'.format(req_args))
     if isinstance(req_args, ResponseMessage) and 'error' in req_args:
         return make_response(req_args.to_json(), 400)
-
     try:
         if isinstance(endpoint, Token):
             args = endpoint.process_request(AccessTokenRequest(**req_args), http_info=http_info)

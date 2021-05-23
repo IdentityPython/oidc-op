@@ -353,12 +353,7 @@ def verify_client(
         authorization_token = None
 
     auth_info = {}
-    _methods = []
-    if endpoint:
-        try:
-            _methods = endpoint.client_authn_method
-        except AttributeError:
-            pass
+    _methods = getattr(endpoint, 'client_authn_method', [])
 
     for _method in _methods:
         if _method is None:

@@ -1,5 +1,7 @@
 import base64
+import cryptography
 import logging
+
 from typing import List
 from typing import Optional
 from typing import Union
@@ -36,14 +38,14 @@ class InconsistentDatabase(TypeError):
 class Database(ImpExp):
     parameter = {"db": DLDict, "key": ""}
 
-    def __init__(self, key: Optional[str] = ""):
+    def __init__(self, key: Optional[str] = "", **kwargs):
         ImpExp.__init__(self)
         self.db = DLDict()
 
-        if not key:
-            key = rndstr(24)
+        for k,v in kwargs.items():
+            setattr(self, k, v)
 
-        self.key = key
+        self.key = key or rndstr(24)
         self.crypt = Crypt(key)
 
     @staticmethod
@@ -188,6 +190,9 @@ class Database(ImpExp):
     def decrypt_session_id(self, key: str) -> List[str]:
         try:
             plain = self.crypt.decrypt(base64.b64decode(key))
+        except cryptography.fernet.InvalidToken as err:
+            logger.error(f"cryptography.fernet.InvalidToken: {key}")
+            raise ValueError(err)
         except Exception as err:
             raise ValueError(err)
         # order: rnd, type, sid

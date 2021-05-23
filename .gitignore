@@ -115,3 +115,5 @@ venv.bak/
 src/oidcendpoint.egg-info/
 
 .iframes/
+tests/pairwise.salt
+tests/public.salt
