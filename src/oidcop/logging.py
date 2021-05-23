@@ -10,18 +10,14 @@ LOGGING_CONF = "logging.yaml"
 
 LOGGING_DEFAULT = {
     "version": 1,
-    "formatters": {
-        "default": {"format": "%(asctime)s %(name)s %(levelname)s %(message)s"}
-    },
+    "formatters": {"default": {"format": "%(asctime)s %(name)s %(levelname)s %(message)s"}},
     "handlers": {"default": {"class": "logging.StreamHandler", "formatter": "default"}},
     "root": {"handlers": ["default"], "level": "INFO"},
 }
 
 
 def configure_logging(
-    debug: Optional[bool] = False,
-    config: Optional[dict] = None,
-    filename: Optional[str] = "",
+    debug: Optional[bool] = False, config: Optional[dict] = None, filename: Optional[str] = "",
 ) -> logging.Logger:
     """Configure logging"""
 

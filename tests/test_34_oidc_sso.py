@@ -2,6 +2,7 @@ import io
 import json
 import os
 
+from oidcop.configure import OPConfiguration
 import pytest
 import yaml
 from cryptojwt import KeyJar
@@ -133,9 +134,7 @@ class TestUserAuthn(object):
                     "path": "{}/authorization",
                     "class": Authorization,
                     "kwargs": {
-                        "response_types_supported": [
-                            " ".join(x) for x in RESPONSE_TYPES_SUPPORTED
-                        ],
+                        "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
                         "response_modes_supported": ["query", "fragment", "form_post"],
                         "claims_parameter_supported": True,
                         "request_parameter_supported": True,
@@ -145,11 +144,7 @@ class TestUserAuthn(object):
             },
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "authentication": {
-                "anon": {
-                    "acr": UNSPECIFIED,
-                    "class": NoAuthn,
-                    "kwargs": {"user": "diana"},
-                },
+                "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"},},
             },
             "cookie_handler": {
                 "class": "oidcop.cookie_handler.CookieHandler",
@@ -164,7 +159,8 @@ class TestUserAuthn(object):
             },
             "template_dir": "template",
         }
-        server = Server(conf)
+        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+
         endpoint_context = server.endpoint_context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = _clients["oidc_clients"]
@@ -234,9 +230,9 @@ class TestUserAuthn(object):
         # No valid login cookie so new session
         assert info["session_id"] != sid2
 
-        user_session_info = self.endpoint.server_get(
-            "endpoint_context"
-        ).session_manager.get(["diana"])
+        user_session_info = self.endpoint.server_get("endpoint_context").session_manager.get(
+            ["diana"]
+        )
         assert len(user_session_info.subordinate) == 3
         assert set(user_session_info.subordinate) == {
             "client_1",

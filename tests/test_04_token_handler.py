@@ -116,12 +116,8 @@ class TestTokenHandler(object):
         refresh_token_expires_in = 86400
 
         code_handler = DefaultToken(password, typ="A", lifetime=grant_expires_in)
-        access_token_handler = DefaultToken(
-            password, typ="T", lifetime=token_expires_in
-        )
-        refresh_token_handler = DefaultToken(
-            password, typ="R", lifetime=refresh_token_expires_in
-        )
+        access_token_handler = DefaultToken(password, typ="T", lifetime=token_expires_in)
+        refresh_token_handler = DefaultToken(password, typ="R", lifetime=refresh_token_expires_in)
 
         self.handler = TokenHandler(
             code_handler=code_handler,
@@ -177,16 +173,12 @@ def test_token_handler_from_config():
     conf = {
         "issuer": "https://example.com/op",
         "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
-        "endpoint": {
-            "endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}},
-        },
+        "endpoint": {"endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}},},
         "token_handler_args": {
             "jwks_def": {
                 "private_path": "private/token_jwks.json",
                 "read_only": False,
-                "key_defs": [
-                    {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
-                ],
+                "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
             },
             "code": {"kwargs": {"lifetime": 600}},
             "token": {
@@ -199,7 +191,7 @@ def test_token_handler_from_config():
             },
             "refresh": {
                 "class": "oidcop.token.jwt_token.JWTToken",
-                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
             },
             "id_token": {
                 "class": "oidcop.token.id_token.IDToken",
@@ -238,42 +230,39 @@ def test_token_handler_from_config():
     assert token_handler.handler["refresh_token"].alg == "ES256"
     assert token_handler.handler["refresh_token"].kwargs == {}
     assert token_handler.handler["refresh_token"].lifetime == 3600
-    assert token_handler.handler["refresh_token"].def_aud == [
-        "https://example.org/appl"
-    ]
+    assert token_handler.handler["refresh_token"].def_aud == ["https://example.org/appl"]
 
     assert token_handler.handler["id_token"].lifetime == 300
     assert "base_claims" in token_handler.handler["id_token"].kwargs
 
 
-@pytest.mark.parametrize("jwks", [
-    {"jwks_file": "private/token_jwks_1.json"},
-    {"jwks_def": {
-        "private_path": "private/token_jwks_2.json",
-        "read_only": False,
-        "key_defs": [
-            {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
-        ],
-    }},
-    {
-        "jwks_file": "private/token_jwks_1.json",
-        "jwks_def": {
-            "private_path": "private/token_jwks_2.json",
-            "read_only": False,
-            "key_defs": [
-                {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
-            ],
-        }
-    },
-    None
-])
+@pytest.mark.parametrize(
+    "jwks",
+    [
+        {"jwks_file": "private/token_jwks_1.json"},
+        {
+            "jwks_def": {
+                "private_path": "private/token_jwks_2.json",
+                "read_only": False,
+                "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
+            }
+        },
+        {
+            "jwks_file": "private/token_jwks_1.json",
+            "jwks_def": {
+                "private_path": "private/token_jwks_2.json",
+                "read_only": False,
+                "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
+            },
+        },
+        None,
+    ],
+)
 def test_file(jwks):
     conf = {
         "issuer": "https://example.com/op",
         "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
-        "endpoint": {
-            "endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}},
-        },
+        "endpoint": {"endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}},},
         "token_handler_args": {
             "code": {"kwargs": {"lifetime": 600}},
             "token": {
@@ -286,7 +275,7 @@ def test_file(jwks):
             },
             "refresh": {
                 "class": "oidcop.token.jwt_token.JWTToken",
-                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
             },
             "id_token": {
                 "class": "oidcop.token.id_token.IDToken",
@@ -305,8 +294,11 @@ def test_file(jwks):
         except KeyError:
             pass
 
-    for _file in ["private/token_jwks_1.json", "private/token_jwks_2.json",
-                  "private/token_jwks.json"]:
+    for _file in [
+        "private/token_jwks_1.json",
+        "private/token_jwks_2.json",
+        "private/token_jwks.json",
+    ]:
         if os.path.exists(full_path(_file)):
             os.unlink(full_path(_file))
 

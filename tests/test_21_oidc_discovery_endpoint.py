@@ -1,5 +1,7 @@
 import json
+import os
 
+from oidcop.configure import OPConfiguration
 import pytest
 
 from oidcop.oidc.discovery import Discovery
@@ -10,6 +12,8 @@ KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 
 class TestEndpoint(object):
@@ -39,7 +43,7 @@ class TestEndpoint(object):
             },
             "template_dir": "template",
         }
-        server = Server(conf)
+        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.endpoint = server.server_get("endpoint", "discovery")
 
     def test_do_response(self):

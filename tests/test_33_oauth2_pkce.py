@@ -4,6 +4,7 @@ import os
 import secrets
 import string
 
+from oidcop.configure import ASConfiguration
 import pytest
 import yaml
 from oidcmsg.message import Message
@@ -121,11 +122,7 @@ def conf():
         "capabilities": CAPABILITIES,
         "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
         "endpoint": {
-            "authorization": {
-                "path": "{}/authorization",
-                "class": Authorization,
-                "kwargs": {},
-            },
+            "authorization": {"path": "{}/authorization", "class": Authorization, "kwargs": {},},
             "token": {
                 "path": "{}/token",
                 "class": Token,
@@ -193,7 +190,8 @@ def _code_challenge():
 
 
 def create_server(config):
-    server = Server(config)
+    server = Server(ASConfiguration(conf=config, base_path=BASEDIR), cwd=BASEDIR)
+
     endpoint_context = server.endpoint_context
     _clients = yaml.safe_load(io.StringIO(client_yaml))
     endpoint_context.cdb = _clients["oidc_clients"]
@@ -296,9 +294,7 @@ class TestEndpoint(object):
 
         assert isinstance(_pr_resp, AuthorizationErrorResponse)
         assert _pr_resp["error"] == "invalid_request"
-        assert _pr_resp[
-            "error_description"
-        ] == "Unsupported code_challenge_method={}".format(
+        assert _pr_resp["error_description"] == "Unsupported code_challenge_method={}".format(
             _authn_req["code_challenge_method"]
         )
 
@@ -316,9 +312,7 @@ class TestEndpoint(object):
 
         assert isinstance(_pr_resp, AuthorizationErrorResponse)
         assert _pr_resp["error"] == "invalid_request"
-        assert _pr_resp[
-            "error_description"
-        ] == "Unsupported code_challenge_method={}".format(
+        assert _pr_resp["error_description"] == "Unsupported code_challenge_method={}".format(
             _authn_req["code_challenge_method"]
         )
 
@@ -371,9 +365,7 @@ def test_missing_authz_endpoint():
             }
         },
     }
-    configuration = OPConfiguration(
-        conf, base_path=BASEDIR, domain="127.0.0.1", port=443
-    )
+    configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     server = Server(configuration)
     add_pkce_support(server.server_get("endpoints"))
 
@@ -398,9 +390,7 @@ def test_missing_token_endpoint():
             },
         },
     }
-    configuration = OPConfiguration(
-        conf, base_path=BASEDIR, domain="127.0.0.1", port=443
-    )
+    configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     server = Server(configuration)
     add_pkce_support(server.server_get("endpoints"))
 

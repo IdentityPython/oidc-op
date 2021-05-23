@@ -3,13 +3,13 @@ import os
 from typing import Optional
 import warnings
 
-from cryptography.fernet import InvalidToken
 from cryptojwt.exception import Invalid
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import as_unicode
 from oidcmsg.impexp import ImpExp
 from oidcmsg.item import DLDict
 
+from oidcop.exception import InvalidToken
 from oidcop.token import DefaultToken
 from oidcop.token import Token
 from oidcop.token import UnknownToken
@@ -25,11 +25,11 @@ class TokenHandler(ImpExp):
     parameter = {"handler": DLDict, "handler_order": [""]}
 
     def __init__(
-            self,
-            access_token_handler: Optional[Token] = None,
-            code_handler: Optional[Token] = None,
-            refresh_token_handler: Optional[Token] = None,
-            id_token_handler: Optional[Token] = None,
+        self,
+        access_token_handler: Optional[Token] = None,
+        code_handler: Optional[Token] = None,
+        refresh_token_handler: Optional[Token] = None,
+        id_token_handler: Optional[Token] = None,
     ):
         ImpExp.__init__(self)
         self.handler = {"code": code_handler, "access_token": access_token_handler}
@@ -72,7 +72,7 @@ class TokenHandler(ImpExp):
         for typ in order:
             try:
                 res = self.handler[typ].info(token)
-            except (KeyError, WrongTokenType, InvalidToken, UnknownToken, Invalid):
+            except (KeyError, WrongTokenType, InvalidToken, UnknownToken, Invalid, AttributeError):
                 pass
             else:
                 return self.handler[typ], res
@@ -142,13 +142,13 @@ JWKS_FILE = "private/token_jwks.json"
 
 
 def factory(
-        server_get,
-        code: Optional[dict] = None,
-        token: Optional[dict] = None,
-        refresh: Optional[dict] = None,
-        id_token: Optional[dict] = None,
-        jwks_file: Optional[str] = "",
-        **kwargs
+    server_get,
+    code: Optional[dict] = None,
+    token: Optional[dict] = None,
+    refresh: Optional[dict] = None,
+    id_token: Optional[dict] = None,
+    jwks_file: Optional[str] = "",
+    **kwargs
 ) -> TokenHandler:
     """
     Create a token handler
@@ -165,12 +165,12 @@ def factory(
     key_defs = []
     read_only = False
     cwd = server_get("endpoint_context").cwd
-    if kwargs.get('jwks_def'):
-        defs = kwargs['jwks_def']
+    if kwargs.get("jwks_def"):
+        defs = kwargs["jwks_def"]
         if not jwks_file:
-            jwks_file = defs.get('private_path', os.path.join(cwd, JWKS_FILE))
-        read_only = defs.get('read_only', read_only)
-        key_defs = defs.get('key_defs', [])
+            jwks_file = defs.get("private_path", os.path.join(cwd, JWKS_FILE))
+        read_only = defs.get("read_only", read_only)
+        key_defs = defs.get("key_defs", [])
 
     if not jwks_file:
         jwks_file = os.path.join(cwd, JWKS_FILE)
@@ -179,22 +179,20 @@ def factory(
         for kid, cnf in [("code", code), ("refresh", refresh), ("token", token)]:
             if cnf is not None:
                 if default_token(cnf):
-                    key_defs.append(
-                        {"type": "oct", "bytes": 24, "use": ["enc"], "kid": kid}
-                    )
+                    key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": kid})
 
     kj = init_key_jar(key_defs=key_defs, private_path=jwks_file, read_only=read_only)
 
     args = {}
-    for typ, cnf, attr in [("code", code, "code_handler"),
-                           ("token", token, "access_token_handler"),
-                           ("refresh", refresh, "refresh_token_handler")]:
+    for typ, cnf, attr in [
+        ("code", code, "code_handler"),
+        ("token", token, "access_token_handler"),
+        ("refresh", refresh, "refresh_token_handler"),
+    ]:
         if cnf is not None:
             if default_token(cnf):
                 _add_passwd(kj, cnf, typ)
-            args[attr] = init_token_handler(
-                server_get, cnf, TTYPE[typ]
-            )
+            args[attr] = init_token_handler(server_get, cnf, TTYPE[typ])
 
     if id_token is not None:
         args["id_token_handler"] = init_token_handler(server_get, id_token, typ="")

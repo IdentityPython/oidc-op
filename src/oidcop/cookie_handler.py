@@ -143,9 +143,7 @@ class CookieHandler:
             mac = base64.b64decode(b64_mac)
             verifier = HMACSigner(algorithm=self.sign_alg)
             if verifier.verify(
-                payload.encode("utf-8") + timestamp.encode("utf-8"),
-                mac,
-                self.sign_key.key,
+                payload.encode("utf-8") + timestamp.encode("utf-8"), mac, self.sign_key.key,
             ):
                 return payload, timestamp
             else:

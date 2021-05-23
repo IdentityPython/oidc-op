@@ -115,17 +115,13 @@ class Endpoint(object):
         self.client_authn_method = []
         if _methods:
             self.client_authn_method = client_auth_setup(_methods, server_get)
-        elif (
-            _methods is not None
-        ):  # [] or '' or something not None but regarded as nothing.
+        elif _methods is not None:  # [] or '' or something not None but regarded as nothing.
             self.client_authn_method = [None]  # Ignore default value
         elif self.default_capabilities:
             _methods = self.default_capabilities.get("client_authn_method")
             if _methods:
                 self.client_authn_method = client_auth_setup(_methods, server_get)
-        self.endpoint_info = construct_endpoint_info(
-            self.default_capabilities, **kwargs
-        )
+        self.endpoint_info = construct_endpoint_info(self.default_capabilities, **kwargs)
 
         # This is for matching against aud in JWTs
         # By default the endpoint's endpoint URL is an allowed target
@@ -137,10 +133,7 @@ class Endpoint(object):
         return res
 
     def parse_request(
-        self,
-        request: Union[Message, dict, str],
-        http_info: Optional[dict] = None,
-        **kwargs
+        self, request: Union[Message, dict, str], http_info: Optional[dict] = None, **kwargs
     ):
         """
 
@@ -212,9 +205,7 @@ class Endpoint(object):
     ):
         return ""
 
-    def client_authentication(
-        self, request: Message, http_info: Optional[dict] = None, **kwargs
-    ):
+    def client_authentication(self, request: Message, http_info: Optional[dict] = None, **kwargs):
         """
         Do client authentication
 
@@ -235,11 +226,7 @@ class Endpoint(object):
         )
 
         LOGGER.debug("authn_info: %s", authn_info)
-        if (
-            authn_info == {}
-            and self.client_authn_method
-            and len(self.client_authn_method)
-        ):
+        if authn_info == {} and self.client_authn_method and len(self.client_authn_method):
             LOGGER.debug("client_authn_method: %s", self.client_authn_method)
             raise UnAuthorizedClient("Authorization failed")
 
@@ -256,16 +243,11 @@ class Endpoint(object):
         return request
 
     def do_pre_construct(
-        self,
-        response_args: dict,
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+        self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
     ) -> dict:
         _context = self.server_get("endpoint_context")
         for meth in self.pre_construct:
-            response_args = meth(
-                response_args, request, endpoint_context=_context, **kwargs
-            )
+            response_args = meth(response_args, request, endpoint_context=_context, **kwargs)
 
         return response_args
 
@@ -277,9 +259,7 @@ class Endpoint(object):
     ) -> dict:
         _context = self.server_get("endpoint_context")
         for meth in self.post_construct:
-            response_args = meth(
-                response_args, request, endpoint_context=_context, **kwargs
-            )
+            response_args = meth(response_args, request, endpoint_context=_context, **kwargs)
 
         return response_args
 

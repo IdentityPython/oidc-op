@@ -1,10 +1,14 @@
 import json
+import os
 
+from oidcop.configure import OPConfiguration
 import pytest
 
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -64,7 +68,8 @@ class TestEndpoint(object):
             },
             "template_dir": "template",
         }
-        server = Server(conf)
+        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+
         self.endpoint_context = server.endpoint_context
         self.endpoint = server.server_get("endpoint", "provider_config")
 
@@ -98,6 +103,4 @@ class TestEndpoint(object):
             "updated_at",
             "birthdate",
         }
-        assert ("Content-type", "application/json; charset=utf-8") in msg[
-            "http_headers"
-        ]
+        assert ("Content-type", "application/json; charset=utf-8") in msg["http_headers"]

@@ -37,14 +37,15 @@ def test_authorization_code_extras():
     assert code.resources == ["https://api.example.com"]
 
 
-def test_dump_load(cls=AuthorizationCode,
-                   kwargs=dict(
-                        value="ABCD",
-                        scope=["openid", "foo", "bar"],
-                        claims={"userinfo": {"given_name": None}},
-                        resources=["https://api.example.com"],
-                    )
-    ):
+def test_dump_load(
+    cls=AuthorizationCode,
+    kwargs=dict(
+        value="ABCD",
+        scope=["openid", "foo", "bar"],
+        claims={"userinfo": {"given_name": None}},
+        resources=["https://api.example.com"],
+    ),
+):
     code = cls(**kwargs)
 
     _item = code.dump()
@@ -54,17 +55,13 @@ def test_dump_load(cls=AuthorizationCode,
         if val:
             assert val == getattr(_new_code, attr)
 
+
 def test_dump_load_access_token():
-    test_dump_load(
-        cls=AccessToken,
-        kwargs={}
-    )
+    test_dump_load(cls=AccessToken, kwargs={})
+
 
 def test_dump_load_idtoken():
-    test_dump_load(
-        cls=IDToken,
-        kwargs={}
-    )
+    test_dump_load(cls=IDToken, kwargs={})
 
 
 def test_supports_minting():

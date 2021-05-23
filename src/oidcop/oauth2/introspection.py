@@ -89,9 +89,7 @@ class Introspection(Endpoint):
         grant = _session_info["grant"]
         _token = grant.get_token(request_token)
 
-        _info = self._introspect(
-            _token, _session_info["client_id"], _session_info["grant"]
-        )
+        _info = self._introspect(_token, _session_info["client_id"], _session_info["grant"])
         if _info is None:
             return {"response_args": _resp}
 
@@ -105,9 +103,7 @@ class Introspection(Endpoint):
         _resp.update(_info)
         _resp.weed()
 
-        _claims_restriction = grant.claims.get(
-            "introspection"
-        )
+        _claims_restriction = grant.claims.get("introspection")
         if _claims_restriction:
             user_info = _context.claims_interface.get_user_claims(
                 _session_info["user_id"], _claims_restriction

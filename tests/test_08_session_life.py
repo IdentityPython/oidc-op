@@ -1,5 +1,6 @@
 import os
 
+from oidcop.configure import OPConfiguration
 import pytest
 from cryptojwt.key_jar import init_key_jar
 from oidcmsg.oidc import AccessTokenRequest
@@ -50,7 +51,8 @@ class TestSession:
             },
             "template_dir": "template",
         }
-        server = Server(conf)
+        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+
         self.endpoint_context = server.endpoint_context
         self.session_manager = self.endpoint_context.session_manager
 
@@ -92,9 +94,7 @@ class TestSession:
 
         # the grant is assigned to a session (user_id, client_id)
         self.session_manager.set([user_id, client_id, grant.id], grant)
-        session_id = self.session_manager.encrypted_session_id(
-            user_id, client_id, grant.id
-        )
+        session_id = self.session_manager.encrypted_session_id(user_id, client_id, grant.id)
 
         # Constructing an authorization code is now done by
 
@@ -107,9 +107,7 @@ class TestSession:
         )
 
         # get user info
-        user_info = self.session_manager.get_user_info(
-            uid = user_id,
-        )
+        user_info = self.session_manager.get_user_info(uid=user_id,)
         return grant.id, code
 
     def test_code_flow(self):
@@ -179,9 +177,7 @@ class TestSession:
             scope=["openid", "mail", "offline_access"],
         )
 
-        reftok = self.session_manager.find_token(
-            session_id, REFRESH_TOKEN_REQ["refresh_token"]
-        )
+        reftok = self.session_manager.find_token(session_id, REFRESH_TOKEN_REQ["refresh_token"])
 
         assert reftok.supports_minting("access_token")
 
@@ -280,11 +276,7 @@ class TestSessionJWTToken:
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {
-                    "path": "{}/registration",
-                    "class": Registration,
-                    "kwargs": {},
-                },
+                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {},},
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
@@ -307,7 +299,7 @@ class TestSessionJWTToken:
                 "kwargs": {"db_file": full_path("users.json")},
             },
         }
-        server = Server(conf, keyjar=KEYJAR)
+        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), keyjar=KEYJAR, cwd=BASEDIR)
         self.endpoint_context = server.endpoint_context
         self.session_manager = self.endpoint_context.session_manager
         # self.session_manager = SessionManager(handler=self.endpoint_context.sdb.handler)
@@ -353,9 +345,7 @@ class TestSessionJWTToken:
         # the grant is assigned to a session (user_id, client_id)
         self.session_manager.set([user_id, client_id, grant.id], grant)
 
-        session_id = self.session_manager.encrypted_session_id(
-            user_id, client_id, grant.id
-        )
+        session_id = self.session_manager.encrypted_session_id(user_id, client_id, grant.id)
         # Constructing an authorization code is now done by
         code = grant.mint_token(
             session_id=session_id,
@@ -383,9 +373,7 @@ class TestSessionJWTToken:
 
         # parse the token
         session_id = self.session_manager.token_handler.sid(TOKEN_REQ["code"])
-        user_id, client_id, grant_id = self.session_manager.decrypt_session_id(
-            session_id
-        )
+        user_id, client_id, grant_id = self.session_manager.decrypt_session_id(session_id)
 
         # Now given I have the client_id from the request and the user_id from the
         # token I can easily find the grant
@@ -444,9 +432,7 @@ class TestSessionJWTToken:
         session_id = self.session_manager.encrypted_session_id(
             user_id, REFRESH_TOKEN_REQ["client_id"], grant_id
         )
-        reftok = self.session_manager.find_token(
-            session_id, REFRESH_TOKEN_REQ["refresh_token"]
-        )
+        reftok = self.session_manager.find_token(session_id, REFRESH_TOKEN_REQ["refresh_token"])
 
         # Can I use this token to mint another token ?
         assert grant.is_active()

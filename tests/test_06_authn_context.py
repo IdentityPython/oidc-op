@@ -25,11 +25,7 @@ METHOD = {
         "kwargs": {"user": "diana"},
         "class": "oidcop.user_authn.user.NoAuthn",
     },
-    "krall": {
-        "acr": INTERNETPROTOCOLPASSWORD,
-        "kwargs": {"user": "krall"},
-        "class": NoAuthn,
-    },
+    "krall": {"acr": INTERNETPROTOCOLPASSWORD, "kwargs": {"user": "krall"}, "class": NoAuthn,},
 }
 
 KEYDEFS = [
@@ -144,6 +140,7 @@ class TestAuthnBrokerEC:
             "authentication": METHOD,
             "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_db}},
             "template_dir": "template",
+            "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
         }
         cookie_conf = {
             "sign_key": SYMKey(k="ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch"),
@@ -187,9 +184,7 @@ class TestAuthnBrokerEC:
 
 
 def test_authn_event():
-    an = AuthnEvent(
-        uid="uid", valid_until=time_sans_frac() + 1, authn_info="authn_class_ref",
-    )
+    an = AuthnEvent(uid="uid", valid_until=time_sans_frac() + 1, authn_info="authn_class_ref",)
 
     assert an.is_valid()
 
