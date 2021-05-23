@@ -54,9 +54,7 @@ class TestSessionManager:
                 "jwks_def": {
                     "private_path": "private/token_jwks.json",
                     "read_only": False,
-                    "key_defs": [
-                        {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
-                    ],
+                    "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
                 },
                 "code": {"lifetime": 600},
                 "token": {
@@ -82,6 +80,7 @@ class TestSessionManager:
                 "token_endpoint": {"path": "{}/token", "class": Token, "kwargs": {}},
             },
             "template_dir": "template",
+            "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
         }
         server = Server(conf)
         self.server = server
@@ -263,9 +262,7 @@ class TestSessionManager:
             scopes=["openid", "phoe"],
         )
 
-        _session_info = self.session_manager.get_session_info(
-            session_id=session_id, grant=True
-        )
+        _session_info = self.session_manager.get_session_info(session_id=session_id, grant=True)
         grant = _session_info["grant"]
         assert grant.scope == ["openid", "phoe"]
 
@@ -275,10 +272,7 @@ class TestSessionManager:
 
     def test_find_token(self):
         session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
-            user_id="diana",
-            client_id="client_1",
+            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
         )
 
         _info = self.session_manager.get_session_info(session_id=session_id, grant=True)
@@ -287,9 +281,7 @@ class TestSessionManager:
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token("access_token", grant, session_id, code)
 
-        _session_id = self.session_manager.encrypted_session_id(
-            "diana", "client_1", grant.id
-        )
+        _session_id = self.session_manager.encrypted_session_id("diana", "client_1", grant.id)
         _token = self.session_manager.find_token(_session_id, access_token.value)
 
         assert _token.type == "access_token"
@@ -304,9 +296,7 @@ class TestSessionManager:
             # client_id="client_1",
         )
 
-        _info = self.session_manager.get_session_info(
-            session_id, authentication_event=True
-        )
+        _info = self.session_manager.get_session_info(session_id, authentication_event=True)
         authn_event = _info["authentication_event"]
 
         assert isinstance(authn_event, AuthnEvent)
@@ -314,16 +304,11 @@ class TestSessionManager:
         assert authn_event["authn_info"] == "authn_class_ref"
 
         # cover the remaining one ...
-        _info = self.session_manager.get_session_info(
-            session_id, authorization_request=True
-        )
+        _info = self.session_manager.get_session_info(session_id, authorization_request=True)
 
     def test_get_client_session_info(self):
         _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
-            user_id="diana",
-            client_id="client_1",
+            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
         )
 
         csi = self.session_manager.get_client_session_info(_session_id)
@@ -332,10 +317,7 @@ class TestSessionManager:
 
     def test_get_general_session_info(self):
         _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
-            user_id="diana",
-            client_id="client_1",
+            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
         )
 
         _session_info = self.session_manager.get_session_info(_session_id)
@@ -351,10 +333,7 @@ class TestSessionManager:
 
     def test_get_session_info_by_token(self):
         _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
-            user_id="diana",
-            client_id="client_1",
+            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
         )
 
         grant = self.session_manager.get_grant(_session_id)
@@ -372,10 +351,7 @@ class TestSessionManager:
 
     def test_token_usage_default(self):
         _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
-            user_id="diana",
-            client_id="client_1",
+            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
         )
         grant = self.session_manager[_session_id]
 
@@ -392,16 +368,11 @@ class TestSessionManager:
 
         refresh_token = self._mint_token("refresh_token", grant, _session_id, code)
 
-        assert refresh_token.usage_rules == {
-            "supports_minting": ["access_token", "refresh_token"]
-        }
+        assert refresh_token.usage_rules == {"supports_minting": ["access_token", "refresh_token"]}
 
     def test_token_usage_grant(self):
         _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
-            user_id="diana",
-            client_id="client_1",
+            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
         )
         grant = self.session_manager[_session_id]
         grant.usage_rules = {
@@ -411,9 +382,7 @@ class TestSessionManager:
                 "expires_in": 300,
             },
             "access_token": {"expires_in": 3600},
-            "refresh_token": {
-                "supports_minting": ["access_token", "refresh_token", "id_token"]
-            },
+            "refresh_token": {"supports_minting": ["access_token", "refresh_token", "id_token"]},
         }
 
         code = self._mint_token("authorization_code", grant, _session_id)
@@ -564,23 +533,16 @@ class TestSessionManager:
 
         assert isinstance(res[0], AuthnEvent)
 
-        res = self.session_manager.get_authentication_events(
-            user_id= "diana",
-            client_id="client_1"
-        )
+        res = self.session_manager.get_authentication_events(user_id="diana", client_id="client_1")
 
         assert isinstance(res[0], AuthnEvent)
 
         try:
-            self.session_manager.get_authentication_events(
-            user_id="diana",
-            )
+            self.session_manager.get_authentication_events(user_id="diana",)
         except AttributeError:
             pass
         else:
-            raise Exception(
-                "get_authentication_events MUST return a list of AuthnEvent"
-            )
+            raise Exception("get_authentication_events MUST return a list of AuthnEvent")
 
     def test_user_info(self):
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
@@ -603,7 +565,6 @@ class TestSessionManager:
             token_usage_rules=token_usage_rules,
         )
         self.session_manager.revoke_client_session(_session_id)
-
 
     def test_revoke_grant(self):
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
@@ -645,27 +606,20 @@ class TestSessionManager:
 
         assert isinstance(res, list)
 
-        res = self.session_manager.grants(
-            user_id= "diana",
-            client_id="client_1"
-        )
+        res = self.session_manager.grants(user_id="diana", client_id="client_1")
 
         assert isinstance(res, list)
 
         try:
-            self.session_manager.grants(
-            user_id="diana",
-            )
+            self.session_manager.grants(user_id="diana",)
         except AttributeError:
             pass
         else:
-            raise Exception(
-                "get_authentication_events MUST return a list of AuthnEvent"
-            )
+            raise Exception("get_authentication_events MUST return a list of AuthnEvent")
 
         # and now cove add_grant
         grant = self.session_manager[_session_id]
         grant_kwargs = grant.parameter
-        for i in ('not_before', 'used'):
+        for i in ("not_before", "used"):
             grant_kwargs.pop(i)
-        self.session_manager.add_grant("diana", "client_1", **grant_kwargs )
+        self.session_manager.add_grant("diana", "client_1", **grant_kwargs)

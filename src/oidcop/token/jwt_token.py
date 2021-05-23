@@ -15,17 +15,17 @@ TYPE_MAP = {"A": "code", "T": "access_token", "R": "refresh_token"}
 
 class JWTToken(Token):
     def __init__(
-            self,
-            typ,
-            # keyjar: KeyJar = None,
-            issuer: str = None,
-            aud: Optional[list] = None,
-            alg: str = "ES256",
-            lifetime: int = 300,
-            server_get: Callable = None,
-            token_type: str = "Bearer",
-            password: str = "",
-            **kwargs
+        self,
+        typ,
+        # keyjar: KeyJar = None,
+        issuer: str = None,
+        aud: Optional[list] = None,
+        alg: str = "ES256",
+        lifetime: int = 300,
+        server_get: Callable = None,
+        token_type: str = "Bearer",
+        password: str = "",
+        **kwargs
     ):
         Token.__init__(self, typ, **kwargs)
         self.token_type = token_type
@@ -46,10 +46,7 @@ class JWTToken(Token):
         # inherit me and do your things here
         return payload
 
-    def __call__(self,
-                 session_id: Optional[str] = '',
-                 ttype: Optional[str] = '',
-                 **payload) -> str:
+    def __call__(self, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload) -> str:
 
         """
         Return a token.
@@ -65,20 +62,13 @@ class JWTToken(Token):
         else:
             ttype = "A"
 
-        payload.update(
-            {"sid": session_id,
-             "ttype": ttype
-             }
-        )
+        payload.update({"sid": session_id, "ttype": ttype})
         payload = self.load_custom_claims(payload)
 
         # payload.update(kwargs)
         _context = self.server_get("endpoint_context")
         signer = JWT(
-            key_jar=_context.keyjar,
-            iss=self.issuer,
-            lifetime=self.lifetime,
-            sign_alg=self.alg,
+            key_jar=_context.keyjar, iss=self.issuer, lifetime=self.lifetime, sign_alg=self.alg,
         )
 
         return signer.pack(payload)

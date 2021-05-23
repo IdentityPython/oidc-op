@@ -3,6 +3,7 @@ import base64
 import inspect
 import json
 import logging
+import os
 import sys
 import time
 import warnings
@@ -32,9 +33,9 @@ LOC = {
     },
     "se": {
         "title": "Logga in",
-        "login_title": u"Användarnamn",
-        "passwd_title": u"Lösenord",
-        "submit_text": u"Sänd",
+        "login_title": "Användarnamn",
+        "passwd_title": "Lösenord",
+        "submit_text": "Sänd",
         "client_policy_title": "Klientens sekretesspolicy",
     },
 }
@@ -75,9 +76,7 @@ class UserAuthnMethod(object):
         raise NotImplementedError
 
     def unpack_token(self, token):
-        return verify_signed_jwt(
-            token=token, keyjar=self.server_get("endpoint_context").keyjar
-        )
+        return verify_signed_jwt(token=token, keyjar=self.server_get("endpoint_context").keyjar)
 
     def done(self, areq):
         """
@@ -138,7 +137,7 @@ class UserPassJinja2(UserAuthnMethod):
         template="user_pass.jinja2",
         server_get=None,
         verify_endpoint="",
-        **kwargs
+        **kwargs,
     ):
 
         super(UserPassJinja2, self).__init__(server_get=server_get)
@@ -170,9 +169,7 @@ class UserPassJinja2(UserAuthnMethod):
             OnlyForTestingWarning,
         )
         if not self.server_get:
-            raise Exception(
-                f"{self.__class__.__name__} doesn't have a working server_get"
-            )
+            raise Exception(f"{self.__class__.__name__} doesn't have a working server_get")
         _context = self.server_get("endpoint_context")
         # Stores information need afterwards in a signed JWT that then
         # appears as a hidden input in the form
@@ -188,9 +185,7 @@ class UserPassJinja2(UserAuthnMethod):
                 _label = "{}_label".format(attr)
                 _kwargs[_label] = LABELS[_uri]
 
-        return self.template_handler.render(
-            self.template, action=self.action, token=jws, **_kwargs
-        )
+        return self.template_handler.render(self.template, action=self.action, token=jws, **_kwargs)
 
     def verify(self, *args, **kwargs):
         username = kwargs["username"]
@@ -254,7 +249,7 @@ class SymKeyAuthn(UserAuthnMethod):
         try:
             aesgcm = AESGCM(self.symkey)
             user = aesgcm.decrypt(iv, encmsg, None)
-        except (AssertionError, KeyError): # pragma: no-cover
+        except (AssertionError, KeyError):  # pragma: no-cover
             raise FailedAuthentication("Decryption failed")
 
         res = {"uid": user}
@@ -280,7 +275,7 @@ class NoAuthn(UserAuthnMethod):
         :param kwargs: extra key word arguments
         :return:
         """
-        if self.fail: # pragma: no-cover
+        if self.fail:  # pragma: no-cover
             raise self.fail()
 
         res = {"uid": self.user}

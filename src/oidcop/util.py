@@ -142,9 +142,7 @@ def lv_unpack(txt):
 
 class Crypt(object):
     def __init__(self, password, mode=None):
-        self.key = base64.urlsafe_b64encode(
-            hashlib.sha256(password.encode("utf-8")).digest()
-        )
+        self.key = base64.urlsafe_b64encode(hashlib.sha256(password.encode("utf-8")).digest())
         self.core = Fernet(self.key)
 
     def encrypt(self, text):
@@ -200,9 +198,7 @@ def split_uri(uri):
 
 def allow_refresh_token(endpoint_context):
     # Are there a refresh_token handler
-    refresh_token_handler = endpoint_context.session_manager.token_handler.handler[
-        "refresh_token"
-    ]
+    refresh_token_handler = endpoint_context.session_manager.token_handler.handler["refresh_token"]
 
     # Is refresh_token grant type supported
     _token_supported = False

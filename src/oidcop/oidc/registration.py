@@ -99,9 +99,7 @@ def comb_uri(args):
         val = []
         for base, query_dict in args[param]:
             if query_dict:
-                query_string = urlencode(
-                    [(key, v) for key in query_dict for v in query_dict[key]]
-                )
+                query_string = urlencode([(key, v) for key in query_dict for v in query_dict[key]])
                 val.append("%s?%s" % (base, query_string))
             else:
                 val.append(base)
@@ -153,9 +151,7 @@ class Registration(Endpoint):
                         if request[_pref] not in _context.provider_info[_prov]:
                             raise CapabilitiesMisMatch(_pref)
                     else:
-                        if not set(request[_pref]).issubset(
-                            set(_context.provider_info[_prov])
-                        ):
+                        if not set(request[_pref]).issubset(set(_context.provider_info[_prov])):
                             raise CapabilitiesMisMatch(_pref)
 
     def do_client_registration(self, request, client_id, ignore=None):
@@ -186,9 +182,7 @@ class Registration(Endpoint):
                 ruri = self.verify_redirect_uris(request)
                 _cinfo["redirect_uris"] = ruri
             except InvalidRedirectURIError as e:
-                return self.error_cls(
-                    error="invalid_redirect_uri", error_description=str(e)
-                )
+                return self.error_cls(error="invalid_redirect_uri", error_description=str(e))
 
         if "request_uris" in request:
             _uris = []
@@ -209,10 +203,9 @@ class Registration(Endpoint):
 
         if "sector_identifier_uri" in request:
             try:
-                (
-                    _cinfo["si_redirects"],
-                    _cinfo["sector_id"],
-                ) = self._verify_sector_identifier(request)
+                (_cinfo["si_redirects"], _cinfo["sector_id"],) = self._verify_sector_identifier(
+                    request
+                )
             except InvalidSectorIdentifier as err:
                 return ResponseMessage(
                     error="invalid_configuration_parameter", error_description=str(err)
@@ -238,14 +231,10 @@ class Registration(Endpoint):
                         _k = []
                         for iss in ["", _context.issuer]:
                             _k.extend(
-                                _context.keyjar.get_signing_key(
-                                    ktyp, alg=request[item], owner=iss
-                                )
+                                _context.keyjar.get_signing_key(ktyp, alg=request[item], owner=iss)
                             )
                         if not _k:
-                            logger.warning(
-                                'Lacking support for "{}"'.format(request[item])
-                            )
+                            logger.warning('Lacking support for "{}"'.format(request[item]))
                             del _cinfo[item]
 
         t = {"jwks_uri": "", "jwks": None}
@@ -287,9 +276,7 @@ class Registration(Endpoint):
                     pass
                 else:
                     logger.error(
-                        "InvalidRedirectURI: scheme:%s, hostname:%s",
-                        p.scheme,
-                        p.hostname,
+                        "InvalidRedirectURI: scheme:%s, hostname:%s", p.scheme, p.hostname,
                     )
                     raise InvalidRedirectURIError(
                         "Redirect_uri must use custom " "scheme or http and localhost"
@@ -299,9 +286,7 @@ class Registration(Endpoint):
                 raise InvalidRedirectURIError(msg)
             elif p.scheme not in ["http", "https"]:
                 # Custom scheme
-                raise InvalidRedirectURIError(
-                    "Custom redirect_uri not allowed for web client"
-                )
+                raise InvalidRedirectURIError("Custom redirect_uri not allowed for web client")
             elif p.fragment:
                 raise InvalidRedirectURIError("redirect_uri contains fragment")
 
@@ -339,17 +324,13 @@ class Registration(Endpoint):
         try:
             si_redirects = json.loads(res.text)
         except ValueError:
-            raise InvalidSectorIdentifier(
-                "Error deserializing sector_identifier_uri content"
-            )
+            raise InvalidSectorIdentifier("Error deserializing sector_identifier_uri content")
 
         if "redirect_uris" in request:
             logger.debug("redirect_uris: %s", request["redirect_uris"])
             for uri in request["redirect_uris"]:
                 if uri not in si_redirects:
-                    raise InvalidSectorIdentifier(
-                        "redirect_uri missing from sector_identifiers"
-                    )
+                    raise InvalidSectorIdentifier("redirect_uri missing from sector_identifiers")
 
         return si_redirects, si_url
 
@@ -397,8 +378,7 @@ class Registration(Endpoint):
             self.match_client_request(request)
         except CapabilitiesMisMatch as err:
             return ResponseMessage(
-                error="invalid_request",
-                error_description="Don't support proposed %s" % err,
+                error="invalid_request", error_description="Don't support proposed %s" % err,
             )
 
         _context = self.server_get("endpoint_context")
@@ -433,16 +413,12 @@ class Registration(Endpoint):
 
         _context.cdb[client_id] = _cinfo
         _cinfo = self.do_client_registration(
-            request,
-            client_id,
-            ignore=["redirect_uris", "policy_uri", "logo_uri", "tos_uri"],
+            request, client_id, ignore=["redirect_uris", "policy_uri", "logo_uri", "tos_uri"],
         )
         if isinstance(_cinfo, ResponseMessage):
             return _cinfo
 
-        args = dict(
-            [(k, v) for k, v in _cinfo.items() if k in self.response_cls.c_param]
-        )
+        args = dict([(k, v) for k, v in _cinfo.items() if k in self.response_cls.c_param])
 
         comb_uri(args)
         response = self.response_cls(**args)
@@ -478,8 +454,7 @@ class Registration(Endpoint):
         else:
             _context = self.server_get("endpoint_context")
             _cookie = _context.new_cookie(
-                name=_context.cookie_handler.name["register"],
-                client_id=reg_resp["client_id"],
+                name=_context.cookie_handler.name["register"], client_id=reg_resp["client_id"],
             )
 
             return {"response_args": reg_resp, "cookie": _cookie}

@@ -44,16 +44,8 @@ conf = {
             "class": ProviderConfiguration,
             "kwargs": {},
         },
-        "registration_endpoint": {
-            "path": "registration",
-            "class": Registration,
-            "kwargs": {},
-        },
-        "authorization_endpoint": {
-            "path": "authorization",
-            "class": Authorization,
-            "kwargs": {},
-        },
+        "registration_endpoint": {"path": "registration", "class": Registration, "kwargs": {},},
+        "authorization_endpoint": {"path": "authorization", "class": Authorization, "kwargs": {},},
         "token_endpoint": {"path": "token", "class": Token, "kwargs": {}},
         "userinfo_endpoint": {
             "path": "userinfo",
@@ -69,6 +61,7 @@ conf = {
             "kwargs": {"user": "diana"},
         }
     },
+    "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
     "add_on": {"pkce": {"function": add_pkce_support, "kwargs": {"essential": True}}},
     "template_dir": "template",
     "login_hint_lookup": {"class": oidcop.login_hint.LoginHintLookup, "kwargs": {}},
@@ -105,9 +98,7 @@ def test_capabilities_default():
     _str = open(full_path("op_config.json")).read()
     _conf = json.loads(_str)
 
-    configuration = OPConfiguration(
-        conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443
-    )
+    configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
 
     server = Server(configuration)
     assert set(server.endpoint_context.provider_info["response_types_supported"]) == {
@@ -119,9 +110,7 @@ def test_capabilities_default():
         "id_token token",
         "code id_token token",
     }
-    assert (
-        server.endpoint_context.provider_info["request_uri_parameter_supported"] is True
-    )
+    assert server.endpoint_context.provider_info["request_uri_parameter_supported"] is True
 
 
 def test_capabilities_subset1():
@@ -145,10 +134,7 @@ def test_capabilities_bool():
     _cnf = copy(conf)
     _cnf["capabilities"] = {"request_uri_parameter_supported": False}
     server = Server(_cnf)
-    assert (
-        server.endpoint_context.provider_info["request_uri_parameter_supported"]
-        is False
-    )
+    assert server.endpoint_context.provider_info["request_uri_parameter_supported"] is False
 
 
 def test_cdb():

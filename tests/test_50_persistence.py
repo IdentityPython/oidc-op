@@ -2,14 +2,15 @@ import json
 import os
 import shutil
 
-import pytest
 from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+import pytest
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
+from oidcop.configure import OPConfiguration
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -102,11 +103,7 @@ ENDPOINT_CONTEXT_CONFIG = {
             "kwargs": {},
         },
         "registration": {"path": "registration", "class": Registration, "kwargs": {},},
-        "authorization": {
-            "path": "authorization",
-            "class": Authorization,
-            "kwargs": {},
-        },
+        "authorization": {"path": "authorization", "class": Authorization, "kwargs": {},},
         "token": {
             "path": "token",
             "class": Token,
@@ -129,10 +126,7 @@ ENDPOINT_CONTEXT_CONFIG = {
             },
         },
     },
-    "userinfo": {
-        "class": user_info.UserInfo,
-        "kwargs": {"db_file": full_path("users.json")},
-    },
+    "userinfo": {"class": user_info.UserInfo, "kwargs": {"db_file": full_path("users.json")},},
     # "client_authn": verify_client,
     "authentication": {
         "anon": {
@@ -164,17 +158,11 @@ ENDPOINT_CONTEXT_CONFIG = {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        "supports_minting": [
-                            "access_token",
-                            "refresh_token",
-                            "id_token",
-                        ],
+                        "supports_minting": ["access_token", "refresh_token", "id_token",],
                         "max_usage": 1,
                     },
                     "access_token": {},
-                    "refresh_token": {
-                        "supports_minting": ["access_token", "refresh_token"],
-                    },
+                    "refresh_token": {"supports_minting": ["access_token", "refresh_token"],},
                 },
                 "expires_in": 43200,
             }
@@ -191,8 +179,12 @@ class TestEndpoint(object):
         except FileNotFoundError:
             pass
 
-        server1 = Server(ENDPOINT_CONTEXT_CONFIG)
-        server2 = Server(ENDPOINT_CONTEXT_CONFIG)
+        server1 = Server(
+            OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR), cwd=BASEDIR
+        )
+        server2 = Server(
+            OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR), cwd=BASEDIR
+        )
 
         server1.endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
@@ -222,9 +214,7 @@ class TestEndpoint(object):
         }
         self.user_id = "diana"
 
-    def _create_session(
-        self, auth_req, sub_type="public", sector_identifier="", index=1
-    ):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier="", index=1):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
@@ -264,9 +254,7 @@ class TestEndpoint(object):
             based_on=token_ref,  # Means the token (tok) was used to mint this token
         )
 
-        self.session_manager[index].set(
-            [self.user_id, _session_info["client_id"], grant.id], grant
-        )
+        self.session_manager[index].set([self.user_id, _session_info["client_id"], grant.id], grant)
 
         return _token
 
@@ -279,9 +267,7 @@ class TestEndpoint(object):
     def test_init(self):
         assert self.endpoint[1]
         assert set(
-            self.endpoint[1]
-            .server_get("endpoint_context")
-            .provider_info["claims_supported"]
+            self.endpoint[1].server_get("endpoint_context").provider_info["claims_supported"]
         ) == {
             "address",
             "birthdate",
@@ -306,20 +292,12 @@ class TestEndpoint(object):
             "zoneinfo",
         }
         assert set(
-            self.endpoint[1]
-            .server_get("endpoint_context")
-            .provider_info["claims_supported"]
-        ) == set(
-            self.endpoint[2]
-            .server_get("endpoint_context")
-            .provider_info["claims_supported"]
-        )
+            self.endpoint[1].server_get("endpoint_context").provider_info["claims_supported"]
+        ) == set(self.endpoint[2].server_get("endpoint_context").provider_info["claims_supported"])
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ, index=1)
-        grant = (
-            self.endpoint[1].server_get("endpoint_context").authz(session_id, AUTH_REQ)
-        )
+        grant = self.endpoint[1].server_get("endpoint_context").authz(session_id, AUTH_REQ)
         # grant, session_id = self._do_grant(AUTH_REQ, index=1)
         code = self._mint_code(grant, session_id, index=1)
         access_token = self._mint_access_token(grant, session_id, code, 1)
@@ -328,48 +306,36 @@ class TestEndpoint(object):
 
         self._dump_restore(1, 2)
 
-        http_info = {
-            "headers": {"authorization": "Bearer {}".format(access_token.value)}
-        }
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
         _req = self.endpoint[2].parse_request({}, http_info=http_info)
 
         assert set(_req.keys()) == {"client_id", "access_token"}
 
     def test_process_request(self):
         session_id = self._create_session(AUTH_REQ, index=1)
-        grant = (
-            self.endpoint[1].server_get("endpoint_context").authz(session_id, AUTH_REQ)
-        )
+        grant = self.endpoint[1].server_get("endpoint_context").authz(session_id, AUTH_REQ)
         code = self._mint_code(grant, session_id, index=1)
         access_token = self._mint_access_token(grant, session_id, code, 1)
 
         self._dump_restore(1, 2)
 
-        http_info = {
-            "headers": {"authorization": "Bearer {}".format(access_token.value)}
-        }
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
         _req = self.endpoint[2].parse_request({}, http_info=http_info)
         args = self.endpoint[2].process_request(_req)
         assert args
 
     def test_process_request_not_allowed(self):
         session_id = self._create_session(AUTH_REQ, index=2)
-        grant = (
-            self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
-        )
+        grant = self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)
 
         access_token.expires_at = utc_time_sans_frac() - 60
-        self.session_manager[2].set(
-            [self.user_id, AUTH_REQ["client_id"], grant.id], grant
-        )
+        self.session_manager[2].set([self.user_id, AUTH_REQ["client_id"], grant.id], grant)
 
         self._dump_restore(2, 1)
 
-        http_info = {
-            "headers": {"authorization": "Bearer {}".format(access_token.value)}
-        }
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
 
         _req = self.endpoint[1].parse_request({}, http_info=http_info)
 
@@ -394,17 +360,13 @@ class TestEndpoint(object):
 
     def test_do_response(self):
         session_id = self._create_session(AUTH_REQ, index=2)
-        grant = (
-            self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
-        )
+        grant = self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)
 
         self._dump_restore(2, 1)
 
-        http_info = {
-            "headers": {"authorization": "Bearer {}".format(access_token.value)}
-        }
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
 
         _req = self.endpoint[1].parse_request({}, http_info=http_info)
         args = self.endpoint[1].process_request(_req)
@@ -421,17 +383,13 @@ class TestEndpoint(object):
         ] = "ES256"
 
         session_id = self._create_session(AUTH_REQ, index=2)
-        grant = (
-            self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
-        )
+        grant = self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)
 
         self._dump_restore(2, 1)
 
-        http_info = {
-            "headers": {"authorization": "Bearer {}".format(access_token.value)}
-        }
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
 
         _req = self.endpoint[1].parse_request({}, http_info=http_info)
         args = self.endpoint[1].process_request(_req)
@@ -444,34 +402,26 @@ class TestEndpoint(object):
         _auth_req["scope"] = ["openid", "research_and_scholarship"]
 
         session_id = self._create_session(AUTH_REQ, index=2)
-        grant = (
-            self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
-        )
+        grant = self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
 
         self._dump_restore(2, 1)
 
         grant.claims = {
             "userinfo": self.endpoint[1]
             .server_get("endpoint_context")
-            .claims_interface.get_claims(
-                session_id, scopes=_auth_req["scope"], usage="userinfo"
-            )
+            .claims_interface.get_claims(session_id, scopes=_auth_req["scope"], usage="userinfo")
         }
 
         self._dump_restore(1, 2)
 
-        self.session_manager[2].set(
-            self.session_manager[2].decrypt_session_id(session_id), grant
-        )
+        self.session_manager[2].set(self.session_manager[2].decrypt_session_id(session_id), grant)
 
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)
 
         self._dump_restore(2, 1)
 
-        http_info = {
-            "headers": {"authorization": "Bearer {}".format(access_token.value)}
-        }
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
 
         _req = self.endpoint[1].parse_request({}, http_info=http_info)
         args = self.endpoint[1].process_request(_req)
@@ -484,4 +434,3 @@ class TestEndpoint(object):
             "email_verified",
             "eduperson_scoped_affiliation",
         }
-

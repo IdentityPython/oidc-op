@@ -26,16 +26,12 @@ class DPOPAccessTokenHelper(AccessTokenHelper):
         _log_debug = logger.debug
 
         if req["grant_type"] != "authorization_code":
-            return self.error_cls(
-                error="invalid_request", error_description="Unknown grant_type"
-            )
+            return self.error_cls(error="invalid_request", error_description="Unknown grant_type")
 
         try:
             _access_code = req["code"].replace(" ", "+")
         except KeyError:  # Missing code parameter - absolutely fatal
-            return self.error_cls(
-                error="invalid_request", error_description="Missing code"
-            )
+            return self.error_cls(error="invalid_request", error_description="Missing code")
 
         _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
         grant = _session_info["grant"]
@@ -114,8 +110,7 @@ class DPOPAccessTokenHelper(AccessTokenHelper):
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 resp = self.error_cls(
-                    error="invalid_request",
-                    error_description="Could not sign/encrypt id_token",
+                    error="invalid_request", error_description="Could not sign/encrypt id_token",
                 )
                 return resp
 
@@ -130,9 +125,7 @@ class DPOPRefreshTokenHelper(RefreshTokenHelper):
         _mngr = _context.session_manager
 
         if req["grant_type"] != "refresh_token":
-            return self.error_cls(
-                error="invalid_request", error_description="Wrong grant_type"
-            )
+            return self.error_cls(error="invalid_request", error_description="Wrong grant_type")
 
         token_value = req["refresh_token"]
         _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
@@ -186,8 +179,7 @@ class DPOPRefreshTokenHelper(RefreshTokenHelper):
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 resp = self.error_cls(
-                    error="invalid_request",
-                    error_description="Could not sign/encrypt id_token",
+                    error="invalid_request", error_description="Could not sign/encrypt id_token",
                 )
                 return resp
 

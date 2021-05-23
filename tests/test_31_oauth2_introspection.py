@@ -2,6 +2,9 @@ import base64
 import json
 import os
 
+from oidcop.configure import ASConfiguration
+
+from oidcop.configure import OPConfiguration
 import pytest
 from cryptojwt import JWT
 from cryptojwt import as_unicode
@@ -118,15 +121,6 @@ class TestEndpoint:
                     "class": "oidcop.token.jwt_token.JWTToken",
                     "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
                 },
-                "id_token": {
-                    "class": "oidcop.token.id_token.IDToken",
-                    "kwargs": {
-                        "base_claims": {
-                            "email": {"essential": True},
-                            "email_verified": {"essential": True},
-                        }
-                    },
-                },
             },
             "endpoint": {
                 "authorization": {
@@ -175,11 +169,7 @@ class TestEndpoint:
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": [
-                                    "access_token",
-                                    "refresh_token",
-                                    "id_token",
-                                ],
+                                "supports_minting": ["access_token", "refresh_token", "id_token",],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -197,7 +187,7 @@ class TestEndpoint:
                 "class": "oidcop.token.jwt_token.JWTToken",
                 "kwargs": {},
             }
-        server = Server(conf)
+        server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         endpoint_context = server.endpoint_context
         endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
@@ -205,14 +195,10 @@ class TestEndpoint:
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "introspection_claims": {
-                "nickname": None,
-                "eduperson_scoped_affiliation": None,
-            },
+            "introspection_claims": {"nickname": None, "eduperson_scoped_affiliation": None,},
         }
         endpoint_context.keyjar.import_jwks_as_json(
-            endpoint_context.keyjar.export_jwks_as_json(private=True),
-            endpoint_context.issuer,
+            endpoint_context.keyjar.export_jwks_as_json(private=True), endpoint_context.issuer,
         )
         self.introspection_endpoint = server.server_get("endpoint", "introspection")
         self.token_endpoint = server.server_get("endpoint", "token")
@@ -246,9 +232,7 @@ class TestEndpoint:
     def _get_access_token(self, areq):
         session_id = self._create_session(areq)
         # Consent handling
-        grant = self.token_endpoint.server_get("endpoint_context").authz(
-            session_id, areq
-        )
+        grant = self.token_endpoint.server_get("endpoint_context").authz(session_id, areq)
         self.session_manager[session_id] = grant
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
@@ -299,9 +283,9 @@ class TestEndpoint:
             {
                 "token": access_token.value,
                 "client_id": "client_1",
-                "client_secret": self.introspection_endpoint.server_get(
-                    "endpoint_context"
-                ).cdb["client_1"]["client_secret"],
+                "client_secret": self.introspection_endpoint.server_get("endpoint_context").cdb[
+                    "client_1"
+                ]["client_secret"],
             }
         )
         _resp = self.introspection_endpoint.process_request(_req)
@@ -323,9 +307,9 @@ class TestEndpoint:
             {
                 "token": access_token.value,
                 "client_id": "client_1",
-                "client_secret": self.introspection_endpoint.server_get(
-                    "endpoint_context"
-                ).cdb["client_1"]["client_secret"],
+                "client_secret": self.introspection_endpoint.server_get("endpoint_context").cdb[
+                    "client_1"
+                ]["client_secret"],
             }
         )
         _resp = self.introspection_endpoint.process_request(_req)
@@ -355,10 +339,7 @@ class TestEndpoint:
         # access_token = self._get_access_token(AUTH_REQ)
         _context = self.introspection_endpoint.server_get("endpoint_context")
         _req = self.introspection_endpoint.parse_request(
-            {
-                "client_id": "client_1",
-                "client_secret": _context.cdb["client_1"]["client_secret"],
-            }
+            {"client_id": "client_1", "client_secret": _context.cdb["client_1"]["client_secret"],}
         )
         _resp = self.introspection_endpoint.process_request(_req)
         assert "error" in _resp
@@ -383,9 +364,7 @@ class TestEndpoint:
         session_id = self._create_session(AUTH_REQ)
 
         # Apply consent
-        grant = self.token_endpoint.server_get("endpoint_context").authz(
-            session_id, AUTH_REQ
-        )
+        grant = self.token_endpoint.server_get("endpoint_context").authz(session_id, AUTH_REQ)
         self.session_manager[session_id] = grant
 
         code = self._mint_token("authorization_code", grant, session_id)
@@ -406,9 +385,7 @@ class TestEndpoint:
     def test_introspection_claims(self):
         session_id = self._create_session(AUTH_REQ)
         # Apply consent
-        grant = self.token_endpoint.server_get("endpoint_context").authz(
-            session_id, AUTH_REQ
-        )
+        grant = self.token_endpoint.server_get("endpoint_context").authz(session_id, AUTH_REQ)
         self.session_manager[session_id] = grant
 
         code = self._mint_token("authorization_code", grant, session_id)
@@ -416,9 +393,7 @@ class TestEndpoint:
 
         self.introspection_endpoint.kwargs["enable_claims_per_client"] = True
 
-        _c_interface = self.introspection_endpoint.server_get(
-            "endpoint_context"
-        ).claims_interface
+        _c_interface = self.introspection_endpoint.server_get("endpoint_context").claims_interface
         grant.claims = {
             "introspection": _c_interface.get_claims(
                 session_id, scopes=AUTH_REQ["scope"], usage="introspection"

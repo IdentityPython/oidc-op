@@ -186,30 +186,21 @@ class Grant(Item):
         if not scope:
             scope = self.scope
 
-        payload = {
-            "scope": scope,
-            "aud": self.resources,
-            "jti": uuid1().hex
-        }
+        payload = {"scope": scope, "aud": self.resources, "jti": uuid1().hex}
 
         if extra_payload:
             payload.update(extra_payload)
 
         if self.authorization_request:
-            client_id = self.authorization_request.get('client_id')
+            client_id = self.authorization_request.get("client_id")
             if client_id:
-                payload.update({
-                    "client_id": client_id,
-                    'sub': client_id
-                })
+                payload.update({"client_id": client_id, "sub": client_id})
 
         _claims_restriction = endpoint_context.claims_interface.get_claims(
             session_id, scopes=scope, usage=token_type
         )
         user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
-        user_info = endpoint_context.claims_interface.get_user_claims(
-            user_id, _claims_restriction
-        )
+        user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
         payload.update(user_info)
 
         return payload
@@ -254,12 +245,8 @@ class Grant(Item):
 
         token_class = self.token_map.get(token_type)
         if token_type == "id_token":
-            class_args = {
-                k: v for k, v in kwargs.items() if k not in ["code", "access_token"]
-            }
-            handler_args = {
-                k: v for k, v in kwargs.items() if k in ["code", "access_token"]
-            }
+            class_args = {k: v for k, v in kwargs.items() if k not in ["code", "access_token"]}
+            handler_args = {k: v for k, v in kwargs.items() if k in ["code", "access_token"]}
         else:
             class_args = kwargs
             handler_args = {}
@@ -274,15 +261,17 @@ class Grant(Item):
             )
             if token_handler is None:
                 token_handler = endpoint_context.session_manager.token_handler.handler[
-                    GRANT_TYPE_MAP[token_type]]
+                    GRANT_TYPE_MAP[token_type]
+                ]
 
-            token_payload = self.payload_arguments(session_id,
-                                                   endpoint_context,
-                                                   token_type=token_type,
-                                                   scope=scope,
-                                                   extra_payload=handler_args)
-            item.value = token_handler(session_id=session_id,
-                                       **token_payload)
+            token_payload = self.payload_arguments(
+                session_id,
+                endpoint_context,
+                token_type=token_type,
+                scope=scope,
+                extra_payload=handler_args,
+            )
+            item.value = token_handler(session_id=session_id, **token_payload)
 
         else:
             raise ValueError("Can not mint that kind of token")
@@ -298,10 +287,7 @@ class Grant(Item):
         return None
 
     def revoke_token(
-        self,
-        value: Optional[str] = "",
-        based_on: Optional[str] = "",
-        recursive: bool = True,
+        self, value: Optional[str] = "", based_on: Optional[str] = "", recursive: bool = True,
     ):
         for t in self.issued_token:
             if not value and not based_on:
@@ -341,9 +327,7 @@ DEFAULT_USAGE = {
         "expires_in": 300,
     },
     "access_token": {"supports_minting": [], "expires_in": 3600},
-    "refresh_token": {
-        "supports_minting": ["access_token", "refresh_token", "id_token"]
-    },
+    "refresh_token": {"supports_minting": ["access_token", "refresh_token", "id_token"]},
 }
 
 

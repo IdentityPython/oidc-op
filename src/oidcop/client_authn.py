@@ -131,9 +131,7 @@ class ClientSecretPost(ClientSecretBasic):
 
     def verify(self, request, **kwargs):
         if (
-            self.server_get("endpoint_context").cdb[request["client_id"]][
-                "client_secret"
-            ]
+            self.server_get("endpoint_context").cdb[request["client_id"]]["client_secret"]
             == request["client_secret"]
         ):
             return {"client_id": request["client_id"]}
@@ -148,9 +146,7 @@ class BearerHeader(ClientSecretBasic):
     tag = "bearer_header"
 
     def is_usable(self, request=None, authorization_token=None):
-        if authorization_token is not None and authorization_token.startswith(
-            "Bearer "
-        ):
+        if authorization_token is not None and authorization_token.startswith("Bearer "):
             return True
         return False
 
@@ -203,9 +199,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         if _sign_alg and _sign_alg.startswith("HS"):
             if key_type == "private_key":
                 raise AttributeError("Wrong key type")
-            keys = _context.keyjar.get(
-                "sig", "oct", ca_jwt["iss"], ca_jwt.jws_header.get("kid")
-            )
+            keys = _context.keyjar.get("sig", "oct", ca_jwt["iss"], ca_jwt.jws_header.get("kid"))
             _secret = _context.cdb[ca_jwt["iss"]].get("client_secret")
             if _secret and keys[0].key != as_bytes(_secret):
                 raise AttributeError("Oct key used for signing not client_secret")
@@ -366,14 +360,10 @@ def verify_client(
         if _method.is_usable(request, authorization_token):
             try:
                 auth_info = _method.verify(
-                    request=request,
-                    authorization_token=authorization_token,
-                    endpoint=endpoint,
+                    request=request, authorization_token=authorization_token, endpoint=endpoint,
                 )
             except Exception as err:
-                logger.warning(
-                    "Verifying auth using {} failed: {}".format(_method.tag, err)
-                )
+                logger.warning("Verifying auth using {} failed: {}".format(_method.tag, err))
             else:
                 if "method" not in auth_info:
                     auth_info["method"] = _method.tag
@@ -403,9 +393,7 @@ def verify_client(
                 raise UnknownClient("Unknown Client ID")
 
         if not valid_client_info(_cinfo):
-            logger.warning(
-                "Client registration has timed out or " "client secret is expired."
-            )
+            logger.warning("Client registration has timed out or " "client secret is expired.")
             raise InvalidClient("Not valid client")
 
         # store what authn method was used
@@ -413,9 +401,7 @@ def verify_client(
             _request_type = request.__class__.__name__
             _used_authn_method = endpoint_context.cdb[client_id].get("auth_method")
             if _used_authn_method:
-                endpoint_context.cdb[client_id]["auth_method"][
-                    _request_type
-                ] = auth_info["method"]
+                endpoint_context.cdb[client_id]["auth_method"][_request_type] = auth_info["method"]
             else:
                 endpoint_context.cdb[client_id]["auth_method"] = {
                     _request_type: auth_info["method"]
@@ -427,9 +413,7 @@ def verify_client(
 
         try:
             # get_client_id_from_token is a callback... Do not abuse for code readability.
-            auth_info["client_id"] = get_client_id_from_token(
-                endpoint_context, _token, request
-            )
+            auth_info["client_id"] = get_client_id_from_token(endpoint_context, _token, request)
         except KeyError:
             raise ValueError("Unknown token")
 

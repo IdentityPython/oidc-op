@@ -25,16 +25,13 @@ def available_claims(endpoint_context):
 
 class ClaimsInterface:
     init_args = {"add_claims_by_scope": False, "enable_claims_per_client": False}
+    claims_types = ["userinfo", "introspection", "id_token", "access_token"]
 
     def __init__(self, server_get):
         self.server_get = server_get
 
-    def authorization_request_claims(
-        self, session_id: str, usage: Optional[str] = ""
-    ) -> dict:
-        _grant = self.server_get("endpoint_context").session_manager.get_grant(
-            session_id
-        )
+    def authorization_request_claims(self, session_id: str, usage: Optional[str] = "") -> dict:
+        _grant = self.server_get("endpoint_context").session_manager.get_grant(session_id)
         if _grant.authorization_request and "claims" in _grant.authorization_request:
             return _grant.authorization_request["claims"].get(usage, {})
 
@@ -46,6 +43,25 @@ class ClaimsInterface:
         if isinstance(client_claims, list):
             client_claims = {k: None for k in client_claims}
         return client_claims
+
+    def _get_module(self, usage, endpoint_context):
+        module = None
+        if usage == "userinfo":
+            module = self.server_get("endpoint", "userinfo")
+        elif usage == "id_token":
+            try:
+                module = endpoint_context.session_manager.token_handler["id_token"]
+            except KeyError:
+                raise ServiceError("No support for ID Tokens")
+        elif usage == "introspection":
+            module = self.server_get("endpoint", "introspection")
+        elif usage == "access_token":
+            try:
+                module = endpoint_context.session_manager.token_handler["access_token"]
+            except KeyError:
+                raise ServiceError("No support for Access Tokens")
+
+        return module
 
     def get_claims(self, session_id: str, scopes: str, usage: str) -> dict:
         """
@@ -59,30 +75,14 @@ class ClaimsInterface:
 
         _context = self.server_get("endpoint_context")
         # which endpoint module configuration to get the base claims from
-        module = None
-        if usage == "userinfo":
-            module = self.server_get("endpoint", "userinfo")
-        elif usage == "id_token":
-            try:
-                module = _context.session_manager.token_handler["id_token"]
-            except KeyError:
-                raise ServiceError("No support for ID Tokens")
-        elif usage == "introspection":
-            module = self.server_get("endpoint", "introspection")
-        elif usage == "access_token":
-            try:
-                module = _context.session_manager.token_handler["access_token"]
-            except KeyError:
-                raise ServiceError("No support for Access Tokens")
+        module = self._get_module(usage, _context)
 
         if module:
             base_claims = module.kwargs.get("base_claims", {})
         else:
             return {}
 
-        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(
-            session_id
-        )
+        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
 
         # Can there be per client specification of which claims to use.
         if module.kwargs.get("enable_claims_per_client"):
@@ -95,20 +95,14 @@ class ClaimsInterface:
         # Scopes can in some cases equate to set of claims, is that used here ?
         if module.kwargs.get("add_claims_by_scope"):
             if scopes:
-                _scopes = _context.scopes_handler.filter_scopes(
-                    client_id, _context, scopes
-                )
+                _scopes = _context.scopes_handler.filter_scopes(client_id, _context, scopes)
 
-                _claims = convert_scopes2claims(
-                    _scopes, scope2claim_map=_context.scope2claims
-                )
+                _claims = convert_scopes2claims(_scopes, scope2claim_map=_context.scope2claims)
                 claims.update(_claims)
 
         # Bring in claims specification from the authorization request
         # This only goes for ID Token and user info
-        request_claims = self.authorization_request_claims(
-            session_id=session_id, usage=usage
-        )
+        request_claims = self.authorization_request_claims(session_id=session_id, usage=usage)
 
         # This will add claims that has not be added before and
         # set filters on those claims that also appears in one of the sources above
@@ -119,7 +113,7 @@ class ClaimsInterface:
 
     def get_claims_all_usage(self, session_id: str, scopes: str) -> dict:
         _claims = {}
-        for usage in ["userinfo", "introspection", "id_token", "access_token"]:
+        for usage in self.claims_types:
             _claims[usage] = self.get_claims(session_id, scopes, usage)
         return _claims
 
@@ -132,9 +126,7 @@ class ClaimsInterface:
         """
         if claims_restriction:
             # Get all possible claims
-            user_info = self.server_get("endpoint_context").userinfo(
-                user_id, client_id=None
-            )
+            user_info = self.server_get("endpoint_context").userinfo(user_id, client_id=None)
             # Filter out the claims that can be returned
             return {
                 k: user_info.get(k)
@@ -194,3 +186,25 @@ def by_schema(cls, **kwa):
     :return: A dictionary with claims (keys) that meets the filter criteria
     """
     return dict([(key, val) for key, val in kwa.items() if key in cls.c_param])
+
+
+class OAuth2ClaimsInterface(ClaimsInterface):
+    claims_types = ["introspection", "access_token"]
+
+    def _get_module(self, usage, endpoint_context):
+        module = None
+        if usage == "introspection":
+            module = self.server_get("endpoint", "introspection")
+        elif usage == "access_token":
+            try:
+                module = endpoint_context.session_manager.token_handler["access_token"]
+            except KeyError:
+                raise ServiceError("No support for Access Tokens")
+
+        return module
+
+    def get_claims_all_usage(self, session_id: str, scopes: str) -> dict:
+        _claims = {}
+        for usage in self.claims_types:
+            _claims[usage] = self.get_claims(session_id, scopes, usage)
+        return _claims

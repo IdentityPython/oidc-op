@@ -1,5 +1,7 @@
 import io
+import os
 
+from oidcop.configure import ASConfiguration
 import pytest
 import yaml
 from cryptojwt import JWT
@@ -14,6 +16,8 @@ from oidcop.oauth2.pushed_authorization import PushedAuthorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.server import Server
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 CAPABILITIES = {
     "subject_types_supported": ["public", "pairwise", "ephemeral"],
@@ -106,18 +110,12 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {
-                    "path": "registration",
-                    "class": Registration,
-                    "kwargs": {},
-                },
+                "registration": {"path": "registration", "class": Registration, "kwargs": {},},
                 "authorization": {
                     "path": "authorization",
                     "class": Authorization,
                     "kwargs": {
-                        "response_types_supported": [
-                            " ".join(x) for x in RESPONSE_TYPES_SUPPORTED
-                        ],
+                        "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
                         "response_modes_supported": ["query", "fragment", "form_post"],
                         "claims_parameter_supported": True,
                         "request_parameter_supported": True,
@@ -157,7 +155,7 @@ class TestEndpoint(object):
                 },
             },
         }
-        server = Server(conf)
+        server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         endpoint_context = server.endpoint_context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = _clients["oidc_clients"]
@@ -171,9 +169,7 @@ class TestEndpoint(object):
             self.rp_keyjar.export_jwks(issuer_id="s6BhdRkqt3"), "s6BhdRkqt3"
         )
 
-        self.pushed_authorization_endpoint = server.server_get(
-            "endpoint", "pushed_authorization"
-        )
+        self.pushed_authorization_endpoint = server.server_get("endpoint", "pushed_authorization")
         self.authorization_endpoint = server.server_get("endpoint", "authorization")
 
     def test_init(self):
@@ -181,14 +177,10 @@ class TestEndpoint(object):
 
     def test_pushed_auth_urlencoded(self):
         http_info = {
-            "headers": {
-                "authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"
-            }
+            "headers": {"authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"}
         }
 
-        _req = self.pushed_authorization_endpoint.parse_request(
-            AUTHN_REQUEST, http_info=http_info
-        )
+        _req = self.pushed_authorization_endpoint.parse_request(AUTHN_REQUEST, http_info=http_info)
 
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {
@@ -208,14 +200,10 @@ class TestEndpoint(object):
 
         authn_request = "request={}".format(_jws)
         http_info = {
-            "headers": {
-                "authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"
-            }
+            "headers": {"authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"}
         }
 
-        _req = self.pushed_authorization_endpoint.parse_request(
-            authn_request, http_info=http_info
-        )
+        _req = self.pushed_authorization_endpoint.parse_request(authn_request, http_info=http_info)
 
         assert isinstance(_req, AuthorizationRequest)
         _req = remove_jwt_parameters(_req)
@@ -233,14 +221,10 @@ class TestEndpoint(object):
 
     def test_pushed_auth_urlencoded_process(self):
         http_info = {
-            "headers": {
-                "authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"
-            }
+            "headers": {"authorization": "Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3"}
         }
 
-        _req = self.pushed_authorization_endpoint.parse_request(
-            AUTHN_REQUEST, http_info=http_info
-        )
+        _req = self.pushed_authorization_endpoint.parse_request(AUTHN_REQUEST, http_info=http_info)
 
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {

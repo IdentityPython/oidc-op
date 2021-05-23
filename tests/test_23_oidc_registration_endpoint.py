@@ -1,6 +1,8 @@
 # -*- coding: latin-1 -*-
 import json
+import os
 
+from oidcop.configure import OPConfiguration
 import pytest
 import responses
 from cryptojwt.key_jar import init_key_jar
@@ -15,6 +17,8 @@ from oidcop.oidc.registration import verify_url
 from oidcop.oidc.token import Token
 from oidcop.oidc.userinfo import UserInfo
 from oidcop.server import Server
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -87,9 +91,7 @@ class TestEndpoint(object):
                 "jwks_def": {
                     "private_path": "private/token_jwks.json",
                     "read_only": False,
-                    "key_defs": [
-                        {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
-                    ],
+                    "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
                 },
                 "code": {"kwargs": {"lifetime": 600}},
                 "token": {
@@ -129,15 +131,9 @@ class TestEndpoint(object):
                     "path": "authorization",
                     "class": Authorization,
                     "kwargs": {
-                        "response_types_supported": [
-                            " ".join(x) for x in RESPONSE_TYPES_SUPPORTED
-                        ],
+                        "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
                         "response_modes_supported": ["query", "fragment", "form_post"],
-                        "claim_types_supported": [
-                            "normal",
-                            "aggregated",
-                            "distributed",
-                        ],
+                        "claim_types_supported": ["normal", "aggregated", "distributed",],
                         "claims_parameter_supported": True,
                         "request_parameter_supported": True,
                         "request_uri_parameter_supported": True,
@@ -159,7 +155,7 @@ class TestEndpoint(object):
             },
             "template_dir": "template",
         }
-        server = Server(conf)
+        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.endpoint = server.server_get("endpoint", "registration")
 
     def test_parse(self):

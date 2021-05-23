@@ -1,8 +1,6 @@
 import json
 import os
 
-from oidcop.configure import OPConfiguration
-import pytest
 from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oidc import AccessTokenRequest
@@ -10,18 +8,16 @@ from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import utc_time_sans_frac
+import pytest
 
 from oidcop import JWT_BEARER
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.client_authn import verify_client
-from oidcop.cookie_handler import CookieHandler
+from oidcop.configure import ASConfiguration
 from oidcop.exception import UnAuthorizedClient
-from oidcop.oidc import userinfo
-from oidcop.oidc.authorization import Authorization
-from oidcop.oidc.provider_config import ProviderConfiguration
-from oidcop.oidc.registration import Registration
-from oidcop.oidc.token import Token
+from oidcop.oauth2.authorization import Authorization
+from oidcop.oauth2.token import Token
 from oidcop.server import Server
 from oidcop.session import MintingNotAllowed
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
@@ -34,24 +30,12 @@ KEYDEFS = [
 
 CLIENT_KEYJAR = build_keyjar(KEYDEFS)
 
-COOKIE_KEYDEFS = [
-    {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]},
-]
-
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
     ["token"],
-    ["id_token"],
-    ["code", "token"],
-    ["code", "id_token"],
-    ["id_token", "token"],
-    ["code", "token", "id_token"],
-    ["none"],
 ]
 
 CAPABILITIES = {
-    "subject_types_supported": ["public", "pairwise", "ephemeral"],
     "grant_types_supported": [
         "authorization_code",
         "implicit",
@@ -115,19 +99,8 @@ def conf():
                 "class": "oidcop.token.jwt_token.JWTToken",
                 "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
             },
-            "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
-        },
-        "cookie_handler": {
-            "class": CookieHandler,
-            "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
         },
         "endpoint": {
-            "provider_config": {
-                "path": ".well-known/openid-configuration",
-                "class": ProviderConfiguration,
-                "kwargs": {},
-            },
-            "registration": {"path": "registration", "class": Registration, "kwargs": {},},
             "authorization": {"path": "authorization", "class": Authorization, "kwargs": {},},
             "token": {
                 "path": "token",
@@ -141,11 +114,6 @@ def conf():
                     ]
                 },
             },
-            "userinfo": {
-                "path": "userinfo",
-                "class": userinfo.UserInfo,
-                "kwargs": {"db_file": "users.json"},
-            },
         },
         "authentication": {
             "anon": {
@@ -157,6 +125,7 @@ def conf():
         "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
         "client_authn": verify_client,
         "template_dir": "template",
+        "claims_interface": {"class": "oidcop.session.claims.OAuth2ClaimsInterface", "kwargs": {}},
         "authz": {
             "class": AuthzHandling,
             "kwargs": {
@@ -164,7 +133,7 @@ def conf():
                     "usage_rules": {
                         "authorization_code": {
                             "expires_in": 300,
-                            "supports_minting": ["access_token", "refresh_token", "id_token",],
+                            "supports_minting": ["access_token", "refresh_token"],
                             "max_usage": 1,
                         },
                         "access_token": {"expires_in": 600},
@@ -183,8 +152,7 @@ def conf():
 class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
-        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-
+        server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         endpoint_context = server.endpoint_context
         endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
@@ -334,7 +302,7 @@ class TestEndpoint(object):
 
     def test_do_refresh_access_token(self):
         areq = AUTH_REQ.copy()
-        areq["scope"] = ["openid", "offline_access"]
+        areq["scope"] = ["openid"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -345,7 +313,7 @@ class TestEndpoint(object):
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(_token_request)
-        _resp = self.token_endpoint.process_request(request=_req)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
 
         _request = REFRESH_TOKEN_REQ.copy()
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
@@ -353,11 +321,7 @@ class TestEndpoint(object):
         _token_value = _resp["response_args"]["refresh_token"]
         _session_info = self.session_manager.get_session_info_by_token(_token_value)
         _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
-        _token.usage_rules["supports_minting"] = [
-            "access_token",
-            "refresh_token",
-            "id_token",
-        ]
+        _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
         _resp = self.token_endpoint.process_request(request=_req)
@@ -367,7 +331,6 @@ class TestEndpoint(object):
             "token_type",
             "expires_in",
             "refresh_token",
-            "id_token",
             "scope",
         }
         msg = self.token_endpoint.do_response(request=_req, **_resp)
@@ -386,7 +349,7 @@ class TestEndpoint(object):
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(_token_request)
-        _resp = self.token_endpoint.process_request(request=_req)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
 
         _request = REFRESH_TOKEN_REQ.copy()
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
@@ -415,7 +378,6 @@ class TestEndpoint(object):
             "token_type",
             "expires_in",
             "refresh_token",
-            "id_token",
             "scope",
         }
         msg = self.token_endpoint.do_response(request=_req, **_resp)
@@ -440,21 +402,21 @@ class TestEndpoint(object):
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(_token_request)
-        _resp = self.token_endpoint.process_request(request=_req)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
         assert "refresh_token" in _resp["response_args"]
         first_refresh_token = _resp["response_args"]["refresh_token"]
 
         _refresh_request = REFRESH_TOKEN_REQ.copy()
         _refresh_request["refresh_token"] = first_refresh_token
         _2nd_req = self.token_endpoint.parse_request(_refresh_request.to_json())
-        _2nd_resp = self.token_endpoint.process_request(request=_2nd_req)
+        _2nd_resp = self.token_endpoint.process_request(request=_2nd_req, issue_refresh=True)
         assert "refresh_token" in _2nd_resp["response_args"]
         second_refresh_token = _2nd_resp["response_args"]["refresh_token"]
 
         _2d_refresh_request = REFRESH_TOKEN_REQ.copy()
         _2d_refresh_request["refresh_token"] = second_refresh_token
         _3rd_req = self.token_endpoint.parse_request(_2d_refresh_request.to_json())
-        _3rd_resp = self.token_endpoint.process_request(request=_3rd_req)
+        _3rd_resp = self.token_endpoint.process_request(request=_3rd_req, issue_refresh=True)
         assert "access_token" in _3rd_resp["response_args"]
         assert "refresh_token" in _3rd_resp["response_args"]
 
@@ -476,7 +438,7 @@ class TestEndpoint(object):
         # but it's testing so anything goes.
         grant.usage_rules["refresh_token"] = {"supports_minting": []}
         _req = self.token_endpoint.parse_request(_token_request)
-        _resp = self.token_endpoint.process_request(request=_req)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
 
         _request = REFRESH_TOKEN_REQ.copy()
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
@@ -486,7 +448,7 @@ class TestEndpoint(object):
 
     def test_do_refresh_access_token_revoked(self):
         areq = AUTH_REQ.copy()
-        areq["scope"] = ["openid", "offline_access"]
+        areq["scope"] = ["openid"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -497,7 +459,7 @@ class TestEndpoint(object):
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(_token_request)
-        _resp = self.token_endpoint.process_request(request=_req)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
 
         _refresh_token = _resp["response_args"]["refresh_token"]
         _cntx.session_manager.revoke_token(session_id, _refresh_token)

@@ -19,9 +19,7 @@ def test_op_configure():
     _str = open(full_path("op_config.json")).read()
     _conf = json.loads(_str)
 
-    configuration = OPConfiguration(
-        conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443
-    )
+    configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     assert configuration
     assert "add_on" in configuration
     authz_conf = configuration["authz"]
@@ -68,9 +66,7 @@ def test_op_configure_default():
     _str = open(full_path("op_config.json")).read()
     _conf = json.loads(_str)
 
-    configuration = OPConfiguration(
-        conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443
-    )
+    configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     assert configuration
     assert "add_on" in configuration
     authz = configuration["authz"]
@@ -78,10 +74,7 @@ def test_op_configure_default():
     id_token_conf = configuration.get("id_token", {})
     assert set(id_token_conf.keys()) == {"kwargs", "class"}
     assert id_token_conf["kwargs"] == {
-        "base_claims": {
-            "email": {"essential": True},
-            "email_verified": {"essential": True},
-        }
+        "base_claims": {"email": {"essential": True}, "email_verified": {"essential": True},}
     }
 
 
@@ -100,19 +93,14 @@ def test_op_configure_default_from_file():
     id_token_conf = configuration.get("id_token", {})
     assert set(id_token_conf.keys()) == {"kwargs", "class"}
     assert id_token_conf["kwargs"] == {
-        "base_claims": {
-            "email": {"essential": True},
-            "email_verified": {"essential": True},
-        }
+        "base_claims": {"email": {"essential": True}, "email_verified": {"essential": True},}
     }
 
 
 def test_server_configure():
     configuration = create_from_config_file(
         Configuration,
-        entity_conf=[
-            {"class": OPConfiguration, "attr": "op", "path": ["op", "server_info"]}
-        ],
+        entity_conf=[{"class": OPConfiguration, "attr": "op", "path": ["op", "server_info"]}],
         filename=full_path("srv_config.yaml"),
         base_path=BASEDIR,
     )
@@ -156,9 +144,7 @@ CONF = {
             "formatter": "default",
         },
     },
-    "formatters": {
-        "default": {"format": "%(asctime)s %(name)s %(levelname)s %(message)s"}
-    },
+    "formatters": {"default": {"format": "%(asctime)s %(name)s %(levelname)s %(message)s"}},
 }
 
 

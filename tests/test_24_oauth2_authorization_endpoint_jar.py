@@ -3,6 +3,7 @@ import json
 import os
 from http.cookies import SimpleCookie
 
+from oidcop.configure import ASConfiguration
 import pytest
 import responses
 import yaml
@@ -129,9 +130,7 @@ class TestEndpoint(object):
                     "path": "{}/authorization",
                     "class": Authorization,
                     "kwargs": {
-                        "response_types_supported": [
-                            " ".join(x) for x in RESPONSE_TYPES_SUPPORTED
-                        ],
+                        "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
                         "response_modes_supported": ["query", "fragment", "form_post"],
                         "claims_parameter_supported": True,
                         "request_parameter_supported": True,
@@ -161,7 +160,7 @@ class TestEndpoint(object):
                 },
             },
         }
-        server = Server(conf)
+        server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         endpoint_context = server.endpoint_context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = _clients["clients"]
@@ -179,8 +178,7 @@ class TestEndpoint(object):
     def test_parse_request_parameter(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
-            AUTH_REQ_DICT,
-            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
+            AUTH_REQ_DICT, aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
         )
         # -----------------
         _req = self.endpoint.parse_request(
@@ -197,8 +195,7 @@ class TestEndpoint(object):
     def test_parse_request_uri(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
-            AUTH_REQ_DICT,
-            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
+            AUTH_REQ_DICT, aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
         )
 
         request_uri = "https://client.example.com/req"

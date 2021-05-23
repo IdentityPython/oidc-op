@@ -7,12 +7,12 @@ from oidcmsg.impexp import ImpExp
 
 from oidcop import authz
 from oidcop.client_authn import client_auth_setup
+from oidcop.configure import ASConfiguration
 from oidcop.configure import OPConfiguration
 from oidcop.endpoint import Endpoint
 from oidcop.endpoint_context import EndpointContext
 from oidcop.endpoint_context import init_service
 from oidcop.endpoint_context import init_user_info
-from oidcop.session.claims import ClaimsInterface
 from oidcop.session.manager import create_session_manager
 from oidcop.user_authn.authn_context import populate_authn_broker
 from oidcop.util import allow_refresh_token
@@ -20,9 +20,7 @@ from oidcop.util import build_endpoints
 
 
 def do_endpoints(conf, server_get):
-    endpoints = build_endpoints(
-        conf["endpoint"], server_get=server_get, issuer=conf["issuer"]
-    )
+    endpoints = build_endpoints(conf["endpoint"], server_get=server_get, issuer=conf["issuer"])
 
     _cap = conf.get("capabilities", {})
 
@@ -60,7 +58,7 @@ class Server(ImpExp):
 
     def __init__(
         self,
-        conf: Union[dict, OPConfiguration],
+        conf: Union[dict, OPConfiguration, ASConfiguration],
         keyjar: Optional[KeyJar] = None,
         cwd: Optional[str] = "",
         cookie_handler: Optional[Any] = None,
@@ -69,11 +67,7 @@ class Server(ImpExp):
         ImpExp.__init__(self)
         self.conf = conf
         self.endpoint_context = EndpointContext(
-            conf=conf,
-            keyjar=keyjar,
-            cwd=cwd,
-            cookie_handler=cookie_handler,
-            httpc=httpc,
+            conf=conf, keyjar=keyjar, cwd=cwd, cookie_handler=cookie_handler, httpc=httpc,
         )
         self.endpoint_context.authz = self.do_authz()
 
@@ -82,9 +76,7 @@ class Server(ImpExp):
         self.endpoint = do_endpoints(conf, self.server_get)
         _cap = get_capabilities(conf, self.endpoint)
 
-        self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(
-            _cap
-        )
+        self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
         self.endpoint_context.do_add_on(endpoints=self.endpoint)
 
         self.endpoint_context.session_manager = create_session_manager(
@@ -102,12 +94,8 @@ class Server(ImpExp):
 
             self.client_authn_method = []
             if _methods:
-                _endpoint.client_authn_method = client_auth_setup(
-                    _methods, self.server_get
-                )
-            elif (
-                _methods is not None
-            ):  # [] or '' or something not None but regarded as nothing.
+                _endpoint.client_authn_method = client_auth_setup(_methods, self.server_get)
+            elif _methods is not None:  # [] or '' or something not None but regarded as nothing.
                 _endpoint.client_authn_method = [None]  # Ignore default value
             elif _endpoint.default_capabilities:
                 _methods = _endpoint.default_capabilities.get("client_authn_method")
@@ -122,8 +110,8 @@ class Server(ImpExp):
         if _token_endp:
             _token_endp.allow_refresh = allow_refresh_token(self.endpoint_context)
 
-        self.endpoint_context.claims_interface = ClaimsInterface(
-            server_get=self.server_get
+        self.endpoint_context.claims_interface = init_service(
+            conf["claims_interface"], self.server_get
         )
 
         _id_token_handler = self.endpoint_context.session_manager.token_handler.handler.get(
@@ -181,9 +169,7 @@ class Server(ImpExp):
             if _kwargs:
                 _userinfo_conf = _kwargs.get("userinfo")
                 if _userinfo_conf:
-                    _userinfo = init_user_info(
-                        _userinfo_conf, self.endpoint_context.cwd
-                    )
+                    _userinfo = init_user_info(_userinfo_conf, self.endpoint_context.cwd)
 
             if _userinfo is None:
                 _userinfo = self.endpoint_context.userinfo

@@ -61,11 +61,7 @@ conf = {
             "class": "oidcop.oidc.authorization.Authorization",
             "kwargs": {},
         },
-        "token_endpoint": {
-            "path": "token",
-            "class": "oidcop.oidc.token.Token",
-            "kwargs": {},
-        },
+        "token_endpoint": {"path": "token", "class": "oidcop.oidc.token.Token", "kwargs": {},},
         "userinfo_endpoint": {
             "path": "userinfo",
             "class": "oidcop.oidc.userinfo.UserInfo",
@@ -102,6 +98,7 @@ conf = {
         "class": "oidcop.user_info.UserInfo",
         "kwargs": {"db_file": full_path("users.json")},
     },
+    "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
 }
 
 USER_ID = "diana"
@@ -143,46 +140,34 @@ class TestEndpoint(object):
     def test_authorization_request_id_token_claims(self):
         session_id = self._create_session(AREQ)
 
-        claims = self.claims_interface.authorization_request_claims(
-            session_id, "id_token"
-        )
+        claims = self.claims_interface.authorization_request_claims(session_id, "id_token")
         assert claims == {}
 
     def test_authorization_request_id_token_claims_2(self):
         session_id = self._create_session(AREQ_2)
-        claims = self.claims_interface.authorization_request_claims(
-            session_id, "id_token"
-        )
+        claims = self.claims_interface.authorization_request_claims(session_id, "id_token")
         assert claims
         assert set(claims.keys()) == {"nickname"}
 
     def test_authorization_request_userinfo_claims(self):
         session_id = self._create_session(AREQ)
 
-        claims = self.claims_interface.authorization_request_claims(
-            session_id, "userinfo"
-        )
+        claims = self.claims_interface.authorization_request_claims(session_id, "userinfo")
         assert claims == {}
 
     def test_authorization_request_userinfo_claims_2(self):
         session_id = self._create_session(AREQ_2)
 
-        claims = self.claims_interface.authorization_request_claims(
-            session_id, "userinfo"
-        )
+        claims = self.claims_interface.authorization_request_claims(session_id, "userinfo")
         assert claims == {}
 
     def test_authorization_request_userinfo_claims_3(self):
         session_id = self._create_session(AREQ_3)
 
-        claims = self.claims_interface.authorization_request_claims(
-            session_id, "userinfo"
-        )
+        claims = self.claims_interface.authorization_request_claims(session_id, "userinfo")
         assert set(claims.keys()) == {"name", "email", "email_verified"}
 
-    @pytest.mark.parametrize(
-        "usage", ["id_token", "userinfo", "introspection", "token"]
-    )
+    @pytest.mark.parametrize("usage", ["id_token", "userinfo", "introspection", "token"])
     def test_get_client_claims_0(self, usage):
         claims = self.claims_interface._get_client_claims("client_1", usage)
         assert claims == {}
@@ -202,9 +187,7 @@ class TestEndpoint(object):
         claims = self.claims_interface._get_client_claims("client_1", "introspection")
         assert set(claims.keys()) == {"email"}
 
-    @pytest.mark.parametrize(
-        "usage", ["id_token", "userinfo", "introspection", "token"]
-    )
+    @pytest.mark.parametrize("usage", ["id_token", "userinfo", "introspection", "token"])
     def test_get_claims(self, usage):
         session_id = self._create_session(AREQ)
         claims = self.claims_interface.get_claims(session_id, [], usage)
@@ -238,9 +221,7 @@ class TestEndpoint(object):
         }
         self.endpoint_context.cdb["client_1"]["id_token_claims"] = ["name", "email"]
 
-        claims = self.claims_interface.get_claims(
-            session_id, ["openid", "address"], "id_token"
-        )
+        claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "id_token")
         assert set(claims.keys()) == {
             "name",
             "email",
@@ -259,9 +240,7 @@ class TestEndpoint(object):
         }
         self.endpoint_context.cdb["client_1"]["userinfo_claims"] = ["name", "email"]
 
-        claims = self.claims_interface.get_claims(
-            session_id, ["openid", "address"], "userinfo"
-        )
+        claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "userinfo")
         assert set(claims.keys()) == {
             "name",
             "email",
@@ -304,9 +283,7 @@ class TestEndpoint(object):
         self.endpoint_context.cdb["client_1"]["access_token_claims"] = ["name", "email"]
 
         session_id = self._create_session(AREQ)
-        claims = self.claims_interface.get_claims(
-            session_id, ["openid", "address"], "access_token"
-        )
+        claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "access_token")
         assert set(claims.keys()) == {
             "name",
             "email",
@@ -324,9 +301,7 @@ class TestEndpoint(object):
         self.server.server_get("endpoint", "introspection").kwargs = {}
 
         session_id = self._create_session(AREQ)
-        claims = self.claims_interface.get_claims_all_usage(
-            session_id, ["openid", "address"]
-        )
+        claims = self.claims_interface.get_claims_all_usage(session_id, ["openid", "address"])
         assert set(claims.keys()) == {
             "id_token",
             "userinfo",
@@ -347,16 +322,12 @@ class TestEndpoint(object):
         }
         self.endpoint_context.cdb["client_1"]["userinfo_claims"] = ["name", "email"]
 
-        self.server.server_get("endpoint", "introspection").kwargs = {
-            "add_claims_by_scope": True
-        }
+        self.server.server_get("endpoint", "introspection").kwargs = {"add_claims_by_scope": True}
 
         self.endpoint_context.session_manager.token_handler["access_token"].kwargs = {}
 
         session_id = self._create_session(AREQ)
-        claims = self.claims_interface.get_claims_all_usage(
-            session_id, ["openid", "address"]
-        )
+        claims = self.claims_interface.get_claims_all_usage(session_id, ["openid", "address"])
 
         assert set(claims.keys()) == {
             "id_token",
@@ -380,9 +351,7 @@ class TestEndpoint(object):
         }
         self.endpoint_context.cdb["client_1"]["userinfo_claims"] = ["name", "email"]
 
-        self.server.server_get("endpoint", "introspection").kwargs = {
-            "add_claims_by_scope": True
-        }
+        self.server.server_get("endpoint", "introspection").kwargs = {"add_claims_by_scope": True}
 
         self.endpoint_context.session_manager.token_handler["access_token"].kwargs = {}
 
@@ -391,14 +360,10 @@ class TestEndpoint(object):
             session_id, ["openid", "address"]
         )
 
-        _claims = self.claims_interface.get_user_claims(
-            USER_ID, claims_restriction["userinfo"]
-        )
+        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["userinfo"])
         assert _claims == {"name": "Diana Krall", "email": "diana@example.org"}
 
-        _claims = self.claims_interface.get_user_claims(
-            USER_ID, claims_restriction["id_token"]
-        )
+        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["id_token"])
         assert _claims == {"email_verified": False, "email": "diana@example.org"}
 
         _claims = self.claims_interface.get_user_claims(
@@ -414,7 +379,5 @@ class TestEndpoint(object):
             }
         }
 
-        _claims = self.claims_interface.get_user_claims(
-            USER_ID, claims_restriction["access_token"]
-        )
+        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["access_token"])
         assert _claims == {}

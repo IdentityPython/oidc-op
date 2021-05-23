@@ -19,27 +19,15 @@ conf = {
     "verify_ssl": False,
     "capabilities": {},
     "jwks_uri": "https://example.com/jwks.json",
-    "keys": {
-        "private_path": "own/jwks.json",
-        "key_defs": KEYDEFS,
-        "uri_path": "static/jwks.json",
-    },
+    "keys": {"private_path": "own/jwks.json", "key_defs": KEYDEFS, "uri_path": "static/jwks.json",},
     "endpoint": {
         "provider_config": {
             "path": ".well-known/openid-configuration",
             "class": ProviderConfiguration,
             "kwargs": {},
         },
-        "registration_endpoint": {
-            "path": "registration",
-            "class": Registration,
-            "kwargs": {},
-        },
-        "authorization_endpoint": {
-            "path": "authorization",
-            "class": Authorization,
-            "kwargs": {},
-        },
+        "registration_endpoint": {"path": "registration", "class": Registration, "kwargs": {},},
+        "authorization_endpoint": {"path": "authorization", "class": Authorization, "kwargs": {},},
         "token_endpoint": {"path": "token", "class": Token, "kwargs": {}},
         "userinfo_endpoint": {
             "path": "userinfo",

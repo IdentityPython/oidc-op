@@ -31,9 +31,7 @@ class Token(object):
         self.lifetime = lifetime
         self.kwargs = kwargs
 
-    def __call__(
-        self, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload
-    ) -> str:
+    def __call__(self, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload) -> str:
         """
         Return a token.
 
@@ -72,9 +70,7 @@ class DefaultToken(Token):
         self.crypt = Crypt(password)
         self.token_type = token_type
 
-    def __call__(
-        self, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload
-    ) -> str:
+    def __call__(self, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload) -> str:
         """
         Return a token.
 

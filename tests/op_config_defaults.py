@@ -6,10 +6,7 @@ CONFIG = {
             "kwargs": {
                 "verify_endpoint": "verify/user",
                 "template": "user_pass.jinja2",
-                "db": {
-                    "class": "oidcop.util.JSONDictDB",
-                    "kwargs": {"filename": "passwd.json"},
-                },
+                "db": {"class": "oidcop.util.JSONDictDB", "kwargs": {"filename": "passwd.json"},},
                 "page_header": "Testing log in",
                 "submit_btn": "Get me in!",
                 "user_label": "Nickname",
@@ -40,10 +37,7 @@ CONFIG = {
         "registration": {
             "path": "registration",
             "class": "oidcop.oidc.registration.Registration",
-            "kwargs": {
-                "client_authn_method": None,
-                "client_secret_expiration_time": 432000,
-            },
+            "kwargs": {"client_authn_method": None, "client_secret_expiration_time": 432000,},
         },
         "registration_api": {
             "path": "registration_api",
@@ -53,10 +47,7 @@ CONFIG = {
         "introspection": {
             "path": "introspection",
             "class": "oidcop.oauth2.introspection.Introspection",
-            "kwargs": {
-                "client_authn_method": ["client_secret_post"],
-                "release": ["username"],
-            },
+            "kwargs": {"client_authn_method": ["client_secret_post"], "release": ["username"],},
         },
         "authorization": {
             "path": "authorization",
@@ -94,9 +85,7 @@ CONFIG = {
         "userinfo": {
             "path": "userinfo",
             "class": "oidcop.oidc.userinfo.UserInfo",
-            "kwargs": {
-                "claim_types_supported": ["normal", "aggregated", "distributed"]
-            },
+            "kwargs": {"claim_types_supported": ["normal", "aggregated", "distributed"]},
         },
         "end_session": {
             "path": "session",
@@ -126,9 +115,7 @@ CONFIG = {
     "login_hint2acrs": {
         "class": "oidcop.login_hint.LoginHint2Acrs",
         "kwargs": {
-            "scheme_map": {
-                "email": ["oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"]
-            }
+            "scheme_map": {"email": ["oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"]}
         },
     },
     "token_handler_args": {
@@ -145,20 +132,12 @@ CONFIG = {
             "class": "oidcop.token.jwt_token.JWTToken",
             "kwargs": {
                 "lifetime": 3600,
-                "add_claims": [
-                    "email",
-                    "email_verified",
-                    "phone_number",
-                    "phone_number_verified",
-                ],
+                "add_claims": ["email", "email_verified", "phone_number", "phone_number_verified",],
                 "add_claim_by_scope": True,
                 "aud": ["https://example.org/appl"],
             },
         },
         "refresh": {"kwargs": {"lifetime": 86400}},
     },
-    "userinfo": {
-        "class": "oidcop.user_info.UserInfo",
-        "kwargs": {"filename": "users.json"},
-    },
+    "userinfo": {"class": "oidcop.user_info.UserInfo", "kwargs": {"filename": "users.json"},},
 }
