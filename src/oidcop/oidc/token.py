@@ -123,6 +123,15 @@ class AccessTokenHelper(TokenEndpointHelper):
         _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
         grant = _session_info["grant"]
 
+        token_type = "Bearer"
+
+        # Is DPOP supported
+        if "dpop_signing_alg_values_supported" in _context.provider_info:
+            _dpop_jkt = req.get("dpop_jkt")
+            if _dpop_jkt:
+                grant.extra["dpop_jkt"] = _dpop_jkt
+                token_type = "DPoP"
+
         _based_on = grant.get_token(_access_code)
         _supports_minting = _based_on.usage_rules.get("supports_minting", [])
 
@@ -146,7 +155,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 issue_refresh = True
 
         _response = {
-            "token_type": "Bearer",
+            "token_type": token_type,
             "scope": grant.scope,
         }
 
@@ -260,9 +269,17 @@ class RefreshTokenHelper(TokenEndpointHelper):
             )
 
         token_value = req["refresh_token"]
-        _session_info = _mngr.get_session_info_by_token(
-            token_value, grant=True
-        )
+        _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+        grant = _session_info["grant"]
+
+        token_type = "Bearer"
+
+        # Is DPOP supported
+        if "dpop_signing_alg_values_supported" in _context.provider_info:
+            _dpop_jkt = req.get("dpop_jkt")
+            if _dpop_jkt:
+                grant.extra["dpop_jkt"] = _dpop_jkt
+                token_type = "DPoP"
 
         _grant = _session_info["grant"]
         token = _grant.get_token(token_value)
@@ -276,7 +293,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         _resp = {
             "access_token": access_token.value,
-            "token_type": access_token.type,
+            "token_type": token_type,
             "scope": _grant.scope,
         }
 

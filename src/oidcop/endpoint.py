@@ -201,7 +201,8 @@ class Endpoint(object):
         LOGGER.info("Parsed and verified request: %s" % sanitize(req))
 
         # Do any endpoint specific parsing
-        return self.do_post_parse_request(request=req, client_id=_client_id, **kwargs)
+        return self.do_post_parse_request(request=req, client_id=_client_id, http_info=http_info,
+                                          **kwargs)
 
     def get_client_id_from_token(
         self,
