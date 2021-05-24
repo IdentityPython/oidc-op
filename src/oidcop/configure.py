@@ -185,9 +185,7 @@ class Base:
             yield key, getattr(self, key)
 
 
-class OPConfiguration(Base):
-    "Provider configuration"
-
+class EntityConfiguration(Base):
     def __init__(
             self,
             conf: Dict,
@@ -210,13 +208,9 @@ class OPConfiguration(Base):
         self.cookie_handler = None
         self.endpoint = {}
         self.httpc_params = {}
-        self.id_token = None
         self.issuer = ""
         self.keys = None
-        self.login_hint2acrs = {}
-        self.login_hint_lookup = None
         self.session_key = None
-        self.sub_func = {}
         self.template_dir = None
         self.token_handler_args = {}
         self.userinfo = None
@@ -249,12 +243,37 @@ class OPConfiguration(Base):
         set_domain_and_port(conf, URIS, domain=domain, port=port)
 
 
+class OPConfiguration(EntityConfiguration):
+    "Provider configuration"
+
+    def __init__(
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            file_attributes: Optional[List[str]] = None,
+    ):
+        # OP special
+        self.default_config = OP_DEFAULT_CONFIG
+
+        self.id_token = None
+        self.login_hint2acrs = {}
+        self.login_hint_lookup = None
+        self.sub_func = {}
+
+        EntityConfiguration.__init__(self, conf=conf, base_path=base_path,
+                                     entity_conf=entity_conf, domain=domain, port=port,
+                                     file_attributes=file_attributes)
+
+
 AS_DEFAULT_CONFIG = copy.deepcopy(OP_DEFAULT_CONFIG)
 AS_DEFAULT_CONFIG["claims_interface"] = {
     "class": "oidcop.session.claims.OAuth2ClaimsInterface", "kwargs": {}}
 
 
-class ASConfiguration(Base):
+class ASConfiguration(EntityConfiguration):
     "Authorization server configuration"
 
     def __init__(
@@ -266,52 +285,11 @@ class ASConfiguration(Base):
             port: Optional[int] = 0,
             file_attributes: Optional[List[str]] = None,
     ):
+        self.default_config = AS_DEFAULT_CONFIG
 
-        conf = copy.deepcopy(conf)
-        Base.__init__(self, conf, base_path, file_attributes)
-
-        self.add_on = None
-        self.authz = None
-        self.authentication = None
-        self.base_url = ""
-        self.capabilities = None
-        self.claims_interface = None
-        self.cookie_handler = None
-        self.endpoint = {}
-        self.httpc_params = {}
-        self.issuer = ""
-        self.keys = None
-        self.session_key = None
-        self.template_dir = None
-        self.token_handler_args = {}
-        self.userinfo = None
-
-        if file_attributes is None:
-            file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
-
-        for key in self.__dict__.keys():
-            _val = conf.get(key)
-            if not _val:
-                if key in AS_DEFAULT_CONFIG:
-                    _dc = copy.deepcopy(AS_DEFAULT_CONFIG[key])
-                    add_base_path(_dc, base_path, file_attributes)
-                    _val = _dc
-                else:
-                    continue
-            setattr(self, key, _val)
-
-        if self.template_dir is None:
-            self.template_dir = os.path.abspath("templates")
-        else:
-            self.template_dir = os.path.abspath(self.template_dir)
-
-        if not domain:
-            domain = conf.get("domain", "127.0.0.1")
-
-        if not port:
-            port = conf.get("port", 80)
-
-        set_domain_and_port(conf, URIS, domain=domain, port=port)
+        EntityConfiguration.__init__(self, conf=conf, base_path=base_path,
+                                     entity_conf=entity_conf, domain=domain, port=port,
+                                     file_attributes=file_attributes)
 
 
 class Configuration(Base):
