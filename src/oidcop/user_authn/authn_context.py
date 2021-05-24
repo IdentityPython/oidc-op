@@ -108,58 +108,45 @@ class AuthnBroker(object):
             return None
 
 
-def pick_auth(endpoint_context, areq, all=False):
+def pick_auth(endpoint_context, areq, pick_all=False):
     """
     Pick authentication method
 
     :param areq: AuthorizationRequest instance
     :return: A dictionary with the authentication method and its authn class ref
     """
-
     acrs = []
-    try:
-        if len(endpoint_context.authn_broker) == 1:
-            return endpoint_context.authn_broker.default()
+    if len(endpoint_context.authn_broker) == 1:
+        return endpoint_context.authn_broker.default()
 
-        if "acr_values" in areq:
-            if not isinstance(areq["acr_values"], list):
-                areq["acr_values"] = [areq["acr_values"]]
-            acrs = areq["acr_values"]
-        else:  # same as any
-            try:
-                acrs = areq["claims"]["id_token"]["acr"]["values"]
-            except KeyError:
-                try:
-                    _ith = areq[verified_claim_name("id_token_hint")]
-                except KeyError:
-                    try:
-                        _hint = areq["login_hint"]
-                    except KeyError:
-                        pass
-                    else:
-                        if endpoint_context.login_hint2acrs:
-                            acrs = endpoint_context.login_hint2acrs(_hint)
-                else:
-                    try:
-                        acrs = [_ith["acr"]]
-                    except KeyError:
-                        pass
+    if "acr_values" in areq:
+        if not isinstance(areq["acr_values"], list):
+            areq["acr_values"] = [areq["acr_values"]]
+        acrs = areq["acr_values"]
 
-                if not acrs:
-                    return endpoint_context.authn_broker.default()
+    else:
+        try:
+            acrs = areq["claims"]["id_token"]["acr"]["values"]
+        except KeyError:
+            _ith = verified_claim_name("id_token_hint")
+            if areq.get(_ith):
+                _ith = areq[verified_claim_name("id_token_hint")]
+                if _ith.get("acr"):
+                    acrs = [_ith["acr"]]
+            else:
+                if areq.get("login_hint") and endpoint_context.login_hint2acrs:
+                    acrs = endpoint_context.login_hint2acrs(areq["login_hint"])
 
-        for acr in acrs:
-            res = endpoint_context.authn_broker.pick(acr)
-            logger.debug("Picked AuthN broker for ACR %s: %s" % (str(acr), str(res)))
-            if res:
-                if all:
-                    return res
-                else:
-                    # Return the first guess by pick.
-                    return res[0]
+    if not acrs:
+        return endpoint_context.authn_broker.default()
 
-    except KeyError as exc:
-        logger.debug("An error occurred while picking the authN broker: %s" % str(exc))
+    for acr in acrs:
+        res = endpoint_context.authn_broker.pick(acr)
+        logger.debug(
+            f"Picked AuthN broker for ACR {str(acr)}: {str(res)}"
+        )
+        if res:
+            return res if pick_all else res[0]
 
     return None
 

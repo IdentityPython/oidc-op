@@ -179,7 +179,7 @@ class TestAuthnBrokerEC:
 
     def test_pick_authn_all(self):
         request = {"acr_values": INTERNETPROTOCOLPASSWORD}
-        res = pick_auth(self.server.server_get("endpoint_context"), request, all=True)
+        res = pick_auth(self.server.server_get("endpoint_context"), request, pick_all=True)
         assert len(res) == 2
 
 

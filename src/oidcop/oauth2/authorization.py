@@ -429,11 +429,16 @@ class Authorization(Endpoint):
         if auth_id:
             return _context.authn_broker[auth_id]
 
+        res = None
         if acr:
             res = _context.authn_broker.pick(acr)
         else:
-            res = pick_auth(_context, request)
-
+            try:
+                res = pick_auth(_context, request)
+            except Exception as e:
+                logger.debug(
+                    f"An error occurred while picking the authN broker: {exc}"
+                )
         if res:
             return res
         else:
