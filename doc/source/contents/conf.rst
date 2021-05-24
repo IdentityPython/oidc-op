@@ -358,6 +358,9 @@ This can be useful during the first time the project have been executed, then to
 login_hint2acrs
 ---------------
 
+OIDC Login hint support, it's optional.
+It matches the login_hint paramenter to one or more Authentication Contexts.
+
 An example::
 
       "login_hint2acrs": {
@@ -370,6 +373,17 @@ An example::
           }
         }
       },
+
+oidc-op supports the following authn contexts:
+
+- UNSPECIFIED, urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified
+- INTERNETPROTOCOLPASSWORD, urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword
+- MOBILETWOFACTORCONTRACT, urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract
+- PASSWORDPROTECTEDTRANSPORT, urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport
+- PASSWORD, urn:oasis:names:tc:SAML:2.0:ac:classes:Password
+- TLSCLIENT, urn:oasis:names:tc:SAML:2.0:ac:classes:TLSClient
+- TIMESYNCTOKEN, urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken
+
 
 -----
 authz
@@ -409,9 +423,32 @@ An example::
 template_dir
 ------------
 
+The HTML Template directory used by Jinja2, used by endpoint context
+ template loader, as::
+
+    Environment(loader=FileSystemLoader(template_dir), autoescape=True)
+
 An example::
 
       "template_dir": "templates"
+
+For any further customization of template here an example of what used in django-oidc-op
+
+      "authentication": {
+        "user": {
+          "acr": "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
+          "class": "oidc_provider.users.UserPassDjango",
+          "kwargs": {
+            "verify_endpoint": "verify/oidc_user_login/",
+            "template": "oidc_login.html",
+
+            "page_header": "Testing log in",
+            "submit_btn": "Get me in!",
+            "user_label": "Nickname",
+            "passwd_label": "Secret sauce"
+          }
+        }
+      },
 
 ------------------
 token_handler_args

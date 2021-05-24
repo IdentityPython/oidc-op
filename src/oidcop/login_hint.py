@@ -21,6 +21,9 @@ class LoginHintLookup(object):
 
 
 class LoginHint2Acrs(object):
+    """
+    OIDC Login hint support
+    """
     def __init__(self, scheme_map, server_get=None):
         self.scheme_map = scheme_map
         self.server_get = server_get
