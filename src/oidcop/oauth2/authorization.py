@@ -435,8 +435,8 @@ class Authorization(Endpoint):
         else:
             try:
                 res = pick_auth(_context, request)
-            except Exception as e:
-                logger.debug(
+            except Exception as exc:
+                logger.exception(
                     f"An error occurred while picking the authN broker: {exc}"
                 )
         if res:
