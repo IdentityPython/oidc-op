@@ -48,7 +48,12 @@ class AccessTokenHelper(TokenEndpointHelper):
         token_type = "Bearer"
 
         # Is DPOP supported
-        if "dpop_signing_alg_values_supported" in _context.provider_info:
+        try:
+            _dpop_enabled = _context.dpop_enabled
+        except AttributeError:
+            _dpop_enabled = False
+
+        if _dpop_enabled:
             _dpop_jkt = req.get("dpop_jkt")
             if _dpop_jkt:
                 grant.extra["dpop_jkt"] = _dpop_jkt

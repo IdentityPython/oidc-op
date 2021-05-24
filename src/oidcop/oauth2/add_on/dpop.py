@@ -146,7 +146,8 @@ def add_support(endpoint, **kwargs):
         "dpop_signing_alg_values_supported"
     ] = _algs_supported
 
-    # Other endpoint this may come in handy
+    _endpoint_context = _token_endp.server_get("endpoint_context")
+    _endpoint_context.dpop_enabled = True
 
 
 # DPoP-bound access token in the "Authorization" header and the DPoP proof in the "DPoP" header
