@@ -78,6 +78,10 @@ OP_DEFAULT_CONFIG = {
     },
 }
 
+AS_DEFAULT_CONFIG = copy.deepcopy(OP_DEFAULT_CONFIG)
+AS_DEFAULT_CONFIG["claims_interface"] = {
+    "class": "oidcop.session.claims.OAuth2ClaimsInterface", "kwargs": {}}
+
 
 def add_base_path(conf: Union[dict, str], base_path: str, file_attributes: List[str]):
     if isinstance(conf, str):
@@ -186,6 +190,8 @@ class Base:
 
 
 class EntityConfiguration(Base):
+    default_config = AS_DEFAULT_CONFIG
+
     def __init__(
             self,
             conf: Dict,
@@ -223,8 +229,8 @@ class EntityConfiguration(Base):
         for key in self.__dict__.keys():
             _val = conf.get(key)
             if not _val:
-                if key in OP_DEFAULT_CONFIG:
-                    _dc = copy.deepcopy(OP_DEFAULT_CONFIG[key])
+                if key in self.default_config:
+                    _dc = copy.deepcopy(self.default_config[key])
                     add_base_path(_dc, base_path, file_attributes)
                     _val = _dc
                 else:
@@ -247,6 +253,7 @@ class EntityConfiguration(Base):
 
 class OPConfiguration(EntityConfiguration):
     "Provider configuration"
+    default_config = OP_DEFAULT_CONFIG
 
     def __init__(
             self,
@@ -258,8 +265,6 @@ class OPConfiguration(EntityConfiguration):
             file_attributes: Optional[List[str]] = None,
     ):
         # OP special
-        self.default_config = OP_DEFAULT_CONFIG
-
         self.id_token = None
         self.login_hint2acrs = {}
         self.login_hint_lookup = None
@@ -268,11 +273,6 @@ class OPConfiguration(EntityConfiguration):
         EntityConfiguration.__init__(self, conf=conf, base_path=base_path,
                                      entity_conf=entity_conf, domain=domain, port=port,
                                      file_attributes=file_attributes)
-
-
-AS_DEFAULT_CONFIG = copy.deepcopy(OP_DEFAULT_CONFIG)
-AS_DEFAULT_CONFIG["claims_interface"] = {
-    "class": "oidcop.session.claims.OAuth2ClaimsInterface", "kwargs": {}}
 
 
 class ASConfiguration(EntityConfiguration):
@@ -287,8 +287,6 @@ class ASConfiguration(EntityConfiguration):
             port: Optional[int] = 0,
             file_attributes: Optional[List[str]] = None,
     ):
-        self.default_config = AS_DEFAULT_CONFIG
-
         EntityConfiguration.__init__(self, conf=conf, base_path=base_path,
                                      entity_conf=entity_conf, domain=domain, port=port,
                                      file_attributes=file_attributes)
