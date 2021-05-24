@@ -417,6 +417,11 @@ An example::
 token_handler_args
 ------------------
 
+Token handler is an intermediate interface used by and endpoint to manage
+ the tokens' default behaviour, like lifetime and minting policies.
+ With it we can create a token that's linked to another, and keep relations between many tokens
+ in session and grants management.
+
 An example::
 
     "token_handler_args": {
@@ -528,7 +533,7 @@ An example::
     }
 
 This is somethig that can be customized.
-For example in a django project we would use something like
+For example in the django-oidc-op implementation we use something like
 the following (see `example/django_op/oidc_provider`)::
 
     "userinfo": {
