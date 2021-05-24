@@ -88,7 +88,7 @@
       },
       "authentication": {
         "user": {
-          "acr": "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
+          "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
           "class": "oidcop.user_authn.user.UserPassJinja2",
           "kwargs": {
             "verify_endpoint": "verify/user",
@@ -288,7 +288,7 @@
         "kwargs": {
           "scheme_map": {
             "email": [
-              "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"
+              "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"
             ]
           }
         }

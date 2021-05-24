@@ -191,7 +191,7 @@ op:
         db_file: users.json
     authentication:
       user:
-        acr: oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
+        acr: urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword
         class: oidcop.user_authn.user.UserPassJinja2
         kwargs:
           verify_endpoint: 'verify/user'
@@ -235,7 +235,7 @@ op:
       kwargs:
         scheme_map:
           email:
-            - oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD
+            - urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword
 
     # this adds PKCE support as mandatory - disable it if needed (essential: False)
     add_on:

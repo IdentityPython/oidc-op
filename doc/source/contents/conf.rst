@@ -79,7 +79,7 @@ An example::
 
     "authentication": {
         "user": {
-          "acr": "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
+          "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
           "class": "oidcop.user_authn.user.UserPassJinja2",
           "kwargs": {
             "verify_endpoint": "verify/user",
@@ -368,7 +368,7 @@ An example::
         "kwargs": {
           "scheme_map": {
             "email": [
-              "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"
+              "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"
             ]
           }
         }
@@ -436,7 +436,7 @@ For any further customization of template here an example of what used in django
 
       "authentication": {
         "user": {
-          "acr": "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
+          "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
           "class": "oidc_provider.users.UserPassDjango",
           "kwargs": {
             "verify_endpoint": "verify/oidc_user_login/",
@@ -570,8 +570,8 @@ An example::
     }
 
 This is somethig that can be customized.
-For example in the django-oidc-op implementation we use something like
-the following (see `example/django_op/oidc_provider`)::
+For example in the django-oidc-op implementation is used something like
+the following::
 
     "userinfo": {
         "class": "oidc_provider.users.UserInfo",

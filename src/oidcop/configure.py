@@ -384,7 +384,7 @@ DEFAULT_EXTENDED_CONF = {
     },
     "authentication": {
         "user": {
-            "acr": "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
+            "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
             "class": "oidcop.user_authn.user.UserPassJinja2",
             "kwargs": {
                 "verify_endpoint": "verify/user",
@@ -515,7 +515,7 @@ DEFAULT_EXTENDED_CONF = {
     "login_hint2acrs": {
         "class": "oidcop.login_hint.LoginHint2Acrs",
         "kwargs": {
-            "scheme_map": {"email": ["oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"]}
+            "scheme_map": {"email": ["urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"]}
         },
     },
     "session_key": {"filename": "private/session_jwk.json", "type": "OCT", "use": "sig", },

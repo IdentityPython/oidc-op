@@ -185,7 +185,7 @@ class IDToken(Token):
             _args.update(extra_claims)
 
         # Left hashes of code and/or access_token
-        halg = "HS%s" % alg[-3:]
+        halg = f"HS{alg[-3:]}"
         if code:
             _args["c_hash"] = left_hash(code.encode("utf-8"), halg)
         if access_token:

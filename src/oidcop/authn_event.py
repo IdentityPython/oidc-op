@@ -47,7 +47,6 @@ def create_authn_event(
     :param kwargs:
     :return:
     """
-
     args = {"uid": uid, "authn_info": authn_info}
 
     if sub:
