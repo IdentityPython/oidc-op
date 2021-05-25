@@ -1,12 +1,16 @@
 import json
+import os
 from urllib.parse import urlparse
 
+from oidcop.configure import OPConfiguration
 import pytest
 from oidcmsg.message import Message
 
 from oidcop.endpoint import Endpoint
 from oidcop.server import Server
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -44,9 +48,7 @@ class TestEndpoint(object):
             "grant_expires_in": 300,
             "refresh_token_expires_in": 86400,
             "verify_ssl": False,
-            "endpoint": {
-                "endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}},
-            },
+            "endpoint": {"endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}},},
             "keys": {
                 "public_path": "jwks.json",
                 "key_defs": KEYDEFS,
@@ -62,7 +64,8 @@ class TestEndpoint(object):
             },
             "template_dir": "template",
         }
-        server = Server(conf)
+        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+
         self.endpoint_context = server.endpoint_context
         self.endpoint = server.server_get("endpoint", "")
 
@@ -166,9 +169,7 @@ class TestEndpoint(object):
         assert ("Content-type", "application/json") in info["http_headers"]
 
         self.endpoint.response_format = "jws"
-        info = self.endpoint.do_response(
-            EXAMPLE_MSG, response_msg="header.payload.sign"
-        )
+        info = self.endpoint.do_response(EXAMPLE_MSG, response_msg="header.payload.sign")
 
         assert info["response"] == "header.payload.sign"
         assert ("Content-type", "application/jose") in info["http_headers"]
@@ -177,9 +178,7 @@ class TestEndpoint(object):
         info = self.endpoint.do_response(EXAMPLE_MSG, response_msg="foo=bar")
 
         assert info["response"] == "foo=bar"
-        assert ("Content-type", "application/x-www-form-urlencoded") in info[
-            "http_headers"
-        ]
+        assert ("Content-type", "application/x-www-form-urlencoded") in info["http_headers"]
 
         info = self.endpoint.do_response(
             EXAMPLE_MSG, response_msg="{foo=bar}", content_type="application/json"
@@ -188,9 +187,7 @@ class TestEndpoint(object):
         assert ("Content-type", "application/json") in info["http_headers"]
 
         info = self.endpoint.do_response(
-            EXAMPLE_MSG,
-            response_msg="header.payload.sign",
-            content_type="application/jose",
+            EXAMPLE_MSG, response_msg="header.payload.sign", content_type="application/jose",
         )
         assert info["response"] == "header.payload.sign"
         assert ("Content-type", "application/jose") in info["http_headers"]
@@ -198,22 +195,15 @@ class TestEndpoint(object):
     def test_do_response_placement_body(self):
         self.endpoint.response_placement = "body"
         info = self.endpoint.do_response(EXAMPLE_MSG)
-        assert ("Content-type", "application/json; charset=utf-8") in info[
-            "http_headers"
-        ]
+        assert ("Content-type", "application/json; charset=utf-8") in info["http_headers"]
         assert (
-            info["response"]
-            == '{"name": "Doe, Jane", "given_name": "Jane", "family_name": "Doe"}'
+            info["response"] == '{"name": "Doe, Jane", "given_name": "Jane", "family_name": "Doe"}'
         )
 
     def test_do_response_placement_url(self):
         self.endpoint.response_placement = "url"
-        info = self.endpoint.do_response(
-            EXAMPLE_MSG, return_uri="https://example.org/cb"
-        )
-        assert ("Content-type", "application/x-www-form-urlencoded") in info[
-            "http_headers"
-        ]
+        info = self.endpoint.do_response(EXAMPLE_MSG, return_uri="https://example.org/cb")
+        assert ("Content-type", "application/x-www-form-urlencoded") in info["http_headers"]
         assert (
             info["response"]
             == "https://example.org/cb?name=Doe%2C+Jane&given_name=Jane&family_name=Doe"
@@ -222,9 +212,7 @@ class TestEndpoint(object):
         info = self.endpoint.do_response(
             EXAMPLE_MSG, return_uri="https://example.org/cb", fragment_enc=True
         )
-        assert ("Content-type", "application/x-www-form-urlencoded") in info[
-            "http_headers"
-        ]
+        assert ("Content-type", "application/x-www-form-urlencoded") in info["http_headers"]
         assert (
             info["response"]
             == "https://example.org/cb#name=Doe%2C+Jane&given_name=Jane&family_name=Doe"

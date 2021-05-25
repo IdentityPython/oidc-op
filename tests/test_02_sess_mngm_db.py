@@ -88,9 +88,7 @@ class TestDB:
         # The reference is there but not the value
         del self.db.db[self.db.session_key("diana", "client_1")]
 
-        authn_event = create_authn_event(
-            uid="diana", expires_in=10, authn_info="authn_class_ref"
-        )
+        authn_event = create_authn_event(uid="diana", expires_in=10, authn_info="authn_class_ref")
 
         grant = Grant(authentication_event=authn_event, authorization_request=AUTHZ_REQ)
 
@@ -183,9 +181,7 @@ class TestDB:
         # store user info
         self.db.set(["diana"], UserSessionInfo(user_id="diana"))
         # Client specific information
-        self.db.set(
-            ["diana", "client_1"], ClientSessionInfo(sub=public_id("diana", salt))
-        )
+        self.db.set(["diana", "client_1"], ClientSessionInfo(sub=public_id("diana", salt)))
         # Grant
         grant = Grant()
         access_code = SessionToken("access_code", value="1234567890")

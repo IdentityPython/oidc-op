@@ -4,7 +4,9 @@ from typing import Dict
 
 from cryptojwt.utils import b64e
 from oidcmsg.oauth2 import (
-    AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest
+    AuthorizationErrorResponse,
+    RefreshAccessTokenRequest,
+    TokenExchangeRequest,
 )
 from oidcmsg.oidc import TokenErrorResponse
 
@@ -41,8 +43,7 @@ def post_authn_parse(request, client_id, endpoint_context, **kwargs):
     """
     if endpoint_context.args["pkce"]["essential"] and "code_challenge" not in request:
         return AuthorizationErrorResponse(
-            error="invalid_request",
-            error_description="Missing required code_challenge",
+            error="invalid_request", error_description="Missing required code_challenge",
         )
 
     if "code_challenge_method" not in request:
@@ -87,8 +88,7 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
     :return:
     """
     if isinstance(
-        request,
-        (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest),
+        request, (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest),
     ):
         return request
 
@@ -97,9 +97,7 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
             request["code"], grant=True
         )
     except KeyError:
-        return TokenErrorResponse(
-            error="invalid_grant", error_description="Unknown access grant"
-        )
+        return TokenErrorResponse(error="invalid_grant", error_description="Unknown access grant")
 
     _authn_req = _session_info["grant"].authorization_request
 
@@ -114,9 +112,7 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
         if not verify_code_challenge(
             request["code_verifier"], _authn_req["code_challenge"], _method,
         ):
-            return TokenErrorResponse(
-                error="invalid_grant", error_description="PKCE check failed"
-            )
+            return TokenErrorResponse(error="invalid_grant", error_description="PKCE check failed")
 
     return request
 

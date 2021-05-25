@@ -7,7 +7,7 @@ from cryptojwt import jwe
 from cryptojwt.jws.jws import SIGNER_ALGS
 
 ALG_SORT_ORDER = {"RS": 0, "ES": 1, "HS": 2, "PS": 3, "no": 4}
-WEAK_ALGS = ['RSA1_5', 'none']
+WEAK_ALGS = ["RSA1_5", "none"]
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def construct_endpoint_info(default_capabilities, **kwargs):
             elif "encryption_enc_values_supported" in attr:
                 _info[attr] = assign_algorithms("encryption_enc")
 
-        if re.match(r'.*(alg|enc).*_values_supported', attr):
+        if re.match(r".*(alg|enc).*_values_supported", attr):
             for i in _info[attr]:
                 if i in WEAK_ALGS:
                     logger.warning(

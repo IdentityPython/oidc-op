@@ -1,6 +1,5 @@
 from typing import List
 from typing import Optional
-from typing import Tuple
 
 from oidcmsg.impexp import ImpExp
 
@@ -9,11 +8,11 @@ class SessionInfo(ImpExp):
     parameter = {"subordinate": [], "revoked": bool, "type": "", "extra_args": {}}
 
     def __init__(
-            self,
-            subordinate: Optional[List[str]] = None,
-            revoked: Optional[bool] = False,
-            type: Optional[str] = "",
-            **kwargs
+        self,
+        subordinate: Optional[List[str]] = None,
+        revoked: Optional[bool] = False,
+        type: Optional[str] = "",
+        **kwargs
     ):
         ImpExp.__init__(self)
         self.subordinate = subordinate or []
@@ -44,7 +43,7 @@ class SessionInfo(ImpExp):
 class UserSessionInfo(SessionInfo):
     parameter = SessionInfo.parameter.copy()
     parameter.update(
-        {"user_id": "", }
+        {"user_id": "",}
     )
 
     def __init__(self, **kwargs):

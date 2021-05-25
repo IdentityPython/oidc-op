@@ -86,7 +86,7 @@ MAP = {
     "authorization_code": "code",
     "access_token": "access_token",
     "refresh_token": "refresh_token",
-    "id_token": "id_token"
+    "id_token": "id_token",
 }
 
 
@@ -135,11 +135,7 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {
-                    "path": "{}/registration",
-                    "class": Registration,
-                    "kwargs": {},
-                },
+                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {},},
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
@@ -168,11 +164,7 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": [
-                                    "access_token",
-                                    "refresh_token",
-                                    "id_token",
-                                ],
+                                "supports_minting": ["access_token", "refresh_token", "id_token",],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -184,6 +176,7 @@ class TestEndpoint(object):
                     }
                 },
             },
+            "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
         }
         server = Server(conf, keyjar=KEYJAR)
         self.endpoint_context = server.endpoint_context
@@ -255,9 +248,9 @@ class TestEndpoint(object):
     def test_enable_claims_per_client(self, enable_claims_per_client):
         # Set up configuration
         self.endpoint_context.cdb["client_1"]["access_token_claims"] = {"address": None}
-        self.endpoint_context.session_manager.token_handler.handler[
-            "access_token"
-        ].kwargs["enable_claims_per_client"] = enable_claims_per_client
+        self.endpoint_context.session_manager.token_handler.handler["access_token"].kwargs[
+            "enable_claims_per_client"
+        ] = enable_claims_per_client
 
         session_id = self._create_session(AUTH_REQ)
         # apply consent

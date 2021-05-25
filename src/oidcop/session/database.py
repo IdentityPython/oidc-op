@@ -1,5 +1,7 @@
 import base64
+import cryptography
 import logging
+
 from typing import List
 from typing import Optional
 from typing import Union
@@ -36,14 +38,14 @@ class InconsistentDatabase(TypeError):
 class Database(ImpExp):
     parameter = {"db": DLDict, "key": ""}
 
-    def __init__(self, key: Optional[str] = ""):
+    def __init__(self, key: Optional[str] = "", **kwargs):
         ImpExp.__init__(self)
         self.db = DLDict()
 
-        if not key:
-            key = rndstr(24)
+        for k,v in kwargs.items():
+            setattr(self, k, v)
 
-        self.key = key
+        self.key = key or rndstr(24)
         self.crypt = Crypt(key)
 
     @staticmethod
@@ -92,18 +94,18 @@ class Database(ImpExp):
         try:
             user_info = self.db[uid]
         except KeyError:
-            raise KeyError('No such UserID')
+            raise KeyError("No such UserID")
         except TypeError:
-            raise InconsistentDatabase('Missing session db')
+            raise InconsistentDatabase("Missing session db")
         else:
             if user_info is None:
-                raise KeyError('No such UserID')
+                raise KeyError("No such UserID")
 
         if client_id is None:
             return user_info
 
         if client_id not in user_info.subordinate:
-            raise ValueError('No session from that client for that user')
+            raise ValueError("No session from that client for that user")
 
         try:
             skey = self.session_key(uid, client_id)
@@ -115,8 +117,7 @@ class Database(ImpExp):
             return client_session_info
 
         if grant_id not in client_session_info.subordinate:
-            raise ValueError(
-                'No such grant for that user and client')
+            raise ValueError("No such grant for that user and client")
         else:
             try:
                 skey = self.session_key(uid, client_id, grant_id)
@@ -135,9 +136,7 @@ class Database(ImpExp):
 
         _user_info = self.db[uid]
         skey_uid_client = self.session_key(uid, client_id)
-        skey_uid_client_grant = self.session_key(
-            uid, client_id, grant_id or ''
-        )
+        skey_uid_client_grant = self.session_key(uid, client_id, grant_id or "")
 
         if client_id not in _user_info.subordinate:
             self.db.__delitem__(client_id)
@@ -188,6 +187,9 @@ class Database(ImpExp):
     def decrypt_session_id(self, key: str) -> List[str]:
         try:
             plain = self.crypt.decrypt(base64.b64decode(key))
+        except cryptography.fernet.InvalidToken as err:
+            logger.error(f"cryptography.fernet.InvalidToken: {key}")
+            raise ValueError(err)
         except Exception as err:
             raise ValueError(err)
         # order: rnd, type, sid

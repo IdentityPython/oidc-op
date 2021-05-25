@@ -30,11 +30,7 @@ conf = {
             "class": "oidcop.oidc.authorization.Authorization",
             "kwargs": {},
         },
-        "token_endpoint": {
-            "path": "token",
-            "class": "oidcop.oidc.token.Token",
-            "kwargs": {},
-        },
+        "token_endpoint": {"path": "token", "class": "oidcop.oidc.token.Token", "kwargs": {},},
     },
     "authentication": {
         "anon": {
@@ -43,6 +39,7 @@ conf = {
             "kwargs": {"user": "diana"},
         }
     },
+    "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
 }
 
 USER_ID = "diana"
@@ -420,9 +417,7 @@ class TestGrant:
         spec = grant.get_spec(access_token)
         assert set(spec.keys()) == {"scope", "claims", "resources"}
         assert spec["scope"] == ["openid", "email", "eduperson"]
-        assert spec["claims"] == {
-            "userinfo": {"given_name": None, "eduperson_affiliation": None}
-        }
+        assert spec["claims"] == {"userinfo": {"given_name": None, "eduperson_affiliation": None}}
         assert spec["resources"] == ["https://api.example.com"]
 
     def test_get_usage_rules(self):
@@ -438,9 +433,7 @@ class TestGrant:
 
         # Default usage rules
         self.endpoint_context.cdb["client_id"] = {}
-        rules = get_usage_rules(
-            "access_token", self.endpoint_context, grant, "client_id"
-        )
+        rules = get_usage_rules("access_token", self.endpoint_context, grant, "client_id")
         assert rules == {"supports_minting": [], "expires_in": 3600}
 
         # client specific usage rules

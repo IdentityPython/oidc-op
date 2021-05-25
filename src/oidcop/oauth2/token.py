@@ -3,22 +3,95 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt.jwe.exception import JWEException
-from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import utc_time_sans_frac
+
 from oidcmsg import oidc
 from oidcmsg.message import Message
+from oidcmsg.oauth2 import AccessTokenResponse
+from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
+from oidcmsg.time_util import time_sans_frac
 
-from oidcop import oauth2
 from oidcop import sanitize
-from oidcop.oauth2.token import TokenEndpointHelper
+from oidcop.endpoint import Endpoint
+from oidcop.exception import ProcessError
 from oidcop.session.grant import AuthorizationCode
+from oidcop.session.grant import Grant
 from oidcop.session.grant import RefreshToken
 from oidcop.session.token import MintingNotAllowed
+from oidcop.session.token import SessionToken
 from oidcop.token.exception import UnknownToken
+from oidcop.util import importer
 
 logger = logging.getLogger(__name__)
+
+
+class TokenEndpointHelper(object):
+    def __init__(self, endpoint, config=None):
+        self.endpoint = endpoint
+        self.config = config
+        self.error_cls = self.endpoint.error_cls
+
+    def post_parse_request(
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+    ):
+        """Context specific parsing of the request.
+        This is done after general request parsing and before processing
+        the request.
+        """
+        raise NotImplementedError
+
+    def process_request(self, req: Union[Message, dict], **kwargs):
+        """Acts on a process request."""
+        raise NotImplementedError
+
+    def _mint_token(
+        self,
+        type: str,
+        grant: Grant,
+        session_id: str,
+        client_id: str,
+        based_on: Optional[SessionToken] = None,
+        token_args: Optional[dict] = None,
+    ) -> SessionToken:
+        _context = self.endpoint.server_get("endpoint_context")
+        _mngr = _context.session_manager
+        usage_rules = grant.usage_rules.get(type)
+        if usage_rules:
+            _exp_in = usage_rules.get("expires_in")
+        else:
+            _exp_in = 0
+
+        token_args = token_args or {}
+        for meth in _context.token_args_methods:
+            token_args = meth(_context, client_id, token_args)
+
+        if token_args:
+            _args = {"token_args": token_args}
+        else:
+            _args = {}
+
+        token = grant.mint_token(
+            session_id,
+            endpoint_context=_context,
+            token_type=type,
+            token_handler=_mngr.token_handler[type],
+            based_on=based_on,
+            usage_rules=usage_rules,
+            **_args,
+        )
+
+        if _exp_in:
+            if isinstance(_exp_in, str):
+                _exp_in = int(_exp_in)
+
+            if _exp_in:
+                token.expires_at = time_sans_frac() + _exp_in
+
+        _context.session_manager.set(_context.session_manager.unpack_session_key(session_id), grant)
+
+        return token
 
 
 class AccessTokenHelper(TokenEndpointHelper):
@@ -45,20 +118,6 @@ class AccessTokenHelper(TokenEndpointHelper):
         _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
         grant = _session_info["grant"]
 
-        token_type = "Bearer"
-
-        # Is DPOP supported
-        try:
-            _dpop_enabled = _context.dpop_enabled
-        except AttributeError:
-            _dpop_enabled = False
-
-        if _dpop_enabled:
-            _dpop_jkt = req.get("dpop_jkt")
-            if _dpop_jkt:
-                grant.extra["dpop_jkt"] = _dpop_jkt
-                token_type = "DPoP"
-
         _based_on = grant.get_token(_access_code)
         _supports_minting = _based_on.usage_rules.get("supports_minting", [])
 
@@ -74,15 +133,10 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         _log_debug("All checks OK")
 
-        issue_refresh = False
-        if "issue_refresh" in kwargs:
-            issue_refresh = kwargs["issue_refresh"]
-        else:
-            if "offline_access" in grant.scope:
-                issue_refresh = True
+        issue_refresh = kwargs.get("issue_refresh", False)
 
         _response = {
-            "token_type": token_type,
+            "token_type": "Bearer",
             "scope": grant.scope,
         }
 
@@ -118,26 +172,6 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         # since the grant content has changed. Make sure it's stored
         _mngr[_session_info["session_id"]] = grant
-
-        if "openid" in _authn_req["scope"] and "id_token" in _supports_minting:
-            if "id_token" in _based_on.usage_rules.get("supports_minting"):
-                try:
-                    _idtoken = self._mint_token(
-                        type="id_token",
-                        grant=grant,
-                        session_id=_session_info["session_id"],
-                        client_id=_session_info["client_id"],
-                        based_on=_based_on,
-                    )
-                except (JWEException, NoSuitableSigningKeys) as err:
-                    logger.warning(str(err))
-                    resp = self.error_cls(
-                        error="invalid_request",
-                        error_description="Could not sign/encrypt id_token",
-                    )
-                    return resp
-
-                _response["id_token"] = _idtoken.value
 
         _based_on.register_usage()
 
@@ -189,17 +223,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token_value = req["refresh_token"]
         _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+
         _grant = _session_info["grant"]
-
-        token_type = "Bearer"
-
-        # Is DPOP supported
-        if "dpop_signing_alg_values_supported" in _context.provider_info:
-            _dpop_jkt = req.get("dpop_jkt")
-            if _dpop_jkt:
-                _grant.extra["dpop_jkt"] = _dpop_jkt
-                token_type = "DPoP"
-
         token = _grant.get_token(token_value)
         access_token = self._mint_token(
             type="access_token",
@@ -211,7 +236,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         _resp = {
             "access_token": access_token.value,
-            "token_type": token_type,
+            "token_type": access_token.type,
             "scope": _grant.scope,
         }
 
@@ -229,24 +254,6 @@ class RefreshTokenHelper(TokenEndpointHelper):
             )
             refresh_token.usage_rules = token.usage_rules.copy()
             _resp["refresh_token"] = refresh_token.value
-
-        if "id_token" in _mints:
-            try:
-                _idtoken = self._mint_token(
-                    type="refresh_token",
-                    grant=_grant,
-                    session_id=_session_info["session_id"],
-                    client_id=_session_info["client_id"],
-                    based_on=token,
-                )
-            except (JWEException, NoSuitableSigningKeys) as err:
-                logger.warning(str(err))
-                resp = self.error_cls(
-                    error="invalid_request", error_description="Could not sign/encrypt id_token",
-                )
-                return resp
-
-            _resp["id_token"] = _idtoken.value
 
         token.register_usage()
 
@@ -292,9 +299,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return request
 
 
-class Token(oauth2.token.Token):
+class Token(Endpoint):
     request_cls = Message
-    response_cls = oidc.AccessTokenResponse
+    response_cls = AccessTokenResponse
     error_cls = TokenErrorResponse
     request_format = "json"
     request_placement = "body"
@@ -307,3 +314,107 @@ class Token(oauth2.token.Token):
         "authorization_code": AccessTokenHelper,
         "refresh_token": RefreshTokenHelper,
     }
+
+    def __init__(self, server_get, new_refresh_token=False, **kwargs):
+        Endpoint.__init__(self, server_get, **kwargs)
+        self.post_parse_request.append(self._post_parse_request)
+        if "client_authn_method" in kwargs:
+            self.endpoint_info["token_endpoint_auth_methods_supported"] = kwargs[
+                "client_authn_method"
+            ]
+        self.allow_refresh = False
+        self.new_refresh_token = new_refresh_token
+        self.configure_grant_types(kwargs.get("grant_types_supported"))
+
+    def configure_grant_types(self, grant_types_supported):
+        if grant_types_supported is None:
+            self.helper = {k: v(self) for k, v in self.helper_by_grant_type.items()}
+            return
+
+        self.helper = {}
+        # TODO: do we want to allow any grant_type?
+        for grant_type, grant_type_options in grant_types_supported.items():
+            _conf = grant_type_options.get("kwargs", {})
+            if _conf is False:
+                continue
+
+            try:
+                grant_class = grant_type_options["class"]
+            except (KeyError, TypeError):
+                raise ProcessError(
+                    "Token Endpoint's grant types must be True, None or a dict with a"
+                    " 'class' key."
+                )
+
+            if isinstance(grant_class, str):
+                try:
+                    grant_class = importer(grant_class)
+                except (ValueError, AttributeError):
+                    raise ProcessError(
+                        f"Token Endpoint's grant type class {grant_class} can't" " be imported."
+                    )
+
+            try:
+                self.helper[grant_type] = grant_class(self, _conf)
+            except Exception as e:
+                raise ProcessError(f"Failed to initialize class {grant_class}: {e}")
+
+    def _post_parse_request(
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+    ):
+        _helper = self.helper.get(request["grant_type"])
+        if _helper:
+            return _helper.post_parse_request(request, client_id, **kwargs)
+        else:
+            return self.error_cls(
+                error="invalid_request",
+                error_description=f"Unsupported grant_type: {request['grant_type']}",
+            )
+
+    def process_request(self, request: Optional[Union[Message, dict]] = None, **kwargs):
+        """
+
+        :param request:
+        :param kwargs:
+        :return: Dictionary with response information
+        """
+        if isinstance(request, self.error_cls):
+            return request
+
+        if request is None:
+            return self.error_cls(error="invalid_request")
+
+        try:
+            _helper = self.helper.get(request["grant_type"])
+            if _helper:
+                response_args = _helper.process_request(request, **kwargs)
+            else:
+                return self.error_cls(
+                    error="invalid_request",
+                    error_description=f"Unsupported grant_type: {request['grant_type']}",
+                )
+        except JWEException as err:
+            return self.error_cls(error="invalid_request", error_description="%s" % err)
+
+        if isinstance(response_args, ResponseMessage):
+            return response_args
+
+        _access_token = response_args["access_token"]
+        _context = self.server_get("endpoint_context")
+        _session_info = _context.session_manager.get_session_info_by_token(
+            _access_token, grant=True
+        )
+
+        _cookie = _context.new_cookie(
+            name=_context.cookie_handler.name["session"],
+            sub=_session_info["grant"].sub,
+            sid=_context.session_manager.session_key(
+                _session_info["user_id"], _session_info["user_id"], _session_info["grant"].id,
+            ),
+        )
+
+        _headers = [("Content-type", "application/json")]
+        resp = {"response_args": response_args, "http_headers": _headers}
+        if _cookie:
+            resp["cookie"] = [_cookie]
+        return resp

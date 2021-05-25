@@ -8,6 +8,38 @@ issuer
 
 The issuer ID of the OP, a unique value in URI format.
 
+----
+seed
+----
+
+Used in dynamic client registration endpoint when creating a new client_secret.
+If unset it will be random.
+
+--------
+password
+--------
+
+Encryption key used to encrypt the SessionID (sid) in access_token.
+If unset it will be random.
+
+----
+salt
+----
+
+Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
+
+-----------
+session_key
+-----------
+
+An example::
+
+    "session_key": {
+        "filename": "private/session_jwk.json",
+        "type": "OCT",
+        "use": "sig"
+      },
+
 ------
 add_on
 ------
@@ -47,7 +79,7 @@ An example::
 
     "authentication": {
         "user": {
-          "acr": "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
+          "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
           "class": "oidcop.user_authn.user.UserPassJinja2",
           "kwargs": {
             "verify_endpoint": "verify/user",
@@ -195,8 +227,11 @@ An example::
           "class": "oidcop.oauth2.introspection.Introspection",
           "kwargs": {
             "client_authn_method": [
-              "client_secret_post"
-            ],
+              "client_secret_post",
+              "client_secret_basic",
+              "client_secret_jwt",
+              "private_key_jwt"
+            ]
             "release": [
               "username"
             ]
@@ -266,6 +301,15 @@ An example::
         }
       }
 
+You can specify which algoritms are supported, for example in userinfo_endpoint::
+
+    "userinfo_signing_alg_values_supported": OIDC_SIGN_ALGS,
+    "userinfo_encryption_alg_values_supported": OIDC_ENC_ALGS,
+
+Or in authorization endpoint::
+
+    "request_object_encryption_alg_values_supported": OIDC_ENC_ALGS,
+
 ------------
 httpc_params
 ------------
@@ -307,9 +351,15 @@ An example::
         "uri_path": "static/jwks.json"
       },
 
+*read_only* means that on each restart the keys will created and overwritten with new ones.
+This can be useful during the first time the project have been executed, then to keep them as they are *read_only* would be configured to *True*.
+
 ---------------
 login_hint2acrs
 ---------------
+
+OIDC Login hint support, it's optional.
+It matches the login_hint paramenter to one or more Authentication Contexts.
 
 An example::
 
@@ -318,11 +368,22 @@ An example::
         "kwargs": {
           "scheme_map": {
             "email": [
-              "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"
+              "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"
             ]
           }
         }
       },
+
+oidc-op supports the following authn contexts:
+
+- UNSPECIFIED, urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified
+- INTERNETPROTOCOLPASSWORD, urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword
+- MOBILETWOFACTORCONTRACT, urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract
+- PASSWORDPROTECTEDTRANSPORT, urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport
+- PASSWORD, urn:oasis:names:tc:SAML:2.0:ac:classes:Password
+- TLSCLIENT, urn:oasis:names:tc:SAML:2.0:ac:classes:TLSClient
+- TIMESYNCTOKEN, urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken
+
 
 -----
 authz
@@ -358,30 +419,45 @@ An example::
         }
       },
 
-
------------
-session_key
------------
-
-An example::
-
-    "session_key": {
-        "filename": "private/session_jwk.json",
-        "type": "OCT",
-        "use": "sig"
-      },
-
 ------------
 template_dir
 ------------
+
+The HTML Template directory used by Jinja2, used by endpoint context
+ template loader, as::
+
+    Environment(loader=FileSystemLoader(template_dir), autoescape=True)
 
 An example::
 
       "template_dir": "templates"
 
+For any further customization of template here an example of what used in django-oidc-op
+
+      "authentication": {
+        "user": {
+          "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
+          "class": "oidc_provider.users.UserPassDjango",
+          "kwargs": {
+            "verify_endpoint": "verify/oidc_user_login/",
+            "template": "oidc_login.html",
+
+            "page_header": "Testing log in",
+            "submit_btn": "Get me in!",
+            "user_label": "Nickname",
+            "passwd_label": "Secret sauce"
+          }
+        }
+      },
+
 ------------------
 token_handler_args
 ------------------
+
+Token handler is an intermediate interface used by and endpoint to manage
+ the tokens' default behaviour, like lifetime and minting policies.
+ With it we can create a token that's linked to another, and keep relations between many tokens
+ in session and grants management.
 
 An example::
 
@@ -442,6 +518,44 @@ An example::
         }
       }
 
+jwks_defs can be replaced eventually by `jwks_file`::
+
+    "jwks_file": f"{OIDC_JWKS_PRIVATE_PATH}/token_jwks.json",
+
+You can even select wich algorithms to support in id_token, eg::
+
+    "id_token": {
+        "class": "oidcop.token.id_token.IDToken",
+        "kwargs": {
+            "id_token_signing_alg_values_supported": [
+                    "RS256",
+                    "RS512",
+                    "ES256",
+                    "ES512",
+                    "PS256",
+                    "PS512",
+                ],
+            "id_token_encryption_alg_values_supported": [
+                    "RSA-OAEP",
+                    "RSA-OAEP-256",
+                    "A192KW",
+                    "A256KW",
+                    "ECDH-ES",
+                    "ECDH-ES+A128KW",
+                    "ECDH-ES+A192KW",
+                    "ECDH-ES+A256KW",
+                ],
+            "id_token_encryption_enc_values_supported": [
+                    'A128CBC-HS256',
+                    'A192CBC-HS384',
+                    'A256CBC-HS512',
+                    'A128GCM',
+                    'A192GCM',
+                    'A256GCM'
+                ],
+        }
+    }
+
 --------
 userinfo
 --------
@@ -456,8 +570,8 @@ An example::
     }
 
 This is somethig that can be customized.
-For example in a django project we would use something like
-the following (see `example/django_op/oidc_provider`)::
+For example in the django-oidc-op implementation is used something like
+the following::
 
     "userinfo": {
         "class": "oidc_provider.users.UserInfo",

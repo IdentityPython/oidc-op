@@ -52,17 +52,11 @@ conf = {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        "supports_minting": [
-                            "access_token",
-                            "refresh_token",
-                            "id_token",
-                        ],
+                        "supports_minting": ["access_token", "refresh_token", "id_token",],
                         "max_usage": 1,
                     },
                     "access_token": {},
-                    "refresh_token": {
-                        "supports_minting": ["access_token", "refresh_token"]
-                    },
+                    "refresh_token": {"supports_minting": ["access_token", "refresh_token"]},
                 },
                 "expires_in": 43200,
             }
@@ -74,11 +68,7 @@ conf = {
             "class": "oidcop.oidc.authorization.Authorization",
             "kwargs": {},
         },
-        "token_endpoint": {
-            "path": "token",
-            "class": "oidcop.oidc.token.Token",
-            "kwargs": {},
-        },
+        "token_endpoint": {"path": "token", "class": "oidcop.oidc.token.Token", "kwargs": {},},
         "userinfo_endpoint": {
             "path": "userinfo",
             "class": "oidcop.oidc.userinfo.UserInfo",
@@ -111,6 +101,7 @@ conf = {
         },
         "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
     },
+    "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
 }
 
 USER_ID = "diana"

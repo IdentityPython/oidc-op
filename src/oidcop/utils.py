@@ -7,7 +7,7 @@ import sys
 import yaml
 
 
-def load_json(file_name): # pragma: no cover
+def load_json(file_name):  # pragma: no cover
     with open(file_name) as fp:
         js = json.load(fp)
     return js
@@ -19,7 +19,7 @@ def load_yaml_config(file_name):
     return c
 
 
-def yaml_to_py_stream(file_name): # pragma: no cover
+def yaml_to_py_stream(file_name):  # pragma: no cover
     d = load_yaml_config(file_name)
     fstream = io.StringIO()
     for i in d:
@@ -29,14 +29,14 @@ def yaml_to_py_stream(file_name): # pragma: no cover
     return fstream
 
 
-def lower_or_upper(config, param, default=None): # pragma: no cover
+def lower_or_upper(config, param, default=None):  # pragma: no cover
     res = config.get(param.lower(), default)
     if not res:
         res = config.get(param.upper(), default)
     return res
 
 
-def create_context(dir_path, config, **kwargs): # pragma: no cover
+def create_context(dir_path, config, **kwargs):  # pragma: no cover
     _fname = lower_or_upper(config, "server_cert")
     if _fname:
         if _fname.startswith("/"):

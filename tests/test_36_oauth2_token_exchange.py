@@ -1,18 +1,19 @@
 import json
 import os
 
-import pytest
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oauth2 import TokenExchangeRequest
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+import pytest
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.client_authn import verify_client
+from oidcop.configure import ASConfiguration
 from oidcop.cookie_handler import CookieHandler
-from oidcop.oidc.authorization import Authorization
-from oidcop.oidc.token import Token
+from oidcop.oauth2.authorization import Authorization
+from oidcop.oauth2.token import Token
 from oidcop.server import Server
 from oidcop.session.grant import ExchangeGrant
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
@@ -95,12 +96,12 @@ class TestEndpoint(object):
             "endpoint": {
                 "authorization": {
                     "path": "authorization",
-                    "class": Authorization,
+                    "class": 'oidcop.oauth2.authorization.Authorization',
                     "kwargs": {},
                 },
                 "token": {
                     "path": "token",
-                    "class": Token,
+                    "class": 'oidcop.oauth2.token.Token',
                     "kwargs": {
                         "client_authn_method": [
                             "client_secret_basic",
@@ -132,11 +133,7 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": [
-                                    "access_token",
-                                    "refresh_token",
-                                    "id_token",
-                                ],
+                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -161,12 +158,11 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "oidcop.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
-                "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
             },
         }
-        server = Server(conf)
+        server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         endpoint_context = server.endpoint_context
         endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
@@ -261,22 +257,15 @@ class TestEndpoint(object):
         assert exch_grants
         exch_grant = exch_grants[0]
 
-        session_info = self.session_manager.get_session_info_by_token(
-            ter["subject_token"]
-        )
-        _token = self.session_manager.find_token(
-            session_info["session_id"], ter["subject_token"]
-        )
+        session_info = self.session_manager.get_session_info_by_token(ter["subject_token"])
+        _token = self.session_manager.find_token(session_info["session_id"], ter["subject_token"])
 
         session_id = self.session_manager.encrypted_session_id(
             session_info["user_id"], session_info["client_id"], exch_grant.id
         )
 
         _token = self._mint_access_token(
-            exch_grant,
-            session_id,
-            token_ref=_token,
-            resources=["https://backend.example.com"],
+            exch_grant, session_id, token_ref=_token, resources=["https://backend.example.com"],
         )
 
         print(_token.value)
@@ -284,9 +273,9 @@ class TestEndpoint(object):
             {
                 "token": _token.value,
                 "client_id": "client_1",
-                "client_secret": self.introspection_endpoint.server_get(
-                    "endpoint_context"
-                ).cdb["client_1"]["client_secret"],
+                "client_secret": self.introspection_endpoint.server_get("endpoint_context").cdb[
+                    "client_1"
+                ]["client_secret"],
             }
         )
         _resp = self.introspection_endpoint.process_request(_req)

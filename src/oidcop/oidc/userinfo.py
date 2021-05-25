@@ -34,9 +34,7 @@ class UserInfo(Endpoint):
         "client_authn_method": ["bearer_header"],
     }
 
-    def __init__(
-        self, server_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs
-    ):
+    def __init__(self, server_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs):
         Endpoint.__init__(
             self, server_get, add_claims_by_scope=add_claims_by_scope, **kwargs,
         )
@@ -108,22 +106,16 @@ class UserInfo(Endpoint):
 
     def process_request(self, request=None, **kwargs):
         _mngr = self.server_get("endpoint_context").session_manager
-        _session_info = _mngr.get_session_info_by_token(
-            request["access_token"], grant=True
-        )
+        _session_info = _mngr.get_session_info_by_token(request["access_token"], grant=True)
         _grant = _session_info["grant"]
         token = _grant.get_token(request["access_token"])
         # should be an access token
         if token.type != "access_token":
-            return self.error_cls(
-                error="invalid_token", error_description="Wrong type of token"
-            )
+            return self.error_cls(error="invalid_token", error_description="Wrong type of token")
 
         # And it should be valid
         if token.is_active() is False:
-            return self.error_cls(
-                error="invalid_token", error_description="Invalid Token"
-            )
+            return self.error_cls(error="invalid_token", error_description="Invalid Token")
 
         allowed = True
         _auth_event = _grant.authentication_event

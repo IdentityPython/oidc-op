@@ -1,6 +1,7 @@
 import json
 import os
 
+from oidcop.configure import OPConfiguration
 import pytest
 from oidcmsg.oidc import OpenIDRequest
 
@@ -93,9 +94,7 @@ def test_default_scope2claims():
         "email",
         "email_verified",
     }
-    assert set(convert_scopes2claims(["address"], STANDARD_CLAIMS).keys()) == {
-        "address"
-    }
+    assert set(convert_scopes2claims(["address"], STANDARD_CLAIMS).keys()) == {"address"}
     assert set(convert_scopes2claims(["phone"], STANDARD_CLAIMS).keys()) == {
         "phone_number",
         "phone_number_verified",
@@ -185,9 +184,7 @@ class TestCollectUserInfo:
                 "jwks_def": {
                     "private_path": "private/token_jwks.json",
                     "read_only": False,
-                    "key_defs": [
-                        {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
-                    ],
+                    "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
                 },
                 "code": {"kwargs": {"lifetime": 600}},
                 "token": {
@@ -216,18 +213,12 @@ class TestCollectUserInfo:
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {
-                    "path": "{}/registration",
-                    "class": Registration,
-                    "kwargs": {},
-                },
+                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {},},
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
                     "kwargs": {
-                        "response_types_supported": [
-                            " ".join(x) for x in RESPONSE_TYPES_SUPPORTED
-                        ],
+                        "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
                         "response_modes_supported": ["query", "fragment", "form_post",],
                         "claims_parameter_supported": True,
                         "request_parameter_supported": True,
@@ -238,16 +229,9 @@ class TestCollectUserInfo:
                     "path": "userinfo",
                     "class": userinfo.UserInfo,
                     "kwargs": {
-                        "claim_types_supported": [
-                            "normal",
-                            "aggregated",
-                            "distributed",
-                        ],
+                        "claim_types_supported": ["normal", "aggregated", "distributed",],
                         "client_authn_method": ["bearer_header"],
-                        "base_claims": {
-                            "eduperson_scoped_affiliation": None,
-                            "email": None,
-                        },
+                        "base_claims": {"eduperson_scoped_affiliation": None, "email": None,},
                         "add_claims_by_scope": True,
                         "enable_claims_per_client": True,
                     },
@@ -268,7 +252,7 @@ class TestCollectUserInfo:
             "template_dir": "template",
         }
 
-        server = Server(conf)
+        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.endpoint_context = server.endpoint_context
         # Just has to be there
         self.endpoint_context.cdb["client1"] = {}
@@ -387,9 +371,7 @@ class TestCollectUserInfo:
         _userinfo_endpoint.kwargs["enable_claims_per_client"] = True
         del _userinfo_endpoint.kwargs["base_claims"]
 
-        self.endpoint_context.cdb[_req["client_id"]]["userinfo_claims"] = {
-            "phone_number": None
-        }
+        self.endpoint_context.cdb[_req["client_id"]]["userinfo_claims"] = {"phone_number": None}
 
         _userinfo_restriction = self.claims_interface.get_claims(
             session_id=session_id, scopes=_req["scope"], usage="userinfo"
@@ -408,9 +390,8 @@ class TestCollectUserInfoCustomScopes:
                 "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_DB}},
                 "password": "we didn't start the fire",
                 "issuer": "https://example.com/op",
-                "token_expires_in": 900,
-                "grant_expires_in": 600,
-                "refresh_token_expires_in": 86400,
+                "claims_interface": {"class": "oidcop.session.claims.OAuth2ClaimsInterface",
+                                     "kwargs": {}},
                 "endpoint": {
                     "provider_config": {
                         "path": "{}/.well-known/openid-configuration",
@@ -429,11 +410,7 @@ class TestCollectUserInfoCustomScopes:
                             "response_types_supported": [
                                 " ".join(x) for x in RESPONSE_TYPES_SUPPORTED
                             ],
-                            "response_modes_supported": [
-                                "query",
-                                "fragment",
-                                "form_post",
-                            ],
+                            "response_modes_supported": ["query", "fragment", "form_post",],
                             "claims_parameter_supported": True,
                             "request_parameter_supported": True,
                             "request_uri_parameter_supported": True,
@@ -443,16 +420,9 @@ class TestCollectUserInfoCustomScopes:
                         "path": "userinfo",
                         "class": userinfo.UserInfo,
                         "kwargs": {
-                            "claim_types_supported": [
-                                "normal",
-                                "aggregated",
-                                "distributed",
-                            ],
+                            "claim_types_supported": ["normal", "aggregated", "distributed",],
                             "client_authn_method": ["bearer_header"],
-                            "base_claims": {
-                                "eduperson_scoped_affiliation": None,
-                                "email": None,
-                            },
+                            "base_claims": {"eduperson_scoped_affiliation": None, "email": None,},
                             "add_claims_by_scope": True,
                             "enable_claims_per_client": True,
                         },

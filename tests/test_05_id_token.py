@@ -123,9 +123,7 @@ conf = {
                     "max_usage": 1,
                 },
                 "access_token": {},
-                "refresh_token": {
-                    "supports_minting": ["access_token", "refresh_token"]
-                },
+                "refresh_token": {"supports_minting": ["access_token", "refresh_token"]},
             },
             "expires_in": 43200,
         }
@@ -136,17 +134,11 @@ conf = {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        "supports_minting": [
-                            "access_token",
-                            "refresh_token",
-                            "id_token",
-                        ],
+                        "supports_minting": ["access_token", "refresh_token", "id_token",],
                         "max_usage": 1,
                     },
                     "access_token": {},
-                    "refresh_token": {
-                        "supports_minting": ["access_token", "refresh_token"]
-                    },
+                    "refresh_token": {"supports_minting": ["access_token", "refresh_token"]},
                 },
                 "expires_in": 43200,
             }
@@ -154,6 +146,7 @@ conf = {
     },
     "userinfo": {"class": "oidcop.user_info.UserInfo", "kwargs": {"db": USERS},},
     "client_authn": verify_client,
+    "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
 }
 
 USER_ID = "diana"
@@ -171,9 +164,7 @@ class TestEndpoint(object):
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
         }
-        self.endpoint_context.keyjar.add_symmetric(
-            "client_1", "hemligtochintekort", ["sig", "enc"]
-        )
+        self.endpoint_context.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = USER_ID
 
@@ -211,9 +202,7 @@ class TestEndpoint(object):
         )
         return access_token
 
-    def _mint_id_token(
-        self, grant, session_id, token_ref=None, code=None, access_token=None
-    ):
+    def _mint_id_token(self, grant, session_id, token_ref=None, code=None, access_token=None):
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
@@ -247,9 +236,7 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
         code = self._mint_code(grant, session_id)
 
-        id_token = self._mint_id_token(
-            grant, session_id, token_ref=code, code=code.value
-        )
+        id_token = self._mint_id_token(grant, session_id, token_ref=code, code=code.value)
 
         _jwt = factory(id_token.value)
         payload = _jwt.jwt.payload()
@@ -296,11 +283,7 @@ class TestEndpoint(object):
         access_token = self._mint_access_token(grant, session_id, code)
 
         id_token = self._mint_id_token(
-            grant,
-            session_id,
-            token_ref=code,
-            code=code.value,
-            access_token=access_token.value,
+            grant, session_id, token_ref=code, code=code.value, access_token=access_token.value,
         )
 
         _jwt = factory(id_token.value)
@@ -345,11 +328,7 @@ class TestEndpoint(object):
         access_token = self._mint_access_token(grant, session_id, code)
 
         id_token = self._mint_id_token(
-            grant,
-            session_id,
-            token_ref=code,
-            code=code.value,
-            access_token=access_token.value,
+            grant, session_id, token_ref=code, code=code.value, access_token=access_token.value,
         )
 
         _jwt = factory(id_token.value)
@@ -397,8 +376,11 @@ class TestEndpoint(object):
         )
         # default signing alg
         assert algs == {
-            'sign': True, 'encrypt': True, 'sign_alg': 'RS256',
-            'enc_alg': 'RSA-OAEP', 'enc_enc': 'A128CBC-HS256'
+            "sign": True,
+            "encrypt": True,
+            "sign_alg": "RS256",
+            "enc_alg": "RSA-OAEP",
+            "enc_enc": "A128CBC-HS256",
         }
 
     def test_available_claims(self):
@@ -433,9 +415,7 @@ class TestEndpoint(object):
         session_id = self._create_session(AREQ)
         grant = self.session_manager[session_id]
 
-        self.session_manager.token_handler["id_token"].kwargs[
-            "enable_claims_per_client"
-        ] = True
+        self.session_manager.token_handler["id_token"].kwargs["enable_claims_per_client"] = True
         self.endpoint_context.cdb["client_1"]["id_token_claims"] = {"address": None}
 
         _claims = self.endpoint_context.claims_interface.get_claims(
@@ -478,9 +458,7 @@ class TestEndpoint(object):
         session_id = self._create_session(AREQS)
         grant = self.session_manager[session_id]
 
-        self.session_manager.token_handler["id_token"].kwargs[
-            "add_claims_by_scope"
-        ] = True
+        self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
 
         _claims = self.endpoint_context.claims_interface.get_claims(
             session_id=session_id, scopes=AREQS["scope"], usage="id_token"
@@ -502,9 +480,7 @@ class TestEndpoint(object):
         session_id = self._create_session(AREQRC)
         grant = self.session_manager[session_id]
 
-        self.session_manager.token_handler["id_token"].kwargs[
-            "add_claims_by_scope"
-        ] = True
+        self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
 
         _claims = self.endpoint_context.claims_interface.get_claims(
             session_id=session_id, scopes=AREQRC["scope"], usage="id_token"
@@ -531,9 +507,7 @@ class TestEndpoint(object):
         session_id = self._create_session(_req)
         grant = self.session_manager[session_id]
 
-        self.session_manager.token_handler["id_token"].kwargs[
-            "add_claims_by_scope"
-        ] = True
+        self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
 
         _claims = self.endpoint_context.claims_interface.get_claims(
             session_id=session_id, scopes=_req["scope"], usage="id_token"
@@ -552,7 +526,6 @@ class TestEndpoint(object):
         # Scope -> claims
         assert "address" in res
 
-
     def test_id_token_info(self):
         session_id = self._create_session(AREQ)
         grant = self.session_manager[session_id]
@@ -565,14 +538,14 @@ class TestEndpoint(object):
 
         endpoint_context = self.endpoint_context
         sman = endpoint_context.session_manager
-        server_get = sman.token_handler.handler['id_token'].server_get
+        server_get = sman.token_handler.handler["id_token"].server_get
         _info = self.session_manager.token_handler.info(id_token.value)
-        assert 'sid' in _info
-        assert 'exp' in _info
-        assert 'aud' in _info
+        assert "sid" in _info
+        assert "exp" in _info
+        assert "aud" in _info
 
-        client_id = AREQ.get('client_id')
-        _id_token = sman.token_handler.handler['id_token']
+        client_id = AREQ.get("client_id")
+        _id_token = sman.token_handler.handler["id_token"]
         _id_token.sign_encrypt(session_id, client_id)
 
         # TODO: we need an authentication event for this id_token for a better coverage
@@ -580,6 +553,5 @@ class TestEndpoint(object):
 
         client_info = endpoint_context.cdb[client_id]
         get_sign_and_encrypt_algorithms(
-            endpoint_context, client_info, payload_type="id_token",
-            sign=True, encrypt=True
+            endpoint_context, client_info, payload_type="id_token", sign=True, encrypt=True
         )

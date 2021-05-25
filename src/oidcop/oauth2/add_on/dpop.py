@@ -1,6 +1,7 @@
 from typing import Optional
 
 from cryptojwt import JWS
+from cryptojwt import as_unicode
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
 from oidcmsg.message import SINGLE_REQUIRED_INT
@@ -58,6 +59,7 @@ class DPoPProof(Message):
         payload = {k: self[k] for k in self.body_params}
         _jws = JWS(payload, alg=self["alg"])
         _headers = {k: self[k] for k in self.header_params}
+        self.key.kid = ""
         _sjwt = _jws.sign_compact(keys=[self.key], **_headers)
         return _sjwt
 
@@ -112,28 +114,27 @@ def post_parse_request(request, client_id, endpoint_context, **kwargs):
     if not _dpop.key:
         _dpop.key = key_from_jwk_dict(_dpop["jwk"])
 
-    _jkt = str(_dpop.key.thumbprint("SHA-256"))
-    try:
-        endpoint_context.cdb[client_id]["dpop_jkt"][_jkt] = _dpop.key
-    except KeyError:
-        endpoint_context.cdb[client_id]["dpop_jkt"] = {_jkt: _dpop.key}
-
     # Need something I can add as a reference when minting tokens
-    request["dpop_jkt"] = _jkt
+    request["dpop_jkt"] = as_unicode(_dpop.key.thumbprint("SHA-256"))
     return request
 
 
 def token_args(endpoint_context, client_id, token_args: Optional[dict] = None):
-    if "dpop.jkt" in endpoint_context.cdb[client_id]:
-        token_args.update({"cnf": {"jkt": endpoint_context.cdb[client_id]["dpop_jkt"]}})
+    dpop_jkt = endpoint_context.cdb[client_id]["dpop_jkt"]
+    _jkt = list(dpop_jkt.keys())[0]
+    if "dpop_jkt" in endpoint_context.cdb[client_id]:
+        if token_args is None:
+            token_args = {"cnf": {"jkt": _jkt}}
+        else:
+            token_args.update({"cnf": {"jkt": endpoint_context.cdb[client_id]["dpop_jkt"]}})
 
     return token_args
 
 
 def add_support(endpoint, **kwargs):
     #
-    _endp = endpoint["token"]
-    _endp.post_parse_request.append(post_parse_request)
+    _token_endp = endpoint["token"]
+    _token_endp.post_parse_request.append(post_parse_request)
 
     # Endpoint Context stuff
     # _endp.endpoint_context.token_args_methods.append(token_args)
@@ -141,11 +142,12 @@ def add_support(endpoint, **kwargs):
     if not _algs_supported:
         _algs_supported = ["RS256"]
 
-    _endp.server_get("endpoint_context").provider_info[
+    _token_endp.server_get("endpoint_context").provider_info[
         "dpop_signing_alg_values_supported"
     ] = _algs_supported
 
-    # Other endpoint this may come in handy
+    _endpoint_context = _token_endp.server_get("endpoint_context")
+    _endpoint_context.dpop_enabled = True
 
 
 # DPoP-bound access token in the "Authorization" header and the DPoP proof in the "DPoP" header

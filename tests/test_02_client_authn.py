@@ -65,11 +65,8 @@ CONF = {
         },
     },
     "template_dir": "template",
-    "keys": {
-        "private_path": "own/jwks.json",
-        "key_defs": KEYDEFS,
-        "uri_path": "static/jwks.json",
-    },
+    "keys": {"private_path": "own/jwks.json", "key_defs": KEYDEFS, "uri_path": "static/jwks.json",},
+    "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
 }
 
 client_id = "client_id"
@@ -205,17 +202,13 @@ class TestPrivateKeyJWT:
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="RS256")
         _jwt.with_jti = True
-        _assertion = _jwt.pack(
-            {"aud": [self.method.server_get("endpoint", "token").full_path]}
-        )
+        _assertion = _jwt.pack({"aud": [self.method.server_get("endpoint", "token").full_path]})
 
         request = {"client_assertion": _assertion, "client_assertion_type": JWT_BEARER}
 
         # This should be OK
         assert self.method.is_usable(request=request)
-        self.method.verify(
-            request=request, endpoint=self.method.server_get("endpoint", "token")
-        )
+        self.method.verify(request=request, endpoint=self.method.server_get("endpoint", "token"))
 
         # This should NOT be OK
         with pytest.raises(NotForMe):
@@ -225,9 +218,7 @@ class TestPrivateKeyJWT:
 
         # This should NOT be OK because this is the second time the token appears
         with pytest.raises(MultipleUsage):
-            self.method.verify(
-                request, endpoint=self.method.server_get("endpoint", "token")
-            )
+            self.method.verify(request, endpoint=self.method.server_get("endpoint", "token"))
 
     def test_private_key_jwt_auth_endpoint(self):
         # Own dynamic keys
@@ -248,8 +239,7 @@ class TestPrivateKeyJWT:
 
         assert self.method.is_usable(request=request)
         authn_info = self.method.verify(
-            request=request,
-            endpoint=self.method.server_get("endpoint", "authorization"),
+            request=request, endpoint=self.method.server_get("endpoint", "authorization"),
         )
 
         assert authn_info["client_id"] == client_id
@@ -265,9 +255,7 @@ class TestBearerHeader:
 
     def test_bearerheader(self):
         authorization_info = "Bearer 1234567890"
-        assert self.method.verify(authorization_token=authorization_info) == {
-            "token": "1234567890"
-        }
+        assert self.method.verify(authorization_token=authorization_info) == {"token": "1234567890"}
 
     def test_bearerheader_wrong_type(self):
         authorization_info = "Thrower 1234567890"
@@ -461,9 +449,7 @@ class TestVerify:
     def test_verify_client_client_secret_post(self):
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(
-            self.endpoint_context,
-            request,
-            endpoint=self.server.server_get("endpoint", "token"),
+            self.endpoint_context, request, endpoint=self.server.server_get("endpoint", "token"),
         )
         assert set(res.keys()) == {"method", "client_id"}
         assert res["method"] == "client_secret_post"
@@ -522,9 +508,7 @@ class TestVerify2:
         request = {"client_assertion": _assertion, "client_assertion_type": JWT_BEARER}
 
         res = verify_client(
-            self.endpoint_context,
-            request,
-            endpoint=self.server.server_get("endpoint", "token"),
+            self.endpoint_context, request, endpoint=self.server.server_get("endpoint", "token"),
         )
         assert res["method"] == "client_secret_jwt"
         assert res["client_id"] == "client_id"
@@ -544,9 +528,7 @@ class TestVerify2:
     def test_verify_client_client_secret_post(self):
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(
-            self.endpoint_context,
-            request,
-            endpoint=self.server.server_get("endpoint", "token"),
+            self.endpoint_context, request, endpoint=self.server.server_get("endpoint", "token"),
         )
         assert set(res.keys()) == {"method", "client_id"}
         assert res["method"] == "client_secret_post"
