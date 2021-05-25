@@ -268,11 +268,6 @@
       }
     }
   },
-  "session_key": {
-    "filename": "private/session_jwk.json",
-    "type": "OCT",
-    "use": "sig"
-  },
   "sub_func": {
     "public": {
       "class": "oidcop.session.manager.PublicID",
