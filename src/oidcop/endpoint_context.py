@@ -292,8 +292,9 @@ class EndpointContext(OidcContext):
 
         :return: string
         """
-        _conf = self.conf.get("sub_func", {})
-        for key, args in _conf.items():
+        ses_par = self.conf.get("session_params") or {}
+        sub_func = ses_par.get("sub_func") or {}
+        for key, args in sub_func.items():
             if "class" in args:
                 self._sub_func[key] = init_service(args)
             elif "function" in args:

@@ -77,8 +77,9 @@ class SessionManager(Database):
         self.conf = conf or {}
 
         # these won't change runtime
-        self._key = self.conf.get("password") or rndstr(24)
-        self._salt = self.conf.get("salt") or rndstr(32)
+        session_params = self.conf.get("session_params") or {}
+        self._key = session_params.get("password") or rndstr(24)
+        self._salt = session_params.get("salt") or rndstr(32)
 
         self.key = self.load_key()
         self.salt = self.load_key()
