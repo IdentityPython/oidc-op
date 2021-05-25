@@ -15,18 +15,49 @@ seed
 Used in dynamic client registration endpoint when creating a new client_secret.
 If unset it will be random.
 
---------
+--------------
+session params
+--------------
+
+Configuration parameters used by session manager
+
+    "session_params": {
+      "password": "__password_used_to_encrypt_access_token_sid_value",
+      "salt": "salt involved in session sub hash ",
+      "sub_func": {
+        "public": {
+          "class": "oidcop.session.manager.PublicID",
+          "kwargs": {
+            "salt": "sdfsdfdsf"
+          }
+        },
+        "pairwise": {
+          "class": "oidcop.session.manager.PairWiseID",
+          "kwargs": {
+            "salt": "sdfsdfsdf"
+          }
+        }
+     }
+  },
+
 password
---------
+########
 
 Encryption key used to encrypt the SessionID (sid) in access_token.
 If unset it will be random.
 
-----
+
 salt
-----
+####
 
 Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
+
+
+sub_funcs
+#########
+
+Functions involved in subject creation (jwt token sub claim).
+
 
 -----------
 session_key
