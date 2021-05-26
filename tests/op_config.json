@@ -268,11 +268,6 @@
       }
     }
   },
-  "session_key": {
-    "filename": "private/session_jwk.json",
-    "type": "OCT",
-    "use": "sig"
-  },
   "session_params": {
       "password": "__password_used_to_encrypt_access_token_sid_value",
       "salt": "salt involved in session sub hash ",

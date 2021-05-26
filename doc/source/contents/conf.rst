@@ -8,12 +8,6 @@ issuer
 
 The issuer ID of the OP, a unique value in URI format.
 
-----
-seed
-----
-
-Used in dynamic client registration endpoint when creating a new client_secret.
-If unset it will be random.
 
 --------------
 session params
@@ -51,25 +45,6 @@ salt
 ####
 
 Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
-
-
-sub_funcs
-#########
-
-Functions involved in subject creation (jwt token sub claim).
-
-
------------
-session_key
------------
-
-An example::
-
-    "session_key": {
-        "filename": "private/session_jwk.json",
-        "type": "OCT",
-        "use": "sig"
-      },
 
 ------
 add_on
@@ -240,8 +215,14 @@ An example::
           "path": "registration",
           "class": "oidcop.oidc.registration.Registration",
           "kwargs": {
-            "client_authn_method": null,
-            "client_secret_expiration_time": 432000
+            "client_authn_method": None,
+            "client_secret_expiration_time": 432000,
+            "client_id_generator": {
+               "class": 'oidcop.oidc.registration.random_client_id',
+               "kwargs": {
+                    "seed": "that-optional-random-value"
+               }
+           }
           }
         },
         "registration_api": {
