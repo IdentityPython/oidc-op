@@ -99,8 +99,14 @@ def comb_uri(args):
         val = []
         for base, query_dict in args[param]:
             if query_dict:
-                query_string = urlencode([(key, v) for key in query_dict for v in query_dict[key]])
-                val.append("%s?%s" % (base, query_string))
+                query_string = urlencode(
+                    [
+                        (key, v)
+                        for key in query_dict
+                        for v in query_dict[key]
+                    ]
+                )
+                val.append("{base}?{query_string}")
             else:
                 val.append(base)
 
@@ -138,6 +144,14 @@ class Registration(Endpoint):
 
     # default
     # response_placement = 'body'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Those that use seed wants bytes but I can only store str.
+        # seed
+        _seed = kwargs.get("seed") or rndstr(32)
+        self.seed = as_bytes(_seed)
 
     def match_client_request(self, request):
         _context = self.server_get("endpoint_context")
@@ -358,7 +372,7 @@ class Registration(Endpoint):
         return utc_time_sans_frac() + _expiration_time
 
     def add_client_secret(self, cinfo, client_id, context):
-        client_secret = secret(context.seed, client_id)
+        client_secret = secret(self.seed, client_id)
         cinfo["client_secret"] = client_secret
         _eat = self.client_secret_expiration_time()
         if _eat:

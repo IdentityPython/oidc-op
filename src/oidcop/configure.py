@@ -221,7 +221,6 @@ class EntityConfiguration(Base):
         self.token_handler_args = {}
         self.userinfo = None
         self.password = None
-        self.salt = None
 
         if file_attributes is None:
             file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
