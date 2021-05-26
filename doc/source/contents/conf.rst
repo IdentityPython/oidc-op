@@ -9,16 +9,40 @@ issuer
 The issuer ID of the OP, a unique value in URI format.
 
 
---------
+--------------
+session params
+--------------
+
+Configuration parameters used by session manager
+
+    "session_params": {
+      "password": "__password_used_to_encrypt_access_token_sid_value",
+      "salt": "salt involved in session sub hash ",
+      "sub_func": {
+        "public": {
+          "class": "oidcop.session.manager.PublicID",
+          "kwargs": {
+            "salt": "sdfsdfdsf"
+          }
+        },
+        "pairwise": {
+          "class": "oidcop.session.manager.PairWiseID",
+          "kwargs": {
+            "salt": "sdfsdfsdf"
+          }
+        }
+     }
+  },
+
 password
---------
+########
 
 Encryption key used to encrypt the SessionID (sid) in access_token.
 If unset it will be random.
 
-----
+
 salt
-----
+####
 
 Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
 

@@ -218,7 +218,7 @@ class EntityConfiguration(Base):
         self.template_dir = None
         self.token_handler_args = {}
         self.userinfo = None
-        self.password = None
+        self.session_params = None
 
         if file_attributes is None:
             file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
@@ -265,7 +265,6 @@ class OPConfiguration(EntityConfiguration):
         self.id_token = None
         self.login_hint2acrs = {}
         self.login_hint_lookup = None
-        self.sub_func = {}
 
         EntityConfiguration.__init__(self, conf=conf, base_path=base_path,
                                      entity_conf=entity_conf, domain=domain, port=port,
