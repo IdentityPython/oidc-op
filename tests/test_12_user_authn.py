@@ -33,7 +33,13 @@ class TestUserAuthn(object):
             "password": "mycket hemligt",
             "grant_expires_in": 300,
             "verify_ssl": False,
-            "endpoint": {},
+            "endpoint": {
+                "authorization": {
+                    "path": "{}/authorization",
+                    "class": 'oidcop.oidc.authorization.Authorization',
+                    "kwargs": {},
+                }
+            },
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "authentication": {
                 "user": {
