@@ -51,10 +51,6 @@ op:
     issuer: *base_url
     httpc_params:
       verify: False
-    session_key:
-      filename: private/session_jwk.json
-      type: OCT
-      use: sig
     capabilities:
       subject_types_supported:
         - public

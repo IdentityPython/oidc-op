@@ -22,18 +22,6 @@ salt
 
 Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
 
------------
-session_key
------------
-
-An example::
-
-    "session_key": {
-        "filename": "private/session_jwk.json",
-        "type": "OCT",
-        "use": "sig"
-      },
-
 ------
 add_on
 ------
