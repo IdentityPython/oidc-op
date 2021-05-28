@@ -6,6 +6,9 @@ class WrongTokenType(Exception):
     pass
 
 
+class WrongTokenClass(Exception):
+    pass
+
 class AccessCodeUsed(Exception):
     pass
 

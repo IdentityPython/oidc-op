@@ -193,15 +193,15 @@ class TestEndpoint(object):
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint.server_get("endpoint_context"),
-            token_type="authorization_code",
-            token_handler=self.session_manager.token_handler["code"],
+            token_class="authorization_code",
+            token_handler=self.session_manager.token_handler["authorization_code"],
         )
 
     def _mint_access_token(self, grant, session_id, token_ref=None, resources=None):
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint.server_get("endpoint_context"),
-            token_type="access_token",
+            token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             based_on=token_ref,
             resources=resources,

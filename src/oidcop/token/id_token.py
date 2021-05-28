@@ -119,12 +119,12 @@ class IDToken(Token):
 
     def __init__(
         self,
-        typ: Optional[str] = "I",
+        token_class: Optional[str] = "id_token",
         lifetime: Optional[int] = 300,
         server_get: Callable = None,
         **kwargs
     ):
-        Token.__init__(self, typ, **kwargs)
+        Token.__init__(self, token_class, **kwargs)
         self.lifetime = lifetime
         self.server_get = server_get
         self.kwargs = kwargs

@@ -101,8 +101,8 @@ class TestSession:
         code = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="authorization_code",
-            token_handler=self.session_manager.token_handler["code"],
+            token_class="authorization_code",
+            token_handler=self.session_manager.token_handler["authorization_code"],
             expires_at=time_sans_frac() + 300,  # 5 minutes from now
         )
 
@@ -135,7 +135,7 @@ class TestSession:
         tok = self.session_manager.find_token(session_id, TOKEN_REQ["code"])
 
         # Verify that it's of the correct type and can be used
-        assert tok.type == "authorization_code"
+        assert tok.token_class == "authorization_code"
         assert tok.is_active()
 
         # Mint an access token and a refresh token and mark the code as used
@@ -144,10 +144,10 @@ class TestSession:
 
         grant = self.session_manager[session_id]
 
-        access_token = grant.mint_token(
+        grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="access_token",
+            token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=time_sans_frac() + 900,  # 15 minutes from now
             based_on=tok,  # Means the token (tok) was used to mint this token
@@ -158,7 +158,7 @@ class TestSession:
         refresh_token = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="refresh_token",
+            token_class="refresh_token",
             token_handler=self.session_manager.token_handler["refresh_token"],
             based_on=tok,
         )
@@ -184,7 +184,7 @@ class TestSession:
         access_token_2 = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="access_token",
+            token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=time_sans_frac() + 900,  # 15 minutes from now
             based_on=reftok,  # Means the token (tok) was used to mint this token
@@ -350,8 +350,8 @@ class TestSessionJWTToken:
         code = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="authorization_code",
-            token_handler=self.session_manager.token_handler["code"],
+            token_class="authorization_code",
+            token_handler=self.session_manager.token_handler["authorization_code"],
             expires_at=time_sans_frac() + 300,  # 5 minutes from now
         )
         return code
@@ -382,7 +382,7 @@ class TestSessionJWTToken:
         tok = self.session_manager.find_token(session_id, TOKEN_REQ["code"])
 
         # Verify that it's of the correct type and can be used
-        assert tok.type == "authorization_code"
+        assert tok.token_class == "authorization_code"
         assert tok.is_active()
 
         # Mint an access token and a refresh token and mark the code as used
@@ -395,10 +395,10 @@ class TestSessionJWTToken:
 
         grant = self.session_manager[session_id]
 
-        access_token = grant.mint_token(
+        grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="access_token",
+            token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=time_sans_frac() + 900,  # 15 minutes from now
             based_on=tok,  # Means the token (tok) was used to mint this token
@@ -410,7 +410,7 @@ class TestSessionJWTToken:
         refresh_token = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="refresh_token",
+            token_class="refresh_token",
             token_handler=self.session_manager.token_handler["refresh_token"],
             based_on=tok,
         )
@@ -444,7 +444,7 @@ class TestSessionJWTToken:
         access_token_2 = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="access_token",
+            token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=time_sans_frac() + 900,  # 15 minutes from now
             based_on=reftok,  # Means the refresh token (reftok) was used to mint this token

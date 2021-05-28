@@ -301,12 +301,12 @@ class Authorization(Endpoint):
         # Is the asked for response_type among those that are permitted
         return set(request["response_type"]) in _registered
 
-    def mint_token(self, token_type, grant, session_id, based_on=None, **kwargs):
-        usage_rules = grant.usage_rules.get(token_type, {})
+    def mint_token(self, token_class, grant, session_id, based_on=None, **kwargs):
+        usage_rules = grant.usage_rules.get(token_class, {})
         token = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.server_get("endpoint_context"),
-            token_type=token_type,
+            token_class=token_class,
             based_on=based_on,
             usage_rules=usage_rules,
             **kwargs,
@@ -677,7 +677,7 @@ class Authorization(Endpoint):
 
             if "code" in request["response_type"]:
                 _code = self.mint_token(
-                    token_type="authorization_code", grant=grant, session_id=_sinfo["session_id"],
+                    token_class="authorization_code", grant=grant, session_id=_sinfo["session_id"],
                 )
                 aresp["code"] = _code.value
                 handled_response_type.append("code")
@@ -686,7 +686,7 @@ class Authorization(Endpoint):
 
             if "token" in rtype:
                 _access_token = self.mint_token(
-                    token_type="access_token", grant=grant, session_id=_sinfo["session_id"],
+                    token_class="access_token", grant=grant, session_id=_sinfo["session_id"],
                 )
                 aresp["access_token"] = _access_token.value
                 aresp["token_type"] = "Bearer"
@@ -707,7 +707,7 @@ class Authorization(Endpoint):
 
                 try:
                     id_token = self.mint_token(
-                        token_type="id_token",
+                        token_class="id_token",
                         grant=grant,
                         session_id=_sinfo["session_id"],
                         **kwargs,

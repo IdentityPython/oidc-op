@@ -280,7 +280,7 @@ class TestCollectUserInfo:
         session_id = self._create_session(_req)
 
         _userinfo_restriction = self.claims_interface.get_claims(
-            session_id=session_id, scopes=OIDR["scope"], usage="userinfo"
+            session_id=session_id, scopes=OIDR["scope"], claims_release_ref="userinfo"
         )
 
         res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
@@ -293,7 +293,7 @@ class TestCollectUserInfo:
         }
 
         _id_token_restriction = self.claims_interface.get_claims(
-            session_id=session_id, scopes=OIDR["scope"], usage="id_token"
+            session_id=session_id, scopes=OIDR["scope"], claims_release_ref="id_token"
         )
 
         res = self.claims_interface.get_user_claims("diana", _id_token_restriction)
@@ -304,7 +304,7 @@ class TestCollectUserInfo:
         }
 
         _restriction = self.claims_interface.get_claims(
-            session_id=session_id, scopes=OIDR["scope"], usage="introspection"
+            session_id=session_id, scopes=OIDR["scope"], claims_release_ref="introspection"
         )
 
         res = self.claims_interface.get_user_claims("diana", _restriction)
@@ -320,7 +320,7 @@ class TestCollectUserInfo:
         _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
 
         _userinfo_restriction = self.claims_interface.get_claims(
-            session_id=session_id, scopes=_req["scope"], usage="userinfo"
+            session_id=session_id, scopes=_req["scope"], claims_release_ref="userinfo"
         )
 
         res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
@@ -351,7 +351,7 @@ class TestCollectUserInfo:
         del _userinfo_endpoint.kwargs["base_claims"]
 
         _userinfo_restriction = self.claims_interface.get_claims(
-            session_id=session_id, scopes=_req["scope"], usage="userinfo"
+            session_id=session_id, scopes=_req["scope"], claims_release_ref="userinfo"
         )
 
         res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
@@ -374,7 +374,7 @@ class TestCollectUserInfo:
         self.endpoint_context.cdb[_req["client_id"]]["userinfo_claims"] = {"phone_number": None}
 
         _userinfo_restriction = self.claims_interface.get_claims(
-            session_id=session_id, scopes=_req["scope"], usage="userinfo"
+            session_id=session_id, scopes=_req["scope"], claims_release_ref="userinfo"
         )
 
         res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
@@ -495,7 +495,7 @@ class TestCollectUserInfoCustomScopes:
         session_id = self._create_session(_req)
 
         _restriction = self.claims_interface.get_claims(
-            session_id=session_id, scopes=_req["scope"], usage="userinfo"
+            session_id=session_id, scopes=_req["scope"], claims_release_ref="userinfo"
         )
 
         res = self.claims_interface.get_user_claims("diana", _restriction)

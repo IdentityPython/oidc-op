@@ -83,7 +83,7 @@ TOKEN_REQ_DICT = TOKEN_REQ.to_dict()
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 MAP = {
-    "authorization_code": "code",
+    "authorization_code": "authorization_code",
     "access_token": "access_token",
     "refresh_token": "refresh_token",
     "id_token": "id_token",
@@ -203,13 +203,13 @@ class TestEndpoint(object):
             ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
         )
 
-    def _mint_token(self, type, grant, session_id, based_on=None, **kwargs):
+    def _mint_token(self, token_class, grant, session_id, based_on=None, **kwargs):
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type=type,
-            token_handler=self.session_manager.token_handler.handler[MAP[type]],
+            token_class=token_class,
+            token_handler=self.session_manager.token_handler.handler[token_class],
             expires_at=time_sans_frac() + 300,  # 5 minutes from now
             based_on=based_on,
             **kwargs
@@ -228,7 +228,7 @@ class TestEndpoint(object):
         _verifier = JWT(self.endpoint_context.keyjar)
         _info = _verifier.unpack(access_token.value)
 
-        assert _info["ttype"] == "T"
+        assert _info["token_class"] == "access_token"
         # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
         assert set(_info["aud"]) == {"client_1"}
 
@@ -241,7 +241,7 @@ class TestEndpoint(object):
         access_token = self._mint_token("access_token", grant, session_id, code)
 
         _info = self.session_manager.token_handler.info(access_token.value)
-        assert _info["type"] == "T"
+        assert _info["token_class"] == "access_token"
         assert _info["sid"] == session_id
 
     @pytest.mark.parametrize("enable_claims_per_client", [True, False])
