@@ -419,7 +419,7 @@ class TestEndpoint(object):
         self.endpoint_context.cdb["client_1"]["id_token_claims"] = {"address": None}
 
         _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=AREQ["scope"], claims_release_ref="id_token"
+            session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
 
@@ -438,7 +438,7 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
 
         _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=AREQ["scope"], claims_release_ref="id_token"
+            session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
 
@@ -461,7 +461,7 @@ class TestEndpoint(object):
         self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
 
         _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=AREQS["scope"], claims_release_ref="id_token"
+            session_id=session_id, scopes=AREQS["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
 
@@ -483,7 +483,7 @@ class TestEndpoint(object):
         self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
 
         _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=AREQRC["scope"], claims_release_ref="id_token"
+            session_id=session_id, scopes=AREQRC["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
 
@@ -510,7 +510,7 @@ class TestEndpoint(object):
         self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
 
         _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=_req["scope"], claims_release_ref="id_token"
+            session_id=session_id, scopes=_req["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
 

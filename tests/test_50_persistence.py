@@ -410,7 +410,7 @@ class TestEndpoint(object):
             "userinfo": self.endpoint[1]
             .server_get("endpoint_context")
             .claims_interface.get_claims(session_id, scopes=_auth_req["scope"],
-                                         claims_release_ref="userinfo")
+                                         claims_release_point="userinfo")
         }
 
         self._dump_restore(1, 2)

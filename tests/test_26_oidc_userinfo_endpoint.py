@@ -324,7 +324,7 @@ class TestEndpoint(object):
         self.endpoint.server_get("endpoint_context").claims_interface.add_claims_by_scope = True
         grant.claims = {
             "userinfo": self.endpoint.server_get("endpoint_context").claims_interface.get_claims(
-                session_id=session_id, scopes=_auth_req["scope"], claims_release_ref="userinfo"
+                session_id=session_id, scopes=_auth_req["scope"], claims_release_point="userinfo"
             )
         }
 
