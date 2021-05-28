@@ -152,7 +152,7 @@ class Grant(Item):
         self.issued_token = issued_token or []
         self.id = uuid1().hex
         self.sub = sub
-        self.extra = {}
+        self.extra = extra or {}
 
         if token_map is None:
             self.token_map = TOKEN_MAP
@@ -219,6 +219,7 @@ class Grant(Item):
             based_on: Optional[SessionToken] = None,
             usage_rules: Optional[dict] = None,
             scope: Optional[list] = None,
+            token_type: Optional[str] = "",
             **kwargs,
     ) -> Optional[SessionToken]:
         """
@@ -255,6 +256,9 @@ class Grant(Item):
         else:
             class_args = kwargs
             handler_args = {}
+
+        if token_class == "access_token" and token_type:
+            class_args["token_type"] = token_type
 
         if _class:
             item = _class(

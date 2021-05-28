@@ -94,6 +94,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                     session_id=_session_info["session_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
+                    token_type=token_type,
                 )
             except MintingNotAllowed as err:
                 logger.warning(err)
@@ -207,6 +208,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
             session_id=_session_info["session_id"],
             client_id=_session_info["client_id"],
             based_on=token,
+            token_type=token_type
         )
 
         _resp = {

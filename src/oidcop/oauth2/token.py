@@ -54,6 +54,7 @@ class TokenEndpointHelper(object):
         client_id: str,
         based_on: Optional[SessionToken] = None,
         token_args: Optional[dict] = None,
+        token_type: Optional[str] = ""
     ) -> SessionToken:
         _context = self.endpoint.server_get("endpoint_context")
         _mngr = _context.session_manager
@@ -79,6 +80,7 @@ class TokenEndpointHelper(object):
             token_handler=_mngr.token_handler[token_class],
             based_on=based_on,
             usage_rules=usage_rules,
+            token_type=token_type,
             **_args,
         )
 
