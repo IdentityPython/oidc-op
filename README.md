@@ -11,7 +11,7 @@ Idpy OIDC-op implements the following standards:
 * [OpenID Connect Core 1.0 incorporating errata set 1](https://openid.net/specs/openid-connect-core-1_0.html)
 * [Web Finger](https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery)
 * [OpenID Connect Discovery 1.0 incorporating errata set 1](https://openid.net/specs/openid-connect-discovery-1_0.html)
-* [OpenID Connect Dynamic Client Registration 1.0] incorporating errata set 1(https://openid.net/specs/openid-connect-registration-1_0.html)
+* [OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 1](https://openid.net/specs/openid-connect-registration-1_0.html)
 * [OpenID Connect Session Management 1.0](https://openid.net/specs/openid-connect-session-1_0.html)
 * [OpenID Connect Back-Channel Logout 1.0](https://openid.net/specs/openid-connect-backchannel-1_0.html)
 * [OpenID Connect Front-Channel Logout 1.0](https://openid.net/specs/openid-connect-frontchannel-1_0.html)
