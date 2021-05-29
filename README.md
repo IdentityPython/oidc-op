@@ -1,7 +1,7 @@
 # oidc-op
 
-This project is a Python implementation of an **OIDC Provider** on top of [jwtconnect.io](https://jwtconnect.io/).
-that shows you how to 'build' an OP using the classes and functions provided by oidc-op.
+This project is a Python implementation of an **OIDC Provider** on top of [jwtconnect.io](https://jwtconnect.io/)
+ that shows to you how to 'build' an OP using the classes and functions provided by oidc-op.
 
 If you are just going to build a standard OP you only have to write the configuration file. If you want to add or replace functionality this documentation
 should be able to tell you how.
