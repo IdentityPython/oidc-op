@@ -175,6 +175,18 @@ class Grant(Item):
             resources=self.resources,
         )
 
+    def find_scope(self, based_on):
+        if based_on.scope:
+            return based_on.scope
+
+        if based_on.based_on:
+            # Don't expect there to be that many tokens based on one grant so a linear search
+            # should be OK.
+            for token in self.issued_token:
+                if token.value == based_on.based_on:
+                    return self.find_scope(token)
+        return []
+
     def payload_arguments(
             self,
             session_id: str,
@@ -260,6 +272,10 @@ class Grant(Item):
             handler_args = {}
 
         if token_class:
+            if not scope:
+                if based_on:
+                    scope = self.find_scope(based_on)
+
             item = token_class(
                 type=token_type,
                 based_on=_base_on_ref,
