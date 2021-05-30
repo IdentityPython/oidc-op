@@ -175,6 +175,19 @@ class Grant(Item):
             resources=self.resources,
         )
 
+    def find_scope(self, based_on):
+        if isinstance(based_on, str):
+            based_on = self.get_token(based_on)
+
+        if based_on:
+            if based_on.scope:
+                return based_on.scope
+
+            if based_on.based_on:
+                return self.find_scope(based_on.based_on)
+
+        return self.scope
+
     def payload_arguments(
             self,
             session_id: str,
@@ -187,7 +200,7 @@ class Grant(Item):
 
         :return: dictionary containing information to place in a token value
         """
-        if not scope:
+        if scope is None:
             scope = self.scope
 
         payload = {"scope": scope, "aud": self.resources, "jti": uuid1().hex}
@@ -260,6 +273,12 @@ class Grant(Item):
             handler_args = {}
 
         if token_class:
+            if scope is None:
+                if based_on:
+                    scope = self.find_scope(based_on)
+                else:
+                    scope = self.scope
+
             item = token_class(
                 type=token_type,
                 based_on=_base_on_ref,
