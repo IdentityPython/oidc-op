@@ -1,10 +1,10 @@
 # oidc-op
 
-This project is a Python implementation of an **OIDC Provider** on top of [jwtconnect.io](https://jwtconnect.io/)
- that shows to you how to 'build' an OP using the classes and functions provided by oidc-op.
+This project is a Python implementation of an **OIDC Provider** on top of [jwtconnect.io](https://jwtconnect.io/) that shows to you how to 'build' an OP using the classes and functions provided by oidc-op.
 
-If you are just going to build a standard OP you only have to write the configuration file. If you want to add or replace functionality this documentation
-should be able to tell you how.
+If you want to add or replace functionality the official documentation should be able to tell you how.
+If you are just going to build a standard OP you only have to understand how to write your configuration file.
+In `example/` folder you'll find some complete examples based on flask and django.
 
 Idpy OIDC-op implements the following standards:
 
@@ -24,8 +24,7 @@ It also comes with the following `add_on` modules.
 * [OAuth2 RAR](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-rar)
 * [OAuth2 DPoP](https://tools.ietf.org/id/draft-fett-oauth-dpop-04.html)
 
-The entire project code is open sourced and therefore licensed
-under the [Apache 2.0](https://en.wikipedia.org/wiki/Apache_License)
+The entire project code is open sourced and therefore licensed under the [Apache 2.0](https://en.wikipedia.org/wiki/Apache_License)
 
 For any futher information please read the [Official Documentation](#TODO).
 
