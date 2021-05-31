@@ -51,6 +51,14 @@ class Introspection(Endpoint):
             "iss": _context.issuer,
         }
 
+        try:
+            _token_type = token.token_type
+        except AttributeError:
+            _token_type = None
+
+        if _token_type:
+            ret["token_type"] = _token_type
+
         if aud:
             ret["aud"] = aud
 

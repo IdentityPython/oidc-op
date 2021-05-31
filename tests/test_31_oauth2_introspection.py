@@ -325,8 +325,10 @@ class TestEndpoint:
             "iat",
             "scope",
             "aud",
+            "token_type"
         }
         assert _payload["active"] is True
+        assert _payload["token_type"] == "bearer"
 
     def test_do_response_no_token(self):
         # access_token = self._get_access_token(AUTH_REQ)
