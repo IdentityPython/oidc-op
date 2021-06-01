@@ -329,6 +329,7 @@ class TestEndpoint(object):
         assert set(_resp["response_args"].keys()) == {
             "access_token",
             "token_type",
+            "expires_in",
             "refresh_token",
             "scope",
         }
@@ -375,6 +376,7 @@ class TestEndpoint(object):
         assert set(_2nd_resp["response_args"].keys()) == {
             "access_token",
             "token_type",
+            "expires_in",
             "refresh_token",
             "scope",
         }
