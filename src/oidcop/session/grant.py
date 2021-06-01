@@ -270,15 +270,18 @@ class Grant(Item):
             class_args = kwargs
             handler_args = {}
 
-        if token_class:
+        if token_class == "access_token" and token_type:
+            class_args["token_type"] = token_type
+
+        if _class:
             if scope is None:
                 if based_on:
                     scope = self.find_scope(based_on)
                 else:
                     scope = self.scope
 
-            item = token_class(
-                type=token_type,
+            item = _class(
+                token_class=token_class,
                 based_on=_base_on_ref,
                 usage_rules=usage_rules,
                 scope=scope,
