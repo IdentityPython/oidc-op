@@ -448,7 +448,7 @@ class TestGrant:
         code = grant.mint_token(
             session_id,
             endpoint_context=self.endpoint_context,
-            token_type="authorization_code",
+            token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
@@ -457,7 +457,7 @@ class TestGrant:
         access_token = grant.mint_token(
             session_id,
             endpoint_context=self.endpoint_context,
-            token_type="access_token",
+            token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
         )
@@ -473,7 +473,7 @@ class TestGrant:
         code = grant.mint_token(
             session_id,
             endpoint_context=self.endpoint_context,
-            token_type="authorization_code",
+            token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
@@ -482,7 +482,7 @@ class TestGrant:
         refresh_token = grant.mint_token(
             session_id,
             endpoint_context=self.endpoint_context,
-            token_type="refresh_token",
+            token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
         )
@@ -490,7 +490,7 @@ class TestGrant:
         access_token = grant.mint_token(
             session_id,
             endpoint_context=self.endpoint_context,
-            token_type="access_token",
+            token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=refresh_token,
         )
@@ -502,7 +502,7 @@ class TestGrant:
         access_token = grant.mint_token(
             session_id,
             endpoint_context=self.endpoint_context,
-            token_type="access_token",
+            token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=refresh_token,
         )
