@@ -58,7 +58,7 @@ class TokenEndpointHelper(object):
     ) -> SessionToken:
         _context = self.endpoint.server_get("endpoint_context")
         _mngr = _context.session_manager
-        usage_rules = grant.usage_rules.get(type)
+        usage_rules = grant.usage_rules.get(token_class)
         if usage_rules:
             _exp_in = usage_rules.get("expires_in")
         else:
