@@ -41,14 +41,6 @@ class GrantMessage(ImpExp):
         self.resources = resources
 
 
-GRANT_TYPE_MAP = {
-    "authorization_code": "code",
-    "access_token": "access_token",
-    "refresh_token": "refresh_token",
-    "id_token": "id_token",
-}
-
-
 def find_token(issued, token_id):
     for iss in issued:
         if iss.id == token_id:
@@ -160,7 +152,7 @@ class Grant(Item):
         self.issued_token = issued_token or []
         self.id = uuid1().hex
         self.sub = sub
-        self.extra = {}
+        self.extra = extra or {}
 
         if token_map is None:
             self.token_map = TOKEN_MAP
@@ -192,12 +184,17 @@ class Grant(Item):
             self,
             session_id: str,
             endpoint_context,
-            token_type: str,
+            claims_release_point: str,
             scope: Optional[dict] = None,
             extra_payload: Optional[dict] = None,
     ) -> dict:
         """
 
+        :param session_id:
+        :param endpoint_context:
+        :param claims_release_point: One of "userinfo", "introspection", "id_token", "access_token"
+        :param scope:
+        :param extra_payload:
         :return: dictionary containing information to place in a token value
         """
         if scope is None:
@@ -218,7 +215,7 @@ class Grant(Item):
                 payload.update({"client_id": client_id, "sub": client_id})
 
         _claims_restriction = endpoint_context.claims_interface.get_claims(
-            session_id, scopes=scope, usage=token_type
+            session_id, scopes=scope, claims_release_point=claims_release_point
         )
         user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
         user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
@@ -230,11 +227,12 @@ class Grant(Item):
             self,
             session_id: str,
             endpoint_context: object,
-            token_type: str,
+            token_class: str,
             token_handler: TokenHandler = None,
             based_on: Optional[SessionToken] = None,
             usage_rules: Optional[dict] = None,
             scope: Optional[list] = None,
+            token_type: Optional[str] = "",
             **kwargs,
     ) -> Optional[SessionToken]:
         """
@@ -253,48 +251,55 @@ class Grant(Item):
             return None
 
         if based_on:
-            if based_on.supports_minting(token_type) is False:
-                raise MintingNotAllowed(f"Minting of {token_type} not supported")
+            if based_on.supports_minting(token_class) is False:
+                raise MintingNotAllowed(f"Minting of {token_class} not supported")
             if not based_on.is_active():
                 raise MintingNotAllowed("Token inactive")
             _base_on_ref = based_on.value
         else:
             _base_on_ref = None
 
-        if usage_rules is None and token_type in self.usage_rules:
-            usage_rules = self.usage_rules[token_type]
+        if usage_rules is None and token_class in self.usage_rules:
+            usage_rules = self.usage_rules[token_class]
 
-        token_class = self.token_map.get(token_type)
-        if token_type == "id_token":
+        _class = self.token_map.get(token_class)
+        if token_class == "id_token":
             class_args = {k: v for k, v in kwargs.items() if k not in ["code", "access_token"]}
             handler_args = {k: v for k, v in kwargs.items() if k in ["code", "access_token"]}
         else:
             class_args = kwargs
             handler_args = {}
 
-        if token_class:
+        if token_class == "access_token" and token_type:
+            class_args["token_type"] = token_type
+
+        if _class:
             if scope is None:
                 if based_on:
                     scope = self.find_scope(based_on)
                 else:
                     scope = self.scope
 
-            item = token_class(
-                type=token_type,
+            item = _class(
+                token_class=token_class,
                 based_on=_base_on_ref,
                 usage_rules=usage_rules,
                 scope=scope,
                 **class_args,
             )
             if token_handler is None:
-                token_handler = endpoint_context.session_manager.token_handler.handler[
-                    GRANT_TYPE_MAP[token_type]
-                ]
+                token_handler = endpoint_context.session_manager.token_handler.handler[token_class]
+
+            # Only access_token and id_token can give rise to claims release
+            if token_class in ["access_token", "id_token"]:
+                claims_release_point = token_class
+            else:
+                claims_release_point = ""
 
             token_payload = self.payload_arguments(
                 session_id,
                 endpoint_context,
-                token_type=token_type,
+                claims_release_point=claims_release_point,
                 scope=scope,
                 extra_payload=handler_args,
             )

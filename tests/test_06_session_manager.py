@@ -1,6 +1,6 @@
-import pytest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac
+import pytest
 
 from oidcop.authn_event import AuthnEvent
 from oidcop.authn_event import create_authn_event
@@ -23,17 +23,10 @@ AUTH_REQ = AuthorizationRequest(
     response_type="code",
 )
 
-MAP = {
-    "authorization_code": "code",
-    "access_token": "access_token",
-    "refresh_token": "refresh_token",
-}
-
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
-
 
 USER_ID = "diana"
 
@@ -68,7 +61,7 @@ class TestSessionManager:
                 },
                 "refresh": {
                     "class": "oidcop.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
             },
             "endpoint": {
@@ -190,13 +183,13 @@ class TestSessionManager:
         assert grant_1.authorization_request != grant_3.authorization_request
         assert grant_3.authorization_request != grant_2.authorization_request
 
-    def _mint_token(self, type, grant, session_id, based_on=None):
+    def _mint_token(self, token_class, grant, session_id, based_on=None):
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type=type,
-            token_handler=self.session_manager.token_handler.handler[MAP[type]],
+            token_class=token_class,
+            token_handler=self.session_manager.token_handler.handler[token_class],
             expires_at=time_sans_frac() + 300,  # 5 minutes from now
             based_on=based_on,
         )
@@ -284,7 +277,7 @@ class TestSessionManager:
         _session_id = self.session_manager.encrypted_session_id("diana", "client_1", grant.id)
         _token = self.session_manager.find_token(_session_id, access_token.value)
 
-        assert _token.type == "access_token"
+        assert _token.token_class == "access_token"
         assert _token.id == access_token.id
 
     def test_get_authentication_event(self):
@@ -538,7 +531,7 @@ class TestSessionManager:
         assert isinstance(res[0], AuthnEvent)
 
         try:
-            self.session_manager.get_authentication_events(user_id="diana",)
+            self.session_manager.get_authentication_events(user_id="diana", )
         except AttributeError:
             pass
         else:
@@ -611,7 +604,7 @@ class TestSessionManager:
         assert isinstance(res, list)
 
         try:
-            self.session_manager.grants(user_id="diana",)
+            self.session_manager.grants(user_id="diana", )
         except AttributeError:
             pass
         else:

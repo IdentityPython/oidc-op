@@ -231,8 +231,8 @@ class TestEndpoint(object):
         _code = grant.mint_token(
             session_id,
             endpoint_context=self.endpoint[index].server_get("endpoint_context"),
-            token_type="authorization_code",
-            token_handler=self.session_manager[index].token_handler["code"],
+            token_class="authorization_code",
+            token_handler=self.session_manager[index].token_handler["authorization_code"],
         )
 
         self.session_manager[index].set(
@@ -249,7 +249,7 @@ class TestEndpoint(object):
         _token = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint[index].server_get("endpoint_context"),
-            token_type="access_token",
+            token_class="access_token",
             token_handler=self.session_manager[index].token_handler["access_token"],
             based_on=token_ref,  # Means the token (tok) was used to mint this token
         )
@@ -409,7 +409,8 @@ class TestEndpoint(object):
         grant.claims = {
             "userinfo": self.endpoint[1]
             .server_get("endpoint_context")
-            .claims_interface.get_claims(session_id, scopes=_auth_req["scope"], usage="userinfo")
+            .claims_interface.get_claims(session_id, scopes=_auth_req["scope"],
+                                         claims_release_point="userinfo")
         }
 
         self._dump_restore(1, 2)

@@ -6,6 +6,7 @@ from oidcmsg.time_util import time_sans_frac
 
 from oidcop import rndstr
 from oidcop.token.exception import UnknownToken
+from oidcop.token.exception import WrongTokenClass
 from oidcop.token.exception import WrongTokenType
 from oidcop.util import Crypt
 from oidcop.util import lv_pack
@@ -26,8 +27,8 @@ def is_expired(exp, when=0):
 
 
 class Token(object):
-    def __init__(self, typ, lifetime=300, **kwargs):
-        self.type = typ
+    def __init__(self, token_class, lifetime=300, **kwargs):
+        self.token_class = token_class
         self.lifetime = lifetime
         self.kwargs = kwargs
 
@@ -65,22 +66,22 @@ class Token(object):
 
 
 class DefaultToken(Token):
-    def __init__(self, password, typ="", token_type="Bearer", **kwargs):
-        Token.__init__(self, typ, **kwargs)
+    def __init__(self, password, token_class="", token_type="Bearer", **kwargs):
+        Token.__init__(self, token_class, **kwargs)
         self.crypt = Crypt(password)
         self.token_type = token_type
 
-    def __call__(self, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload) -> str:
+    def __call__(self, session_id: Optional[str] = "", token_class: Optional[str] = "", **payload) -> str:
         """
         Return a token.
 
         :param payload: Token information
         :return:
         """
-        if not ttype and self.type:
-            ttype = self.type
+        if not token_class and self.token_class:
+            token_class = self.token_class
         else:
-            ttype = "A"
+            token_class = "authorization_code"
 
         if self.lifetime >= 0:
             exp = str(time_sans_frac() + self.lifetime)
@@ -93,7 +94,7 @@ class DefaultToken(Token):
             rnd = rndstr(32)  # Ultimate length multiple of 16
 
         return base64.b64encode(
-            self.crypt.encrypt(lv_pack(rnd, ttype, session_id, exp).encode())
+            self.crypt.encrypt(lv_pack(rnd, token_class, session_id, exp).encode())
         ).decode("utf-8")
 
     def split_token(self, token):
@@ -111,9 +112,9 @@ class DefaultToken(Token):
         :param token: A token
         :return: dictionary with info about the token
         """
-        _res = dict(zip(["_id", "type", "sid", "exp"], self.split_token(token)))
-        if _res["type"] != self.type:
-            raise WrongTokenType(_res["type"])
+        _res = dict(zip(["_id", "token_class", "sid", "exp"], self.split_token(token)))
+        if _res["token_class"] != self.token_class:
+            raise WrongTokenClass(_res["token_class"])
         else:
             _res["handler"] = self
             return _res

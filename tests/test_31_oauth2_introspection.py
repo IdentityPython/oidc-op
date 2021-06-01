@@ -85,12 +85,6 @@ TOKEN_REQ_DICT = TOKEN_REQ.to_dict()
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
-MAP = {
-    "authorization_code": "code",
-    "access_token": "access_token",
-    "refresh_token": "refresh_token",
-}
-
 
 def full_path(local_file):
     return os.path.join(BASEDIR, local_file)
@@ -217,13 +211,13 @@ class TestEndpoint:
             ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
         )
 
-    def _mint_token(self, type, grant, session_id, based_on=None, **kwargs):
+    def _mint_token(self, token_class, grant, session_id, based_on=None, **kwargs):
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.token_endpoint.server_get("endpoint_context"),
-            token_type=type,
-            token_handler=self.session_manager.token_handler.handler[MAP[type]],
+            token_class=token_class,
+            token_handler=self.session_manager.token_handler.handler[token_class],
             expires_at=time_sans_frac() + 300,  # 5 minutes from now
             based_on=based_on,
             **kwargs
@@ -325,15 +319,16 @@ class TestEndpoint:
         assert set(_payload.keys()) == {
             "active",
             "iss",
-            "token_type",
             "sub",
             "client_id",
             "exp",
             "iat",
             "scope",
             "aud",
+            "token_type"
         }
         assert _payload["active"] is True
+        assert _payload["token_type"] == "bearer"
 
     def test_do_response_no_token(self):
         # access_token = self._get_access_token(AUTH_REQ)
@@ -396,7 +391,7 @@ class TestEndpoint:
         _c_interface = self.introspection_endpoint.server_get("endpoint_context").claims_interface
         grant.claims = {
             "introspection": _c_interface.get_claims(
-                session_id, scopes=AUTH_REQ["scope"], usage="introspection"
+                session_id, scopes=AUTH_REQ["scope"], claims_release_point="introspection"
             )
         }
 

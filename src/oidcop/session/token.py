@@ -20,14 +20,14 @@ class Item(ImpExp):
     }
 
     def __init__(
-        self,
-        usage_rules: Optional[dict] = None,
-        issued_at: int = 0,
-        expires_in: int = 0,
-        expires_at: int = 0,
-        not_before: int = 0,
-        revoked: bool = False,
-        used: int = 0,
+            self,
+            usage_rules: Optional[dict] = None,
+            issued_at: int = 0,
+            expires_in: int = 0,
+            expires_at: int = 0,
+            not_before: int = 0,
+            revoked: bool = False,
+            used: int = 0,
     ):
         ImpExp.__init__(self)
         self.issued_at = issued_at or time_sans_frac()
@@ -84,7 +84,7 @@ class SessionToken(Item):
             "name": "",
             "resources": [],
             "scope": [],
-            "type": "",
+            "token_class": "",
             "usage_rules": {},
             "used": 0,
             "value": "",
@@ -92,21 +92,21 @@ class SessionToken(Item):
     )
 
     def __init__(
-        self,
-        type: str = "",
-        value: str = "",
-        based_on: Optional[str] = None,
-        usage_rules: Optional[dict] = None,
-        issued_at: int = 0,
-        expires_in: int = 0,
-        expires_at: int = 0,
-        not_before: int = 0,
-        revoked: bool = False,
-        used: int = 0,
-        id: str = "",
-        scope: Optional[list] = None,
-        claims: Optional[dict] = None,
-        resources: Optional[list] = None,
+            self,
+            token_class: str = "",
+            value: str = "",
+            based_on: Optional[str] = None,
+            usage_rules: Optional[dict] = None,
+            issued_at: int = 0,
+            expires_in: int = 0,
+            expires_at: int = 0,
+            not_before: int = 0,
+            revoked: bool = False,
+            used: int = 0,
+            id: str = "",
+            scope: Optional[list] = None,
+            claims: Optional[dict] = None,
+            resources: Optional[list] = None,
     ):
         Item.__init__(
             self,
@@ -119,7 +119,7 @@ class SessionToken(Item):
             used=used,
         )
 
-        self.type = type
+        self.token_class = token_class
         self.value = value
         self.based_on = based_on
         self.id = id or uuid1().hex
@@ -138,16 +138,59 @@ class SessionToken(Item):
     def has_been_used(self):
         return self.used != 0
 
-    def supports_minting(self, token_type):
+    def supports_minting(self, token_class):
         _supports_minting = self.usage_rules.get("supports_minting")
         if _supports_minting is None:
             return False
         else:
-            return token_type in _supports_minting
+            return token_class in _supports_minting
 
 
 class AccessToken(SessionToken):
-    pass
+    parameter = SessionToken.parameter.copy()
+    parameter.update(
+        {
+            "token_type": ""
+        }
+    )
+
+    def __init__(
+            self,
+            token_class: str = "",
+            value: str = "",
+            based_on: Optional[str] = None,
+            usage_rules: Optional[dict] = None,
+            issued_at: int = 0,
+            expires_in: int = 0,
+            expires_at: int = 0,
+            not_before: int = 0,
+            revoked: bool = False,
+            used: int = 0,
+            id: str = "",
+            scope: Optional[list] = None,
+            claims: Optional[dict] = None,
+            resources: Optional[list] = None,
+            token_type: Optional[str] = "bearer"
+    ):
+        SessionToken.__init__(
+            self,
+            token_class=token_class,
+            value=value,
+            based_on=based_on,
+            usage_rules=usage_rules,
+            issued_at=issued_at,
+            expires_in=expires_in,
+            expires_at=expires_at,
+            not_before=not_before,
+            revoked=revoked,
+            used=used,
+            id=id,
+            scope=scope,
+            claims=claims,
+            resources=resources
+        )
+
+        self.token_type = token_type
 
 
 class AuthorizationCode(SessionToken):

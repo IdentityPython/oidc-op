@@ -26,22 +26,23 @@ class TokenHandler(ImpExp):
 
     def __init__(
         self,
-        access_token_handler: Optional[Token] = None,
-        code_handler: Optional[Token] = None,
-        refresh_token_handler: Optional[Token] = None,
-        id_token_handler: Optional[Token] = None,
+        access_token: Optional[Token] = None,
+        authorization_code: Optional[Token] = None,
+        refresh_token: Optional[Token] = None,
+        id_token: Optional[Token] = None,
     ):
         ImpExp.__init__(self)
-        self.handler = {"code": code_handler, "access_token": access_token_handler}
+        self.handler = {"authorization_code": authorization_code,
+                        "access_token": access_token}
 
-        self.handler_order = ["code", "access_token"]
+        self.handler_order = ["authorization_code", "access_token"]
 
-        if refresh_token_handler:
-            self.handler["refresh_token"] = refresh_token_handler
+        if refresh_token:
+            self.handler["refresh_token"] = refresh_token
             self.handler_order.append("refresh_token")
 
-        if id_token_handler:
-            self.handler["id_token"] = id_token_handler
+        if id_token:
+            self.handler["id_token"] = id_token
             self.handler_order.append("id_token")
 
     def __getitem__(self, typ):
@@ -62,8 +63,8 @@ class TokenHandler(ImpExp):
     def sid(self, token, order=None):
         return self.info(token, order)["sid"]
 
-    def type(self, token, order=None):
-        return self.info(token, order)["type"]
+    def token_class(self, token, order=None):
+        return self.info(token, order)["token_class"]
 
     def get_handler(self, token, order=None):
         if order is None:
@@ -83,7 +84,7 @@ class TokenHandler(ImpExp):
         return self.handler.keys()
 
 
-def init_token_handler(server_get, spec, typ):
+def init_token_handler(server_get, spec, token_class):
     _kwargs = spec.get("kwargs", {})
 
     _lt = spec.get("lifetime")
@@ -109,7 +110,7 @@ def init_token_handler(server_get, spec, typ):
             )
         _kwargs = spec
 
-    return cls(typ=typ, server_get=server_get, **_kwargs)
+    return cls(token_class=token_class, server_get=server_get, **_kwargs)
 
 
 def _add_passwd(keyjar, conf, kid):
@@ -160,7 +161,10 @@ def factory(
     :return: TokenHandler instance
     """
 
-    TTYPE = {"code": "A", "token": "T", "refresh": "R"}
+    token_class_map = {"code": "authorization_code",
+                       "token": "access_token",
+                       "refresh": "refresh_token",
+                       'idtoken': 'id_token'}
 
     key_defs = []
     read_only = False
@@ -184,17 +188,17 @@ def factory(
     kj = init_key_jar(key_defs=key_defs, private_path=jwks_file, read_only=read_only)
 
     args = {}
-    for typ, cnf, attr in [
-        ("code", code, "code_handler"),
-        ("token", token, "access_token_handler"),
-        ("refresh", refresh, "refresh_token_handler"),
+    for cls, cnf, attr in [
+        ("code", code, "authorization_code"),
+        ("token", token, "access_token"),
+        ("refresh", refresh, "refresh_token"),
     ]:
         if cnf is not None:
             if default_token(cnf):
-                _add_passwd(kj, cnf, typ)
-            args[attr] = init_token_handler(server_get, cnf, TTYPE[typ])
+                _add_passwd(kj, cnf, cls)
+            args[attr] = init_token_handler(server_get, cnf, token_class_map[cls])
 
     if id_token is not None:
-        args["id_token_handler"] = init_token_handler(server_get, id_token, typ="")
+        args["id_token"] = init_token_handler(server_get, id_token, token_class="")
 
     return TokenHandler(**args)

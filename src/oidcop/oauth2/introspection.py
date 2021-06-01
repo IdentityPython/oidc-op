@@ -26,7 +26,7 @@ class Introspection(Endpoint):
 
     def _introspect(self, token, client_id, grant):
         # Make sure that the token is an access_token or a refresh_token
-        if token.type not in ["access_token", "refresh_token"]:
+        if token.token_class not in ["access_token", "refresh_token"]:
             return None
 
         if not token.is_active():
@@ -47,12 +47,20 @@ class Introspection(Endpoint):
             "active": True,
             "scope": " ".join(scope),
             "client_id": client_id,
-            "token_type": token.type,
+            "token_class": token.token_class,
             "exp": token.expires_at,
             "iat": token.issued_at,
             "sub": grant.sub,
             "iss": _context.issuer,
         }
+
+        try:
+            _token_type = token.token_type
+        except AttributeError:
+            _token_type = None
+
+        if _token_type:
+            ret["token_type"] = _token_type
 
         if aud:
             ret["aud"] = aud
