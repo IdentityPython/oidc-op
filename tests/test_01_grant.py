@@ -438,3 +438,73 @@ class TestGrant:
 
         # client specific usage rules
         self.endpoint_context.cdb["client_id"] = {"access_token": {"expires_in": 600}}
+
+    def test_assigned_scope(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+        code = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="authorization_code",
+            token_handler=TOKEN_HANDLER["authorization_code"],
+        )
+
+        code.scope = ["openid", "email"]
+
+        access_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code,
+        )
+
+        assert access_token.scope == code.scope
+
+    def test_assigned_scope_2nd(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+        code = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="authorization_code",
+            token_handler=TOKEN_HANDLER["authorization_code"],
+        )
+
+        code.scope = ["openid", "email"]
+
+        refresh_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="refresh_token",
+            token_handler=TOKEN_HANDLER["refresh_token"],
+            based_on=code,
+        )
+
+        access_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=refresh_token,
+        )
+
+        assert access_token.scope == code.scope
+
+        refresh_token.scope = ["openid", "xyz"]
+
+        access_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_type="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=refresh_token,
+        )
+
+        assert access_token.scope == refresh_token.scope

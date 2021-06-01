@@ -34,7 +34,10 @@ class Introspection(Endpoint):
 
         scope = token.scope
         if not scope:
-            scope = grant.scope
+            if token.based_on:
+                scope = grant.find_scope(token.based_on)
+            else:
+                scope = grant.scope
         aud = token.resources
         if not aud:
             aud = grant.resources

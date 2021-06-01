@@ -197,7 +197,7 @@ class TestEndpoint(object):
             token_handler=self.session_manager.token_handler["authorization_code"],
         )
 
-    def _mint_access_token(self, grant, session_id, token_ref=None, resources=None):
+    def _mint_access_token(self, grant, session_id, token_ref=None, resources=None, scope=None):
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint.server_get("endpoint_context"),
@@ -205,6 +205,7 @@ class TestEndpoint(object):
             token_handler=self.session_manager.token_handler["access_token"],
             based_on=token_ref,
             resources=resources,
+            scope=scope
         )
 
     def exchange_grant(self, session_id, users, targets, scope):
@@ -257,15 +258,19 @@ class TestEndpoint(object):
         assert exch_grants
         exch_grant = exch_grants[0]
 
-        session_info = self.session_manager.get_session_info_by_token(ter["subject_token"])
+        session_info = self.session_manager.get_session_info_by_token(ter["subject_token"],
+                                                                      grant=True)
         _token = self.session_manager.find_token(session_info["session_id"], ter["subject_token"])
 
         session_id = self.session_manager.encrypted_session_id(
             session_info["user_id"], session_info["client_id"], exch_grant.id
         )
 
+        _scope = session_info["grant"].find_scope(ter["subject_token"])
+
         _token = self._mint_access_token(
             exch_grant, session_id, token_ref=_token, resources=["https://backend.example.com"],
+            scope=_scope
         )
 
         print(_token.value)
@@ -274,8 +279,7 @@ class TestEndpoint(object):
                 "token": _token.value,
                 "client_id": "client_1",
                 "client_secret": self.introspection_endpoint.server_get("endpoint_context").cdb[
-                    "client_1"
-                ]["client_secret"],
+                    "client_1"]["client_secret"],
             }
         )
         _resp = self.introspection_endpoint.process_request(_req)
