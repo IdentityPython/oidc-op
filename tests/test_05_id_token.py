@@ -32,6 +32,7 @@ def full_path(local_file):
 
 USERS = json.loads(open(full_path("users.json")).read())
 USERINFO = UserInfo(USERS)
+LIFETIME = 200
 
 AREQ = AuthorizationRequest(
     response_type="code",
@@ -91,7 +92,8 @@ conf = {
                 "base_claims": {
                     "email": {"essential": True},
                     "email_verified": {"essential": True},
-                }
+                },
+                "lifetime": LIFETIME,
             },
         },
     },
@@ -396,6 +398,37 @@ class TestEndpoint(object):
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "nickname" in res
+
+    def test_lifetime_default(self):
+        session_id = self._create_session(AREQ)
+        grant = self.session_manager[session_id]
+
+        id_token = self._mint_id_token(grant, session_id)
+
+        client_keyjar = KeyJar()
+        _jwks = self.endpoint_context.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwt = JWT(key_jar=client_keyjar, iss="client_1")
+        res = _jwt.unpack(id_token.value)
+
+        assert res["exp"] - res["iat"] == LIFETIME
+
+    def test_lifetime(self):
+        lifetime = 100
+
+        self.session_manager.token_handler["id_token"].lifetime = lifetime
+        session_id = self._create_session(AREQ)
+        grant = self.session_manager[session_id]
+
+        id_token = self._mint_id_token(grant, session_id)
+
+        client_keyjar = KeyJar()
+        _jwks = self.endpoint_context.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwt = JWT(key_jar=client_keyjar, iss="client_1")
+        res = _jwt.unpack(id_token.value)
+
+        assert res["exp"] - res["iat"] == lifetime
 
     def test_no_available_claims(self):
         session_id = self._create_session(AREQ)
