@@ -1,0 +1,47 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[metadata]
+name = "oidcop"
+version = "2.0.0"
+author = "Roland Hedberg"
+author_email = "roland@catalogix.se"
+description = "Python implementation of an OAuth2 AS and an OIDC Provider"
+long_description = "file: README.md"
+long_description_content_type = "text/markdown"
+url = "https://github.com/IdentityPython/oidc-op"
+license = "Apache-2.0"
+classifiers =[
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+
+[options]
+package_dir = "src"
+packages = "find:"
+python= "^3.6"
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+force_single_line = true
+known_first_party = "oidcop"
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+line_length = 100
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+]

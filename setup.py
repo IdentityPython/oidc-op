@@ -51,8 +51,11 @@ setup(
     author_email="roland@catalogix.se",
     license="Apache 2.0",
     url='https://github.com/IdentityPython/oidcop',
-    packages=["oidcop"],
     package_dir={"": "src"},
+    packages=["oidcop", 'oidcop/oidc', 'oidcop/authz',
+              'oidcop/user_authn', 'oidcop/user_info',
+              'oidcop/oauth2', 'oidcop/oidc/add_on', 'oidcop/oauth2/add_on',
+              'oidcop/session', 'oidcop/token'],
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
@@ -61,8 +64,11 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
+        "oidcmsg==1.3.2",
+        "cryptojwt==1.5.2",
         "pyyaml",
-        'oidcendpoint>=1.1.0'
+        "jinja2>=2.11.3",
+        "responses>=0.13.0"
     ],
     zip_safe=False,
     cmdclass={'test': PyTest},
