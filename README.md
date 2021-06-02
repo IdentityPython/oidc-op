@@ -1,5 +1,12 @@
 # oidc-op
 
+![CI build](https://github.com/IdentityPython/oidc-op/workflows/oidc-op/badge.svg)
+![pypi](https://img.shields.io/pypi/v/oidcop.svg)
+![License](https://img.shields.io/badge/license-Apache%202-blue.svg)
+![Django versions](https://img.shields.io/pypi/djversions/oidcop)
+![Documentation Status](https://readthedocs.org/projects/oidcop/badge/?version=latest)
+![Python version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue.svg)
+
 This project is a Python implementation of an **OIDC Provider** on top of [jwtconnect.io](https://jwtconnect.io/) that shows to you how to 'build' an OP using the classes and functions provided by oidc-op.
 
 If you want to add or replace functionality the official documentation should be able to tell you how.
