@@ -47,6 +47,8 @@ setup(
     name="oidcop",
     version=version,
     description="Python implementation of OIDC Provider",
+    long_description=read('README.md'),
+    long_description_content_type='text/markdown',
     author="Roland Hedberg",
     author_email="roland@catalogix.se",
     license="Apache 2.0",
