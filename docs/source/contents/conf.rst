@@ -13,7 +13,7 @@ The issuer ID of the OP, a unique value in URI format.
 session params
 --------------
 
-Configuration parameters used by session manager
+Configuration parameters used by session manager::
 
     "session_params": {
       "password": "__password_used_to_encrypt_access_token_sid_value",
@@ -32,19 +32,26 @@ Configuration parameters used by session manager
           }
         }
      }
-  },
+    },
+
 
 password
 ########
 
-Encryption key used to encrypt the SessionID (sid) in access_token.
+Optional. Encryption key used to encrypt the SessionID (sid) in access_token.
 If unset it will be random.
 
 
 salt
 ####
 
-Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
+Optional. Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
+
+
+sub_funcs
+#########
+
+Optional. Functions involved in *sub*ject value creation.
 
 ------
 add_on
@@ -149,46 +156,30 @@ An example::
       backchannel_logout_session_supported: True
       check_session_iframe: https://127.0.0.1:5000/check_session_iframe
 
-
------------
-cookie_name
------------
-
-An example::
-
-    "cookie_name": {
-        "session": "oidc_op",
-        "register": "oidc_op_rp",
-        "session_management": "sman"
-      },
-
--------------
-cookie_dealer
--------------
+--------------
+cookie_handler
+--------------
 
 An example::
 
-    "cookie_dealer": {
-        "class": "oidcop.cookie.CookieDealer",
-        "kwargs": {
-          "sign_jwk": {
-            "filename": "private/cookie_sign_jwk.json",
-            "type": "OCT",
-            "kid": "cookie_sign_key_id"
-          },
-          "enc_jwk": {
-            "filename": "private/cookie_enc_jwk.json",
-            "type": "OCT",
-            "kid": "cookie_enc_key_id"
-          },
-          "default_values": {
-            "name": "oidc_op",
-            "domain": "127.0.0.1",
-            "path": "/",
-            "max_age": 3600
-          }
+    "cookie_handler": {
+        "class": "oidcop.cookie_handler.CookieHandler",
+            "kwargs": {
+              "keys": {
+                "private_path": f"{OIDC_JWKS_PRIVATE_PATH}/cookie_jwks.json",
+                "key_defs": [
+                  {"type": "OCT", "use": ["enc"], "kid": "enc"},
+                  {"type": "OCT", "use": ["sig"], "kid": "sig"}
+                ],
+                "read_only": False
+              },
+              "name": {
+                "session": "oidc_op",
+                "register": "oidc_op_rp",
+                "session_management": "sman"
+              }
         }
-      },
+    },
 
 --------
 endpoint
@@ -444,7 +435,7 @@ An example::
 
       "template_dir": "templates"
 
-For any further customization of template here an example of what used in django-oidc-op
+For any further customization of template here an example of what used in django-oidc-op::
 
       "authentication": {
         "user": {
