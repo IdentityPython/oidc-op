@@ -26,7 +26,7 @@ It also comes with the following `add_on` modules.
 
 The entire project code is open sourced and therefore licensed under the [Apache 2.0](https://en.wikipedia.org/wiki/Apache_License)
 
-For any futher information please read the [Official Documentation](#TODO).
+For any futher information please read the [Official Documentation](https://oidcop.readthedocs.io/en/latest/).
 
 
 # Contribute
