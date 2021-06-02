@@ -421,6 +421,231 @@ class TestEndpoint(object):
         msg = self.token_endpoint.do_response(request=_req, **_resp)
         assert isinstance(msg, dict)
 
+    def test_refresh_scopes(self):
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["openid", "offline_access", "profile"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+        _request["scope"] = ["openid", "offline_access"]
+
+        _token_value = _resp["response_args"]["refresh_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token.usage_rules["supports_minting"] = [
+            "access_token",
+            "refresh_token",
+            "id_token",
+        ]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        _resp = self.token_endpoint.process_request(request=_req)
+        assert set(_resp.keys()) == {"cookie", "response_args", "http_headers"}
+        assert set(_resp["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "expires_in",
+            "refresh_token",
+            "id_token",
+            "scope",
+        }
+
+        _token_value = _resp["response_args"]["access_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        at = self.session_manager.find_token(
+            _session_info["session_id"], _token_value
+        )
+        rt = self.session_manager.find_token(
+            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+        )
+
+        assert at.scope == rt.scope == _request["scope"]
+
+    def test_refresh_more_scopes(self):
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["openid", "offline_access"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+        _request["scope"] = ["openid", "offline_access", "profile"]
+
+        _token_value = _resp["response_args"]["refresh_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token.usage_rules["supports_minting"] = [
+            "access_token",
+            "refresh_token",
+            "id_token",
+        ]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        assert isinstance(_req, TokenErrorResponse)
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        assert _resp.to_dict() == {
+            "error": "invalid_request",
+            "error_description": "Invalid refresh scopes"
+        }
+
+    def test_refresh_more_scopes_2(self):
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["openid", "offline_access", "profile"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+        _request["scope"] = ["openid", "offline_access"]
+
+        _token_value = _resp["response_args"]["refresh_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token.usage_rules["supports_minting"] = [
+            "access_token",
+            "refresh_token",
+            "id_token",
+        ]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        _token_value = _resp["response_args"]["refresh_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token.usage_rules["supports_minting"] = [
+            "access_token",
+            "refresh_token",
+            "id_token",
+        ]
+        _request["refresh_token"] = _token_value
+        # We should be able to request the original requests scopes
+        _request["scope"] = ["openid", "offline_access", "profile"]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        assert set(_resp.keys()) == {"cookie", "response_args", "http_headers"}
+        assert set(_resp["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "expires_in",
+            "refresh_token",
+            "id_token",
+            "scope",
+        }
+
+        _token_value = _resp["response_args"]["access_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        at = self.session_manager.find_token(
+            _session_info["session_id"], _token_value
+        )
+        rt = self.session_manager.find_token(
+            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+        )
+
+        assert at.scope == rt.scope == _request["scope"]
+
+    def test_refresh_no_openid_scope(self):
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["openid", "offline_access"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+        _request["scope"] = ["offline_access"]
+
+        _token_value = _resp["response_args"]["refresh_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token.usage_rules["supports_minting"] = [
+            "access_token",
+            "refresh_token",
+            "id_token",
+        ]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        assert set(_resp.keys()) == {"cookie", "response_args", "http_headers"}
+        assert set(_resp["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "expires_in",
+            "refresh_token",
+            "scope",
+        }
+
+    def test_refresh_no_offline_access_scope(self):
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["openid", "offline_access"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+        _request["scope"] = ["openid"]
+
+        _token_value = _resp["response_args"]["refresh_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token.usage_rules["supports_minting"] = [
+            "access_token",
+            "refresh_token",
+            "id_token",
+        ]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        assert set(_resp.keys()) == {"cookie", "response_args", "http_headers"}
+        assert set(_resp["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "expires_in",
+            "id_token",
+            "scope",
+        }
+
     def test_new_refresh_token(self, conf):
         self.endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
