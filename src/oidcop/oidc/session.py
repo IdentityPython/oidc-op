@@ -237,20 +237,20 @@ class Session(Endpoint):
             if "id_token_hint" not in request:
                 raise InvalidRequest("If post_logout_redirect_uri then id_token_hint is a MUST")
 
-        _session_info = None
+        id_token_hint = request['id_token_hint']
+        _context.session_manager.dump()['db'].keys()
 
-        if "id_token_hint" in request and _session_info:
-            _id_token = request[verified_claim_name("id_token_hint")]
-            logger.debug("ID token hint: {}".format(_id_token))
-
-            _aud = _id_token["aud"]
-            if _session_info["client_id"] not in _aud:
-                raise ValueError("Client ID doesn't match")
-
-            if _id_token["sub"] != _session_info["grant"].sub:
-                raise ValueError("Sub doesn't match")
-        else:
-            _aud = []
+        # TODO: a sesman method that gets all the active sessions
+        # This section MUST be improved !!!
+        sman_db = _context.session_manager.dump()['db']
+        sessions = {i:sman_db[i] for i in sman_db if len(i) > 128}
+        client_id = None
+        for k,v in sessions.items():
+            if v[1]['issued_token'][2]['oidcop.session.token.IDToken']['value'] == id_token_hint:
+                client_id = v[1]['authorization_request']['oidcmsg.oidc.AuthorizationRequest']['client_id']
+                session_id = k
+                break
+        # END TODO
 
         # _context.cdb[_session_info["client_id"]]
 
@@ -268,11 +268,11 @@ class Session(Endpoint):
         else:
             plur = True
             verify_uri(
-                _context, request, "post_logout_redirect_uri", client_id=_session_info["client_id"],
+                _context, request, "post_logout_redirect_uri", client_id=client_id,
             )
 
         payload = {
-            "sid": _session_info["session_id"],
+            "sid": session_id,
         }
 
         # redirect user to OP logout verification page
