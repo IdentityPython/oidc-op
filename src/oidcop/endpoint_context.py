@@ -91,15 +91,11 @@ def get_token_handler_args(conf: dict) -> dict:
 class EndpointContext(OidcContext):
     parameter = {
         "args": {},
-        # "authn_broker": AuthnBroker,
-        # "authz": AuthzHandling,
         "cdb": {},
         "conf": {},
-        # "cookie_handler": None,
         "cwd": "",
         "endpoint_to_authn_method": {},
         "httpc_params": {},
-        # "idtoken": IDToken,
         "issuer": "",
         "jti_db": {},
         "jwks_uri": "",
@@ -110,12 +106,10 @@ class EndpointContext(OidcContext):
         "provider_info": {},
         "registration_access_token": {},
         "scope2claims": {},
-        # "session_db": {},
         "session_manager": SessionManager,
         "sso_ttl": None,
         "symkey": "",
         "token_args_methods": [],
-        # "userinfo": UserInfo,
     }
 
     def __init__(
@@ -123,7 +117,6 @@ class EndpointContext(OidcContext):
         conf: Union[dict, OPConfiguration],
         keyjar: Optional[KeyJar] = None,
         cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
         httpc: Optional[Any] = None,
     ):
         OidcContext.__init__(self, conf, keyjar, entity_id=conf.get("issuer", ""))
@@ -133,7 +126,6 @@ class EndpointContext(OidcContext):
         self.cdb = {}
         self.jti_db = {}
         self.registration_access_token = {}
-        # self.session_db = {}
 
         self.cwd = cwd
 
@@ -142,7 +134,6 @@ class EndpointContext(OidcContext):
         self.args = {}
         self.authn_broker = None
         self.authz = None
-        self.cookie_handler = cookie_handler
         self.endpoint_to_authn_method = {}
         self.httpc = httpc or requests
         self.idtoken = None
@@ -165,7 +156,6 @@ class EndpointContext(OidcContext):
             "sso_ttl",
             "symkey",
             "client_authn",
-            # "id_token_schema",
         ]:
             try:
                 setattr(self, param, conf[param])
@@ -192,7 +182,6 @@ class EndpointContext(OidcContext):
             if _loader:
                 self.template_handler = Jinja2TemplateHandler(_loader)
 
-        # self.setup = {}
         _keys_conf = conf.get("keys")
         if _keys_conf:
             jwks_uri_path = _keys_conf["uri_path"]
@@ -203,7 +192,6 @@ class EndpointContext(OidcContext):
                 self.jwks_uri = "{}/{}".format(self.issuer, jwks_uri_path)
 
         for item in [
-            "cookie_handler",
             "authentication",
             "id_token",
             "scope2claims",
@@ -230,11 +218,6 @@ class EndpointContext(OidcContext):
         self.set_scopes_handler()
         self.dev_auth_db = None
         self.claims_interface = None
-
-    def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
-        return self.cookie_handler.make_cookie_content(
-            name=name, value=json.dumps(kwargs), max_age=max_age
-        )
 
     def set_scopes_handler(self):
         _spec = self.conf.get("scopes_handler")
@@ -271,12 +254,6 @@ class EndpointContext(OidcContext):
                 self.session_manager.userinfo = self.userinfo
             else:
                 logger.warning("Cannot init_user_info if no session manager was provided.")
-
-    def do_cookie_handler(self):
-        _conf = self.conf.get("cookie_handler")
-        if _conf:
-            if not self.cookie_handler:
-                self.cookie_handler = init_service(_conf)
 
     def do_sub_func(self) -> None:
         """

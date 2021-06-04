@@ -49,13 +49,11 @@ do_response returns a dictionary that can look like this::
         ('Pragma', 'no-cache'),
         ('Cache-Control', 'no-store')
       ],
-      'cookie': _list of cookies_,
       'response_placement': 'body'
     }
 
 "response" MUST be present
 "http_headers" MAY be present
-"cookie": MAY be present
 "response_placement": If absent defaults to the endpoints response_placement
 parameter value or if that is also missing 'url'
 """
@@ -128,10 +126,6 @@ class Endpoint(object):
         self.allowed_targets = [self.name]
         self.client_verification_method = []
 
-    def parse_cookies(self, cookies: List[dict], context: EndpointContext, name: str):
-        res = context.cookie_handler.parse_cookie(name, cookies)
-        return res
-
     def parse_request(
         self, request: Union[Message, dict, str], http_info: Optional[dict] = None, **kwargs
     ):
@@ -139,7 +133,7 @@ class Endpoint(object):
 
         :param request: The request the server got
         :param http_info: HTTP information in connection with the request.
-            This is a dictionary with keys: headers, url, cookies.
+            This is a dictionary with keys: headers, url.
         :param kwargs: extra keyword arguments
         :return:
         """
@@ -210,7 +204,7 @@ class Endpoint(object):
         Do client authentication
 
         :param request: Parsed request, a self.request_cls class instance
-        :param http_info: HTTP headers, URL used and cookies.
+        :param http_info: HTTP headers, URL used.
         :return: client_id or raise an exception
         """
 
@@ -399,11 +393,6 @@ class Endpoint(object):
         http_headers.extend(OAUTH2_NOCACHE_HEADERS)
 
         _resp.update({"response": resp, "http_headers": http_headers})
-
-        try:
-            _resp["cookie"] = kwargs["cookie"]
-        except KeyError:
-            pass
 
         return _resp
 

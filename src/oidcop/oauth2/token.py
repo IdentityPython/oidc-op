@@ -396,7 +396,7 @@ class Token(Endpoint):
                     error_description=f"Unsupported grant_type: {request['grant_type']}",
                 )
         except JWEException as err:
-            return self.error_cls(error="invalid_request", error_description="%s" % err)
+            return self.error_cls(error="invalid_request", error_description=f"err")
 
         if isinstance(response_args, ResponseMessage):
             return response_args
@@ -407,16 +407,6 @@ class Token(Endpoint):
             _access_token, grant=True
         )
 
-        _cookie = _context.new_cookie(
-            name=_context.cookie_handler.name["session"],
-            sub=_session_info["grant"].sub,
-            sid=_context.session_manager.session_key(
-                _session_info["user_id"], _session_info["user_id"], _session_info["grant"].id,
-            ),
-        )
-
         _headers = [("Content-type", "application/json")]
         resp = {"response_args": response_args, "http_headers": _headers}
-        if _cookie:
-            resp["cookie"] = [_cookie]
         return resp

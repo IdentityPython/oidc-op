@@ -25,7 +25,6 @@ from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop import rndstr
 from oidcop.authn_event import create_authn_event
-from oidcop.cookie_handler import compute_session_state
 from oidcop.endpoint import Endpoint
 from oidcop.endpoint_context import EndpointContext
 from oidcop.exception import InvalidRequest
@@ -471,7 +470,6 @@ class Authorization(Endpoint):
         request: Optional[Union[Message, dict]],
         redirect_uri: str,
         cinfo: dict,
-        cookie: List[dict] = None,
         acr: str = None,
         **kwargs,
     ):
@@ -480,7 +478,6 @@ class Authorization(Endpoint):
         :param request: The authorization/authentication request
         :param redirect_uri:
         :param cinfo: client info
-        :param cookie: List of cookies
         :param acr: Default ACR, if nothing else is specified
         :param kwargs:
         :return:
@@ -493,113 +490,23 @@ class Authorization(Endpoint):
 
         client_id = request.get("client_id")
         _context = self.server_get("endpoint_context")
-        try:
-            _auth_info = kwargs.get("authn", "")
-            if "upm_answer" in request and request["upm_answer"] == "true":
-                _max_age = 0
-            else:
-                _max_age = max_age(request)
-            identity, _ts = authn.authenticated_as(
-                client_id, cookie, authorization=_auth_info, max_age=_max_age
-            )
-        except (NoSuchAuthentication, TamperAllert):
-            identity = None
-            _ts = 0
-        except ToOld:
-            logger.info("Too old authentication")
-            identity = None
-            _ts = 0
-        except UnknownToken:
-            logger.info("Unknown Token")
-            identity = None
-            _ts = 0
-        else:
-            if identity:
-                try:  # If identity['uid'] is in fact a base64 encoded JSON string
-                    _id = b64d(as_bytes(identity["uid"]))
-                except BadSyntax:
-                    pass
-                else:
-                    identity = json.loads(as_unicode(_id))
-
-                    try:
-                        _csi = _context.session_manager[identity.get("sid")]
-                    except Revoked:
-                        identity = None
-                    else:
-                        if _csi.is_active() is False:
-                            identity = None
 
         authn_args = authn_args_gather(request, authn_class_ref, cinfo, **kwargs)
         _mngr = _context.session_manager
         _session_id = ""
 
-        # To authenticate or Not
-        if not identity:  # No!
-            logger.info("No active authentication")
-            logger.debug("Known clients: {}".format(list(_context.cdb.keys())))
+        logger.debug("Known clients: {}".format(list(_context.cdb.keys())))
 
-            if "prompt" in request and "none" in request["prompt"]:
-                # Need to authenticate but not allowed
-                return {
-                    "error": "login_required",
-                    "return_uri": redirect_uri,
-                    "return_type": request["response_type"],
-                }
-            else:
-                return {"function": authn, "args": authn_args}
+        if "prompt" in request and "none" in request["prompt"]:
+            # Need to authenticate but not allowed
+            return {
+                "error": "login_required",
+                "return_uri": redirect_uri,
+                "return_type": request["response_type"],
+            }
         else:
-            logger.info("Active authentication")
-            if re_authenticate(request, authn):
-                # demand re-authentication
-                return {"function": authn, "args": authn_args}
-            else:
-                # I got back a dictionary
-                user = identity["uid"]
-                if "req_user" in kwargs:
-                    if user != kwargs["req_user"]:
-                        logger.debug("Wanted to be someone else!")
-                        if "prompt" in request and "none" in request["prompt"]:
-                            # Need to authenticate but not allowed
-                            return {
-                                "error": "login_required",
-                                "return_uri": redirect_uri,
-                            }
-                        else:
-                            return {"function": authn, "args": authn_args}
+            return {"function": authn, "args": authn_args}
 
-                if "sid" in identity:
-                    _session_id = identity["sid"]
-
-                    # make sure the client is the same
-                    _uid, _cid, _gid = _mngr.decrypt_session_id(_session_id)
-                    if request["client_id"] != _cid:
-                        return {"function": authn, "args": authn_args}
-
-                    grant = _mngr[_session_id]
-                    if grant.is_active() is False:
-                        return {"function": authn, "args": authn_args}
-                    elif request != grant.authorization_request:
-                        authn_event = _mngr.get_authentication_event(session_id=_session_id)
-                        if authn_event.is_valid() is False:  # if not valid, do new login
-                            return {"function": authn, "args": authn_args}
-
-                        # create new grant
-                        _session_id = _mngr.create_grant(
-                            authn_event=authn_event,
-                            auth_req=request,
-                            user_id=user,
-                            client_id=request["client_id"],
-                        )
-
-        if _session_id:
-            authn_event = _mngr.get_authentication_event(session_id=_session_id)
-            if authn_event.is_valid() is False:  # if not valid, do new login
-                return {"function": authn, "args": authn_args}
-        else:
-            _session_id = self.create_session(request, identity["uid"], authn_class_ref, _ts, authn)
-
-        return {"session_id": _session_id, "identity": identity, "user": user}
 
     def aresp_check(self, aresp, request):
         return ""
@@ -785,14 +692,6 @@ class Authorization(Endpoint):
             except InvalidRequest as err:
                 return self.error_response(response_info, "invalid_request", "{}".format(err.args))
 
-        _cookie_info = _context.new_cookie(
-            name=_context.cookie_handler.name["session"],
-            sid=session_id,
-            state=request.get("state"),
-        )
-
-        response_info["cookie"] = [_cookie_info]
-
         return response_info
 
     def authz_part2(self, request, session_id, **kwargs):
@@ -823,29 +722,16 @@ class Authorization(Endpoint):
 
             _state = b64e(as_bytes(json.dumps({"authn_time": authn_event["authn_time"]})))
 
-            _session_cookie_content = _context.new_cookie(
-                name=_context.cookie_handler.name["session_management"], state=as_unicode(_state),
-            )
-
-            opbs_value = _session_cookie_content["value"]
-
             logger.debug(
-                "compute_session_state: client_id=%s, origin=%s, opbs=%s, salt=%s",
+                "compute_session_state: client_id=%s, origin=%s, salt=%s",
                 request["client_id"],
                 resp_info["return_uri"],
-                opbs_value,
                 salt,
             )
 
             _session_state = compute_session_state(
-                opbs_value, salt, request["client_id"], resp_info["return_uri"]
+                salt, request["client_id"], resp_info["return_uri"]
             )
-
-            if _session_cookie_content:
-                if "cookie" in resp_info:
-                    resp_info["cookie"].append(_session_cookie_content)
-                else:
-                    resp_info["cookie"] = [_session_cookie_content]
 
             resp_info["response_args"]["session_state"] = _session_state
 
@@ -886,13 +772,9 @@ class Authorization(Endpoint):
         if http_info is None:
             http_info = {}
 
-        _cookies = http_info.get("cookie")
-        if _cookies:
-            _cookies = _context.cookie_handler.parse_cookie("oidcop", _cookies)
-
         kwargs = self.do_request_user(request_info=request, **kwargs)
 
-        info = self.setup_auth(request, request["redirect_uri"], cinfo, _cookies, **kwargs)
+        info = self.setup_auth(request, request["redirect_uri"], cinfo, **kwargs)
 
         if "error" in info:
             return info
@@ -901,7 +783,7 @@ class Authorization(Endpoint):
         if not _function:
             logger.debug("- authenticated -")
             logger.debug("AREQ keys: %s" % request.keys())
-            return self.authz_part2(request=request, cookie=_cookies, **info)
+            return self.authz_part2(request=request, **info)
 
         try:
             # Run the authentication function

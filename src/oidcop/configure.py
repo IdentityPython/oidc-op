@@ -33,21 +33,6 @@ OP_DEFAULT_CONFIG = {
             "refresh_token",
         ],
     },
-    "cookie_handler": {
-        "class": "oidcop.cookie_handler.CookieHandler",
-        "kwargs": {
-            "keys": {
-                "private_path": "private/cookie_jwks.json",
-                "key_defs": [
-                    {"type": "OCT", "use": ["enc"], "kid": "enc"},
-                    {"type": "OCT", "use": ["sig"], "kid": "sig"},
-                ],
-                "read_only": False,
-            },
-            "name": {"session": "oidc_op", "register": "oidc_op_rp",
-                     "session_management": "sman", },
-        },
-    },
     "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
     "authz": {
         "class": "oidcop.authz.AuthzHandling",
@@ -210,7 +195,6 @@ class EntityConfiguration(Base):
         self.base_url = ""
         self.capabilities = None
         self.claims_interface = None
-        self.cookie_handler = None
         self.endpoint = {}
         self.httpc_params = {}
         self.issuer = ""
@@ -401,21 +385,6 @@ DEFAULT_EXTENDED_CONF = {
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
             "refresh_token",
         ],
-    },
-    "cookie_handler": {
-        "class": "oidcop.cookie_handler.CookieHandler",
-        "kwargs": {
-            "keys": {
-                "private_path": "private/cookie_jwks.json",
-                "key_defs": [
-                    {"type": "OCT", "use": ["enc"], "kid": "enc"},
-                    {"type": "OCT", "use": ["sig"], "kid": "sig"},
-                ],
-                "read_only": False,
-            },
-            "name": {"session": "oidc_op", "register": "oidc_op_rp",
-                     "session_management": "sman", },
-        },
     },
     "endpoint": {
         "webfinger": {

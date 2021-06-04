@@ -469,8 +469,4 @@ class Registration(Endpoint):
             return reg_resp
         else:
             _context = self.server_get("endpoint_context")
-            _cookie = _context.new_cookie(
-                name=_context.cookie_handler.name["register"], client_id=reg_resp["client_id"],
-            )
-
-            return {"response_args": reg_resp, "cookie": _cookie}
+            return {"response_args": reg_resp}

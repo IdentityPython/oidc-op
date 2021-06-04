@@ -236,30 +236,8 @@ class Session(Endpoint):
         if "post_logout_redirect_uri" in request:
             if "id_token_hint" not in request:
                 raise InvalidRequest("If post_logout_redirect_uri then id_token_hint is a MUST")
-        _cookies = http_info.get("cookie")
+
         _session_info = None
-
-        if _cookies:
-            _cookie_name = _context.cookie_handler.name["session"]
-            try:
-                _cookie_infos = _context.cookie_handler.parse_cookie(
-                    cookies=_cookies, name=_cookie_name
-                )
-            except VerificationError:
-                raise InvalidRequest("Cookie error")
-
-            if _cookie_infos:
-                # value is a JSON document
-                _cookie_info = json.loads(_cookie_infos[0]["value"])
-                logger.debug("Cookie info: {}".format(_cookie_info))
-                try:
-                    _session_info = _mngr.get_session_info(_cookie_info["sid"], grant=True)
-                except KeyError:
-                    raise ValueError("Can't find any corresponding session")
-
-        if _session_info is None:
-            logger.debug("No relevant cookie")
-            raise ValueError("Missing cookie")
 
         if "id_token_hint" in request and _session_info:
             _id_token = request[verified_claim_name("id_token_hint")]
@@ -381,19 +359,10 @@ class Session(Endpoint):
                 )
 
                 if res.status_code < 300:
-                    logger.info("Logged out from {}".format(_cid))
+                    logger.info(f"Logged out from {_cid}")
                 elif res.status_code in [501, 504]:
-                    logger.info("Got a %s which is acceptable", res.status_code)
+                    logger.info(f"Got a {res.status_code} which is acceptable")
                 elif res.status_code >= 400:
-                    logger.info("failed to logout from {}".format(_cid))
+                    logger.info(f"failed to logout from {_cid}")
 
         return _res["flu"].values() if _res.get("flu") else []
-
-    def kill_cookies(self):
-        _context = self.server_get("endpoint_context")
-        _handler = _context.cookie_handler
-        session_mngmnt = _handler.make_cookie_content(
-            value="", name=_handler.name["session_management"], max_age=-1
-        )
-        session = _handler.make_cookie_content(value="", name=_handler.name["session"], max_age=-1)
-        return [session_mngmnt, session]

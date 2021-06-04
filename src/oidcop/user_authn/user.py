@@ -15,7 +15,6 @@ from cryptojwt.jwt import JWT
 
 from oidcop.exception import FailedAuthentication
 from oidcop.exception import ImproperlyConfigured
-from oidcop.exception import InvalidCookieSign
 from oidcop.exception import OnlyForTestingWarning
 from oidcop.util import instantiate
 
@@ -61,13 +60,6 @@ class UserAuthnMethod(object):
         """
         raise NotImplementedError
 
-    def authenticated_as(self, client_id, cookie=None, **kwargs):
-        if cookie is None:
-            return None, 0
-        else:
-            _info = self.cookie_info(cookie, client_id)
-            return _info, time.time()
-
     def verify(self, *args, **kwargs):
         """
         Callback to verify user input
@@ -90,29 +82,6 @@ class UserAuthnMethod(object):
             return True
         else:
             return False
-
-    def cookie_info(self, cookie: List[dict], client_id: str) -> dict:
-        _context = self.server_get("endpoint_context")
-        try:
-            vals = _context.cookie_handler.parse_cookie(
-                cookies=cookie, name=_context.cookie_handler.name["session"]
-            )
-        except (InvalidCookieSign, AssertionError, AttributeError) as err:
-            logger.warning(err)
-            vals = None
-
-        if vals is None:
-            pass
-        else:
-            for val in vals:
-                _info = json.loads(val["value"])
-                _, cid, _ = _context.session_manager.decrypt_session_id(_info["sid"])
-                if cid != client_id:
-                    continue
-                else:
-                    return _info
-        return {}
-
 
 def create_signed_jwt(issuer, keyjar, sign_alg="RS256", **kwargs):
     signer = JWT(keyjar, iss=issuer, sign_alg=sign_alg)
@@ -205,10 +174,8 @@ class BasicAuthn(UserAuthnMethod):
         if password != self.passwd[user]:
             raise FailedAuthentication("Wrong password")
 
-    def authenticated_as(self, client_id, cookie=None, authorization="", **kwargs):
+    def authenticated_as(self, client_id, authorization="", **kwargs):
         """
-
-        :param cookie: A HTTP Cookie
         :param authorization: The HTTP Authorization header
         :param kwargs: extra key word arguments
         :return:
@@ -220,8 +187,6 @@ class BasicAuthn(UserAuthnMethod):
         user = unquote(user.decode())
         self.verify_password(user, pwd.decode())
         res = {"uid": user}
-        if cookie:
-            res.update(self.cookie_info(cookie, client_id))
         return res, time.time()
 
 
@@ -237,10 +202,8 @@ class SymKeyAuthn(UserAuthnMethod):
         self.symkey = symkey.encode() if isinstance(symkey, str) else symkey
         self.ttl = ttl
 
-    def authenticated_as(self, client_id, cookie=None, authorization="", **kwargs):
+    def authenticated_as(self, client_id, authorization="", **kwargs):
         """
-
-        :param cookie: A HTTP Cookie
         :param authorization: The HTTP Authorization header
         :param kwargs: extra key word arguments
         :return:
@@ -253,9 +216,6 @@ class SymKeyAuthn(UserAuthnMethod):
             raise FailedAuthentication("Decryption failed")
 
         res = {"uid": user}
-        if cookie:
-            res.update(self.cookie_info(cookie, client_id))
-
         return res, time.time()
 
 
@@ -267,10 +227,9 @@ class NoAuthn(UserAuthnMethod):
         self.user = user
         self.fail = None
 
-    def authenticated_as(self, client_id="", cookie=None, authorization="", **kwargs):
+    def authenticated_as(self, client_id="", authorization="", **kwargs):
         """
 
-        :param cookie: A list of Cookie information
         :param authorization: The HTTP Authorization header
         :param kwargs: extra key word arguments
         :return:
@@ -279,9 +238,6 @@ class NoAuthn(UserAuthnMethod):
             raise self.fail()
 
         res = {"uid": self.user}
-        if cookie:
-            res.update(self.cookie_info(cookie, client_id))
-
         return res, time.time()
 
 
