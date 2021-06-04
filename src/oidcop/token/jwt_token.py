@@ -49,7 +49,6 @@ class JWTToken(Token):
 
     def __call__(self, session_id: Optional[str] = "", token_class: Optional[str] = "",
                  **payload) -> str:
-
         """
         Return a token.
 

@@ -5,7 +5,6 @@ from typing import Union
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jwt import utc_time_sans_frac
 
-from oidcmsg import oidc
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AccessTokenResponse
 from oidcmsg.oauth2 import ResponseMessage
@@ -91,7 +90,8 @@ class TokenEndpointHelper(object):
             if _exp_in:
                 token.expires_at = time_sans_frac() + _exp_in
 
-        _context.session_manager.set(_context.session_manager.unpack_session_key(session_id), grant)
+        _context.session_manager.set(
+            _context.session_manager.unpack_session_key(session_id), grant)
 
         return token
 
@@ -117,7 +117,8 @@ class AccessTokenHelper(TokenEndpointHelper):
         except KeyError:  # Missing code parameter - absolutely fatal
             return self.error_cls(error="invalid_request", error_description="Missing code")
 
-        _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
+        _session_info = _mngr.get_session_info_by_token(
+            _access_code, grant=True)
         grant = _session_info["grant"]
 
         _based_on = grant.get_token(_access_code)
@@ -156,7 +157,8 @@ class AccessTokenHelper(TokenEndpointHelper):
             else:
                 _response["access_token"] = token.value
                 if token.expires_at:
-                    _response["expires_in"] = token.expires_at - utc_time_sans_frac()
+                    _response["expires_in"] = token.expires_at - \
+                        utc_time_sans_frac()
 
         if issue_refresh and "refresh_token" in _supports_minting:
             try:
@@ -192,7 +194,8 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         _mngr = self.endpoint.server_get("endpoint_context").session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["code"], grant=True)
+            _session_info = _mngr.get_session_info_by_token(
+                request["code"], grant=True)
         except (KeyError, UnknownToken):
             logger.error("Access Code invalid")
             return self.error_cls(error="invalid_grant", error_description="Unknown code")
@@ -210,7 +213,8 @@ class AccessTokenHelper(TokenEndpointHelper):
         if "client_id" not in request:  # Optional for access token request
             request["client_id"] = _auth_req["client_id"]
 
-        logger.debug("%s: %s" % (request.__class__.__name__, sanitize(request)))
+        logger.debug("%s: %s" %
+                     (request.__class__.__name__, sanitize(request)))
 
         return request
 
@@ -224,7 +228,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_request", error_description="Wrong grant_type")
 
         token_value = req["refresh_token"]
-        _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+        _session_info = _mngr.get_session_info_by_token(
+            token_value, grant=True)
 
         _grant = _session_info["grant"]
         token = _grant.get_token(token_value)
@@ -243,7 +248,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
         }
 
         if access_token.expires_at:
-            _resp["expires_in"] = access_token.expires_at - utc_time_sans_frac()
+            _resp["expires_in"] = access_token.expires_at - \
+                utc_time_sans_frac()
 
         _mints = token.usage_rules.get("supports_minting")
         if "refresh_token" in _mints:
@@ -283,7 +289,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         _mngr = _context.session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["refresh_token"], grant=True)
+            _session_info = _mngr.get_session_info_by_token(
+                request["refresh_token"], grant=True)
         except KeyError:
             logger.error("Access Code invalid")
             return self.error_cls(error="invalid_grant")
@@ -311,7 +318,8 @@ class Token(Endpoint):
     response_placement = "body"
     endpoint_name = "token_endpoint"
     name = "token"
-    default_capabilities = {"token_endpoint_auth_signing_alg_values_supported": None}
+    default_capabilities = {
+        "token_endpoint_auth_signing_alg_values_supported": None}
     helper_by_grant_type = {
         "authorization_code": AccessTokenHelper,
         "refresh_token": RefreshTokenHelper,
@@ -330,7 +338,8 @@ class Token(Endpoint):
 
     def configure_grant_types(self, grant_types_supported):
         if grant_types_supported is None:
-            self.helper = {k: v(self) for k, v in self.helper_by_grant_type.items()}
+            self.helper = {k: v(self)
+                           for k, v in self.helper_by_grant_type.items()}
             return
 
         self.helper = {}
@@ -359,7 +368,8 @@ class Token(Endpoint):
             try:
                 self.helper[grant_type] = grant_class(self, _conf)
             except Exception as e:
-                raise ProcessError(f"Failed to initialize class {grant_class}: {e}")
+                raise ProcessError(
+                    f"Failed to initialize class {grant_class}: {e}")
 
     def _post_parse_request(
         self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
@@ -396,16 +406,16 @@ class Token(Endpoint):
                     error_description=f"Unsupported grant_type: {request['grant_type']}",
                 )
         except JWEException as err:
-            return self.error_cls(error="invalid_request", error_description=f"err")
+            return self.error_cls(error="invalid_request", error_description=f"{err}")
 
         if isinstance(response_args, ResponseMessage):
             return response_args
 
-        _access_token = response_args["access_token"]
-        _context = self.server_get("endpoint_context")
-        _session_info = _context.session_manager.get_session_info_by_token(
-            _access_token, grant=True
-        )
+        # _access_token = response_args["access_token"]
+        # _context = self.server_get("endpoint_context")
+        # _session_info = _context.session_manager.get_session_info_by_token(
+            # _access_token, grant=True
+        # )
 
         _headers = [("Content-type", "application/json")]
         resp = {"response_args": response_args, "http_headers": _headers}

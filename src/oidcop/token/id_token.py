@@ -63,7 +63,8 @@ def get_sign_and_encrypt_algorithms(
     args = {"sign": sign, "encrypt": encrypt}
     if sign:
         try:
-            args["sign_alg"] = client_info["{}_signed_response_alg".format(payload_type)]
+            args["sign_alg"] = client_info["{}_signed_response_alg".format(
+                payload_type)]
         except KeyError:  # Fall back to default
             try:
                 args["sign_alg"] = endpoint_context.jwx_def["signing_alg"][payload_type]
@@ -83,7 +84,8 @@ def get_sign_and_encrypt_algorithms(
 
     if encrypt:
         try:
-            args["enc_alg"] = client_info["%s_encrypted_response_alg" % payload_type]
+            args["enc_alg"] = client_info["%s_encrypted_response_alg" %
+                                          payload_type]
         except KeyError:
             try:
                 args["enc_alg"] = endpoint_context.jwx_def["encryption_alg"][payload_type]
@@ -95,7 +97,8 @@ def get_sign_and_encrypt_algorithms(
                     args["enc_alg"] = _supported[0]
 
         try:
-            args["enc_enc"] = client_info["%s_encrypted_response_enc" % payload_type]
+            args["enc_enc"] = client_info["%s_encrypted_response_enc" %
+                                          payload_type]
         except KeyError:
             try:
                 args["enc_enc"] = endpoint_context.jwx_def["encryption_enc"][payload_type]
@@ -128,7 +131,8 @@ class IDToken(Token):
         self.server_get = server_get
         self.kwargs = kwargs
         self.scope_to_claims = None
-        self.provider_info = construct_endpoint_info(self.default_capabilities, **kwargs)
+        self.provider_info = construct_endpoint_info(
+            self.default_capabilities, **kwargs)
 
     def payload(
         self, session_id, alg="RS256", code=None, access_token=None, extra_claims=None,
@@ -242,28 +246,32 @@ class IDToken(Token):
         if lifetime is None:
             lifetime = self.lifetime
 
-        _jwt = JWT(_context.keyjar, iss=_context.issuer, lifetime=lifetime, **alg_dict)
+        _jwt = JWT(_context.keyjar, iss=_context.issuer,
+                   lifetime=lifetime, **alg_dict)
 
         return _jwt.pack(_payload, recv=client_id)
 
     def __call__(self, session_id: Optional[str] = "", ttype: Optional[str] = "", **kwargs) -> str:
         _context = self.server_get("endpoint_context")
 
-        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
+        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(
+            session_id)
 
         # Should I add session ID. This is about Single Logout.
         if include_session_id(_context, client_id, "back") or include_session_id(
             _context, client_id, "front"
         ):
 
-            xargs = {"sid": get_logout_id(_context, user_id=user_id, client_id=client_id)}
+            xargs = {"sid": get_logout_id(
+                _context, user_id=user_id, client_id=client_id)}
         else:
             xargs = {}
 
         lifetime = self.lifetime
 
         # Weed out stuff that doesn't belong here
-        kwargs = {k: v for k, v in kwargs.items() if k in ["encrypt", "code", "access_token"]}
+        kwargs = {k: v for k, v in kwargs.items() if k in [
+            "encrypt", "code", "access_token"]}
 
         id_token = self.sign_encrypt(
             session_id, client_id, sign=True, lifetime=lifetime, extra_claims=xargs, **kwargs
@@ -289,9 +297,11 @@ class IDToken(Token):
         _payload = _jwt.jwt.payload()
         client_id = _payload["aud"][0]
         client_info = _context.cdb[client_id]
-        alg_dict = get_sign_and_encrypt_algorithms(_context, client_info, "id_token", sign=True)
+        alg_dict = get_sign_and_encrypt_algorithms(
+            _context, client_info, "id_token", sign=True)
 
-        verifier = JWT(key_jar=_context.keyjar, allowed_sign_algs=alg_dict["sign_alg"])
+        verifier = JWT(key_jar=_context.keyjar,
+                       allowed_sign_algs=alg_dict["sign_alg"])
         try:
             _payload = verifier.unpack(token)
         except JWSException:

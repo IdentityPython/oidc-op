@@ -86,7 +86,8 @@ def verify_url(url: str, urlset: List[list]) -> bool:
 
 
 def secret(seed: str, sid: str):
-    msg = "{}{}{}".format(time.time(), secrets.token_urlsafe(16), sid).encode("utf-8")
+    msg = "{}{}{}".format(
+        time.time(), secrets.token_urlsafe(16), sid).encode("utf-8")
     csum = hmac.new(as_bytes(seed), msg, hashlib.sha224)
     return csum.hexdigest()
 
@@ -106,7 +107,7 @@ def comb_uri(args):
                         for v in query_dict[key]
                     ]
                 )
-                val.append("{base}?{query_string}")
+                val.append(f"{base}?{query_string}")
             else:
                 val.append(base)
 
@@ -250,7 +251,8 @@ class Registration(Endpoint):
                                 )
                             )
                         if not _k:
-                            logger.warning('Lacking support for "{}"'.format(request[item]))
+                            logger.warning(
+                                'Lacking support for "{}"'.format(request[item]))
                             del _cinfo[item]
 
         t = {"jwks_uri": "", "jwks": None}
@@ -261,7 +263,8 @@ class Registration(Endpoint):
 
         # if it can't load keys because the URL is false it will
         # just silently fail. Waiting for better times.
-        _context.keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
+        _context.keyjar.load_keys(
+            client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
 
         n_keys = 0
         for kb in _context.keyjar.get(client_id, []):
@@ -302,7 +305,8 @@ class Registration(Endpoint):
                 raise InvalidRedirectURIError(msg)
             elif p.scheme not in ["http", "https"]:
                 # Custom scheme
-                raise InvalidRedirectURIError("Custom redirect_uri not allowed for web client")
+                raise InvalidRedirectURIError(
+                    "Custom redirect_uri not allowed for web client")
             elif p.fragment:
                 raise InvalidRedirectURIError("redirect_uri contains fragment")
 
@@ -335,18 +339,21 @@ class Registration(Endpoint):
         except Exception as err:
             logger.error(err)
             # res = None
-            raise InvalidSectorIdentifier("Couldn't read from sector_identifier_uri")
+            raise InvalidSectorIdentifier(
+                "Couldn't read from sector_identifier_uri")
 
         try:
             si_redirects = json.loads(res.text)
         except ValueError:
-            raise InvalidSectorIdentifier("Error deserializing sector_identifier_uri content")
+            raise InvalidSectorIdentifier(
+                "Error deserializing sector_identifier_uri content")
 
         if "redirect_uris" in request:
             logger.debug("redirect_uris: %s", request["redirect_uris"])
             for uri in request["redirect_uris"]:
                 if uri not in si_redirects:
-                    raise InvalidSectorIdentifier("redirect_uri missing from sector_identifiers")
+                    raise InvalidSectorIdentifier(
+                        "redirect_uri missing from sector_identifiers")
 
         return si_redirects, si_url
 
@@ -400,12 +407,16 @@ class Registration(Endpoint):
         _context = self.server_get("endpoint_context")
         if new_id:
             if self.kwargs.get("client_id_generator"):
-                cid_generator = importer(self.kwargs["client_id_generator"]["class"])
-                cid_gen_kwargs = self.kwargs["client_id_generator"].get("kwargs", {})
+                cid_generator = importer(
+                    self.kwargs["client_id_generator"]["class"])
+                cid_gen_kwargs = self.kwargs["client_id_generator"].get(
+                    "kwargs", {})
             else:
-                cid_generator = importer("oidcop.oidc.registration.random_client_id")
+                cid_generator = importer(
+                    "oidcop.oidc.registration.random_client_id")
                 cid_gen_kwargs = {}
-            client_id = cid_generator(reserved=_context.cdb.keys(), **cid_gen_kwargs)
+            client_id = cid_generator(
+                reserved=_context.cdb.keys(), **cid_gen_kwargs)
             if "client_id" in request:
                 del request["client_id"]
         else:
@@ -425,16 +436,19 @@ class Registration(Endpoint):
         if set_secret:
             client_secret = self.add_client_secret(_cinfo, client_id, _context)
 
-        logger.debug("Stored client info in CDB under cid={}".format(client_id))
+        logger.debug(
+            "Stored client info in CDB under cid={}".format(client_id))
 
         _context.cdb[client_id] = _cinfo
         _cinfo = self.do_client_registration(
-            request, client_id, ignore=["redirect_uris", "policy_uri", "logo_uri", "tos_uri"],
+            request, client_id, ignore=[
+                "redirect_uris", "policy_uri", "logo_uri", "tos_uri"],
         )
         if isinstance(_cinfo, ResponseMessage):
             return _cinfo
 
-        args = dict([(k, v) for k, v in _cinfo.items() if k in self.response_cls.c_param])
+        args = dict([(k, v) for k, v in _cinfo.items()
+                     if k in self.response_cls.c_param])
 
         comb_uri(args)
         response = self.response_cls(**args)
@@ -443,7 +457,8 @@ class Registration(Endpoint):
         if client_secret:
             _context.keyjar.add_symmetric(client_id, str(client_secret))
 
-        logger.debug("Stored updated client info in CDB under cid={}".format(client_id))
+        logger.debug(
+            "Stored updated client info in CDB under cid={}".format(client_id))
         logger.debug("ClientInfo: {}".format(_cinfo))
         _context.cdb[client_id] = _cinfo
 
@@ -458,7 +473,8 @@ class Registration(Endpoint):
 
     def process_request(self, request=None, new_id=True, set_secret=True, **kwargs):
         try:
-            reg_resp = self.client_registration_setup(request, new_id, set_secret)
+            reg_resp = self.client_registration_setup(
+                request, new_id, set_secret)
         except Exception as err:
             logger.error("client_registration_setup: %s", request)
             return ResponseMessage(
@@ -468,5 +484,5 @@ class Registration(Endpoint):
         if "error" in reg_resp:
             return reg_resp
         else:
-            _context = self.server_get("endpoint_context")
+            self.server_get("endpoint_context")
             return {"response_args": reg_resp}

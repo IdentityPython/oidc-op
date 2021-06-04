@@ -104,7 +104,8 @@ class ClientSecretBasic(ClientAuthnMethod):
         client_info = basic_authn(authorization_token)
 
         if (
-            self.server_get("endpoint_context").cdb[client_info["id"]]["client_secret"]
+            self.server_get(
+                "endpoint_context").cdb[client_info["id"]]["client_secret"]
             == client_info["secret"]
         ):
             return {"client_id": client_info["id"]}
@@ -131,7 +132,8 @@ class ClientSecretPost(ClientSecretBasic):
 
     def verify(self, request, **kwargs):
         if (
-            self.server_get("endpoint_context").cdb[request["client_id"]]["client_secret"]
+            self.server_get(
+                "endpoint_context").cdb[request["client_id"]]["client_secret"]
             == request["client_secret"]
         ):
             return {"client_id": request["client_id"]}
@@ -199,10 +201,12 @@ class JWSAuthnMethod(ClientAuthnMethod):
         if _sign_alg and _sign_alg.startswith("HS"):
             if key_type == "private_key":
                 raise AttributeError("Wrong key type")
-            keys = _context.keyjar.get("sig", "oct", ca_jwt["iss"], ca_jwt.jws_header.get("kid"))
+            keys = _context.keyjar.get(
+                "sig", "oct", ca_jwt["iss"], ca_jwt.jws_header.get("kid"))
             _secret = _context.cdb[ca_jwt["iss"]].get("client_secret")
             if _secret and keys[0].key != as_bytes(_secret):
-                raise AttributeError("Oct key used for signing not client_secret")
+                raise AttributeError(
+                    "Oct key used for signing not client_secret")
         else:
             if key_type == "client_secret":
                 raise AttributeError("Wrong key type")
@@ -248,7 +252,8 @@ class ClientSecretJWT(JWSAuthnMethod):
     tag = "client_secret_jwt"
 
     def verify(self, request=None, **kwargs):
-        res = JWSAuthnMethod.verify(self, request, key_type="client_secret", **kwargs)
+        res = JWSAuthnMethod.verify(
+            self, request, key_type="client_secret", **kwargs)
         # Verify that a HS alg was used
         res["method"] = self.tag
         return res
@@ -262,7 +267,8 @@ class PrivateKeyJWT(JWSAuthnMethod):
     tag = "private_key_jwt"
 
     def verify(self, request=None, **kwargs):
-        res = JWSAuthnMethod.verify(self, request, key_type="private_key", **kwargs)
+        res = JWSAuthnMethod.verify(
+            self, request, key_type="private_key", **kwargs)
         # Verify that an RS or ES alg was used ?
         res["method"] = self.tag
         return res
@@ -358,7 +364,8 @@ def verify_client(
                     request=request, authorization_token=authorization_token, endpoint=endpoint,
                 )
             except Exception as err:
-                logger.warning("Verifying auth using {} failed: {}".format(_method.tag, err))
+                logger.warning(
+                    "Verifying auth using {} failed: {}".format(_method.tag, err))
             else:
                 if "method" not in auth_info:
                     auth_info["method"] = _method.tag
@@ -366,7 +373,8 @@ def verify_client(
 
     if not auth_info:
         if None in _methods:
-            auth_info = {"method": "none", "client_id": request.get("client_id")}
+            auth_info = {"method": "none",
+                         "client_id": request.get("client_id")}
         else:
             return auth_info
 
@@ -388,13 +396,15 @@ def verify_client(
                 raise UnknownClient("Unknown Client ID")
 
         if not valid_client_info(_cinfo):
-            logger.warning("Client registration has timed out or " "client secret is expired.")
+            logger.warning(
+                "Client registration has timed out or " "client secret is expired.")
             raise InvalidClient("Not valid client")
 
         # store what authn method was used
         if auth_info.get("method"):
             _request_type = request.__class__.__name__
-            _used_authn_method = endpoint_context.cdb[client_id].get("auth_method")
+            _used_authn_method = endpoint_context.cdb[client_id].get(
+                "auth_method")
             if _used_authn_method:
                 endpoint_context.cdb[client_id]["auth_method"][_request_type] = auth_info["method"]
             else:
@@ -408,7 +418,8 @@ def verify_client(
 
         try:
             # get_client_id_from_token is a callback... Do not abuse for code readability.
-            auth_info["client_id"] = get_client_id_from_token(endpoint_context, _token, request)
+            auth_info["client_id"] = get_client_id_from_token(
+                endpoint_context, _token, request)
         except KeyError:
             raise ValueError("Unknown token")
 

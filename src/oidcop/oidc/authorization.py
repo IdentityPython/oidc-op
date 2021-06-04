@@ -43,9 +43,9 @@ def host_component(url):
 
 
 ALG_PARAMS = {
-    "sign": ["request_object_signing_alg", "request_object_signing_alg_values_supported",],
-    "enc_alg": ["request_object_encryption_alg", "request_object_encryption_alg_values_supported",],
-    "enc_enc": ["request_object_encryption_enc", "request_object_encryption_enc_values_supported",],
+    "sign": ["request_object_signing_alg", "request_object_signing_alg_values_supported", ],
+    "enc_alg": ["request_object_encryption_alg", "request_object_encryption_alg_values_supported", ],
+    "enc_enc": ["request_object_encryption_enc", "request_object_encryption_enc_values_supported", ],
 }
 
 
@@ -101,5 +101,6 @@ class Authorization(authorization.Authorization):
             if _login_hint:
                 _context = self.server_get("endpoint_context")
                 if _context.login_hint_lookup:
-                    kwargs["req_user"] = _context.login_hint_lookup(_login_hint)
+                    kwargs["req_user"] = _context.login_hint_lookup(
+                        _login_hint)
         return kwargs

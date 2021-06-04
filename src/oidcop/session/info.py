@@ -5,7 +5,8 @@ from oidcmsg.impexp import ImpExp
 
 
 class SessionInfo(ImpExp):
-    parameter = {"subordinate": [], "revoked": bool, "type": "", "extra_args": {}}
+    parameter = {"subordinate": [], "revoked": bool,
+                 "type": "", "extra_args": {}}
 
     def __init__(
         self,
@@ -43,14 +44,15 @@ class SessionInfo(ImpExp):
 class UserSessionInfo(SessionInfo):
     parameter = SessionInfo.parameter.copy()
     parameter.update(
-        {"user_id": "",}
+        {"user_id": "", }
     )
 
     def __init__(self, **kwargs):
         SessionInfo.__init__(self, **kwargs)
         self.type = "UserSessionInfo"
         self.user_id = kwargs.get("user_id", "")
-        self.extra_args = {k: v for k, v in kwargs.items() if k not in self.parameter}
+        self.extra_args = {k: v for k,
+                           v in kwargs.items() if k not in self.parameter}
 
 
 class ClientSessionInfo(SessionInfo):
@@ -61,7 +63,8 @@ class ClientSessionInfo(SessionInfo):
         SessionInfo.__init__(self, **kwargs)
         self.type = "ClientSessionInfo"
         self.client_id = kwargs.get("client_id", "")
-        self.extra_args = {k: v for k, v in kwargs.items() if k not in self.parameter}
+        self.extra_args = {k: v for k,
+                           v in kwargs.items() if k not in self.parameter}
 
     def find_grant_and_token(self, val: str):
         for grant in self.subordinate:

@@ -42,7 +42,7 @@ class Database(ImpExp):
         ImpExp.__init__(self)
         self.db = DLDict()
 
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             setattr(self, k, v)
 
         self.key = key or rndstr(24)
@@ -136,7 +136,8 @@ class Database(ImpExp):
 
         _user_info = self.db[uid]
         skey_uid_client = self.session_key(uid, client_id)
-        skey_uid_client_grant = self.session_key(uid, client_id, grant_id or "")
+        skey_uid_client_grant = self.session_key(
+            uid, client_id, grant_id or "")
 
         if client_id not in _user_info.subordinate:
             self.db.__delitem__(client_id)

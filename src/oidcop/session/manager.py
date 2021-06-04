@@ -39,7 +39,8 @@ class PairWiseID(object):
             elif not os.path.isfile(filename) and os.path.exists(
                 filename
             ):  # Not a file, Something else
-                raise ConfigurationError("Salt filename points to something that is not a file")
+                raise ConfigurationError(
+                    "Salt filename points to something that is not a file")
             else:
                 self.salt = rndstr(24)
                 # May raise an exception
@@ -124,9 +125,9 @@ class SessionManager(Database):
 
     def _init_db(self):
         Database.__init__(
-                    self,
-                    key=self.load_key(),
-                    salt=self.load_salt()
+            self,
+            key=self.load_key(),
+            salt=self.load_salt()
         )
 
     def get_user_info(self, uid: str) -> UserSessionInfo:
@@ -326,19 +327,23 @@ class SessionManager(Database):
         elif user_id and client_id:
             pass
         else:
-            raise AttributeError("Must have session_id or user_id and client_id")
+            raise AttributeError(
+                "Must have session_id or user_id and client_id")
 
         c_info = self.get([user_id, client_id])
 
-        _grants = [self.get([user_id, client_id, gid]) for gid in c_info.subordinate]
+        _grants = [self.get([user_id, client_id, gid])
+                   for gid in c_info.subordinate]
         return [g.authentication_event for g in _grants]
 
     def get_authorization_request(self, session_id):
-        res = self.get_session_info(session_id=session_id, authorization_request=True)
+        res = self.get_session_info(
+            session_id=session_id, authorization_request=True)
         return res["authorization_request"]
 
     def get_authentication_event(self, session_id):
-        res = self.get_session_info(session_id=session_id, authentication_event=True)
+        res = self.get_session_info(
+            session_id=session_id, authentication_event=True)
         return res["authentication_event"]
 
     def revoke_client_session(self, session_id: str):
@@ -388,7 +393,8 @@ class SessionManager(Database):
         elif user_id and client_id:
             pass
         else:
-            raise AttributeError("Must have session_id or user_id and client_id")
+            raise AttributeError(
+                "Must have session_id or user_id and client_id")
 
         _csi = self.get([user_id, client_id])
         return [self.get([user_id, client_id, gid]) for gid in _csi.subordinate]

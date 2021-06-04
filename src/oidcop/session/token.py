@@ -208,11 +208,13 @@ class AuthorizationCode(SessionToken):
 class RefreshToken(SessionToken):
     def set_defaults(self):
         if "supports_minting" not in self.usage_rules:
-            self.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
+            self.usage_rules["supports_minting"] = [
+                "access_token", "refresh_token"]
 
 
 class IDToken(SessionToken):
     pass
 
 
-SHORT_TYPE_NAME = {"authorization_code": "A", "access_token": "T", "refresh_token": "R"}
+SHORT_TYPE_NAME = {"authorization_code": "A",
+                   "access_token": "T", "refresh_token": "R"}

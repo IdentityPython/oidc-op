@@ -94,7 +94,8 @@ class DefaultToken(Token):
             rnd = rndstr(32)  # Ultimate length multiple of 16
 
         return base64.b64encode(
-            self.crypt.encrypt(lv_pack(rnd, token_class, session_id, exp).encode())
+            self.crypt.encrypt(
+                lv_pack(rnd, token_class, session_id, exp).encode())
         ).decode("utf-8")
 
     def split_token(self, token):
@@ -112,7 +113,8 @@ class DefaultToken(Token):
         :param token: A token
         :return: dictionary with info about the token
         """
-        _res = dict(zip(["_id", "token_class", "sid", "exp"], self.split_token(token)))
+        _res = dict(zip(["_id", "token_class", "sid", "exp"],
+                        self.split_token(token)))
         if _res["token_class"] != self.token_class:
             raise WrongTokenClass(_res["token_class"])
         else:

@@ -1,19 +1,12 @@
-import json
 import logging
-from typing import List
 from typing import Optional
 from typing import Union
 from urllib.parse import unquote
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
-from cryptojwt import BadSyntax
-from cryptojwt import as_unicode
-from cryptojwt import b64d
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
-from cryptojwt.utils import as_bytes
-from cryptojwt.utils import b64e
 from oidcmsg import oauth2
 from oidcmsg.exception import ParameterError
 from oidcmsg.exception import URIError
@@ -28,15 +21,10 @@ from oidcop.authn_event import create_authn_event
 from oidcop.endpoint import Endpoint
 from oidcop.endpoint_context import EndpointContext
 from oidcop.exception import InvalidRequest
-from oidcop.exception import NoSuchAuthentication
 from oidcop.exception import RedirectURIError
 from oidcop.exception import ServiceError
-from oidcop.exception import TamperAllert
-from oidcop.exception import ToOld
 from oidcop.exception import UnAuthorizedClientScope
 from oidcop.exception import UnknownClient
-from oidcop.session import Revoked
-from oidcop.token.exception import UnknownToken
 from oidcop.user_authn.authn_context import pick_auth
 from oidcop.util import split_uri
 
@@ -44,9 +32,9 @@ logger = logging.getLogger(__name__)
 
 # For the time being. This is JAR specific and should probably be configurable.
 ALG_PARAMS = {
-    "sign": ["request_object_signing_alg", "request_object_signing_alg_values_supported",],
-    "enc_alg": ["request_object_encryption_alg", "request_object_encryption_alg_values_supported",],
-    "enc_enc": ["request_object_encryption_enc", "request_object_encryption_enc_values_supported",],
+    "sign": ["request_object_signing_alg", "request_object_signing_alg_values_supported", ],
+    "enc_alg": ["request_object_encryption_alg", "request_object_encryption_alg_values_supported", ],
+    "enc_enc": ["request_object_encryption_enc", "request_object_encryption_enc_values_supported", ],
 }
 
 FORM_POST = """<html>
@@ -137,11 +125,13 @@ def verify_uri(
 
                     for key, vals in rquery.items():
                         if key not in _query:
-                            raise ValueError('"{}" not in query part'.format(key))
+                            raise ValueError(
+                                '"{}" not in query part'.format(key))
 
                         for val in vals:
                             if val not in _query[key]:
-                                raise ValueError("{}={} value not in query part".format(key, val))
+                                raise ValueError(
+                                    "{}={} value not in query part".format(key, val))
 
                 # and vice versa, every query component in the uri
                 # must be registered
@@ -151,10 +141,12 @@ def verify_uri(
 
                     for key, vals in _query.items():
                         if key not in rquery:
-                            raise ValueError('"{}" extra in query part'.format(key))
+                            raise ValueError(
+                                '"{}" extra in query part'.format(key))
                         for val in vals:
                             if val not in rquery[key]:
-                                raise ValueError("Extra {}={} value in query part".format(key, val))
+                                raise ValueError(
+                                    "Extra {}={} value in query part".format(key, val))
                 match = True
                 break
         if not match:
@@ -193,10 +185,12 @@ def get_uri(endpoint_context, request, uri_type):
         if client_id in endpoint_context.cdb:
             _specs = endpoint_context.cdb[client_id].get(uris)
             if not _specs:
-                raise ParameterError(f"Missing '{uri_type}' and none registered")
+                raise ParameterError(
+                    f"Missing '{uri_type}' and none registered")
 
             if len(_specs) > 1:
-                raise ParameterError(f"Missing '{uri_type}' and more than one registered")
+                raise ParameterError(
+                    f"Missing '{uri_type}' and more than one registered")
 
             uri = join_query(*_specs[0])
         else:
@@ -226,7 +220,8 @@ def authn_args_gather(
     else:
         raise ValueError("Wrong request format")
 
-    authn_args.update({"authn_class_ref": authn_class_ref, "return_uri": request["redirect_uri"]})
+    authn_args.update({"authn_class_ref": authn_class_ref,
+                       "return_uri": request["redirect_uri"]})
 
     if "req_user" in kwargs:
         authn_args["as_user"] = (kwargs["req_user"],)
@@ -246,7 +241,8 @@ def authn_args_gather(
 
 def check_unknown_scopes_policy(request_info, cinfo, endpoint_context):
     op_capabilities = endpoint_context.conf["capabilities"]
-    client_allowed_scopes = cinfo.get("allowed_scopes") or op_capabilities["scopes_supported"]
+    client_allowed_scopes = cinfo.get(
+        "allowed_scopes") or op_capabilities["scopes_supported"]
 
     # this prevents that authz would be released for unavailable scopes
     for scope in request_info["scope"]:
@@ -292,7 +288,8 @@ class Authorization(Endpoint):
 
     def verify_response_type(self, request: Union[Message, dict], cinfo: dict) -> bool:
         # Checking response types
-        _registered = [set(rt.split(" ")) for rt in cinfo.get("response_types", [])]
+        _registered = [set(rt.split(" "))
+                       for rt in cinfo.get("response_types", [])]
         if not _registered:
             # If no response_type is registered by the client then we'll use code.
             _registered = [{"code"}]
@@ -340,7 +337,8 @@ class Authorization(Endpoint):
 
             # Do I support request_uri ?
             if endpoint_context.provider_info.get("request_uri_parameter_supported", True) is False:
-                raise ServiceError("Someone is using request_uri which I'm not supporting")
+                raise ServiceError(
+                    "Someone is using request_uri which I'm not supporting")
 
             _registered = endpoint_context.cdb[client_id].get("request_uris")
             # Not registered should be handled else where
@@ -352,7 +350,8 @@ class Authorization(Endpoint):
                     raise ValueError("A request_uri outside the registered")
 
             # Fetch the request
-            _resp = endpoint_context.httpc.get(_request_uri, **endpoint_context.httpc_params)
+            _resp = endpoint_context.httpc.get(
+                _request_uri, **endpoint_context.httpc_params)
             if _resp.status_code == 200:
                 args = {"keyjar": endpoint_context.keyjar, "issuer": client_id}
                 _ver_request = self.request_cls().from_jwt(_resp.text, **args)
@@ -364,10 +363,12 @@ class Authorization(Endpoint):
                 )
                 if _ver_request.jwe_header is not None:
                     self.allowed_request_algorithms(
-                        client_id, endpoint_context, _ver_request.jws_header.get("alg"), "enc_alg",
+                        client_id, endpoint_context, _ver_request.jws_header.get(
+                            "alg"), "enc_alg",
                     )
                     self.allowed_request_algorithms(
-                        client_id, endpoint_context, _ver_request.jws_header.get("enc"), "enc_enc",
+                        client_id, endpoint_context, _ver_request.jws_header.get(
+                            "enc"), "enc_enc",
                     )
                 # The protected info overwrites the non-protected
                 for k, v in _ver_request.items():
@@ -399,7 +400,8 @@ class Authorization(Endpoint):
 
         _cinfo = endpoint_context.cdb.get(client_id)
         if not _cinfo:
-            logger.error("Client ID ({}) not in client database".format(request["client_id"]))
+            logger.error("Client ID ({}) not in client database".format(
+                request["client_id"]))
             return self.error_cls(error="unauthorized_client", error_description="unknown client")
 
         # Is the asked for response_type among those that are permitted
@@ -451,7 +453,8 @@ class Authorization(Endpoint):
     def create_session(self, request, user_id, acr, time_stamp, authn_method):
         _context = self.server_get("endpoint_context")
         _mngr = _context.session_manager
-        authn_event = create_authn_event(user_id, authn_info=acr, time_stamp=time_stamp,)
+        authn_event = create_authn_event(
+            user_id, authn_info=acr, time_stamp=time_stamp,)
         _exp_in = authn_method.kwargs.get("expires_in")
         if _exp_in and "valid_until" in authn_event:
             authn_event["valid_until"] = utc_time_sans_frac() + _exp_in
@@ -488,12 +491,12 @@ class Authorization(Endpoint):
         authn = res["method"]
         authn_class_ref = res["acr"]
 
-        client_id = request.get("client_id")
+        request.get("client_id")
         _context = self.server_get("endpoint_context")
 
-        authn_args = authn_args_gather(request, authn_class_ref, cinfo, **kwargs)
-        _mngr = _context.session_manager
-        _session_id = ""
+        authn_args = authn_args_gather(
+            request, authn_class_ref, cinfo, **kwargs)
+        _context.session_manager
 
         logger.debug("Known clients: {}".format(list(_context.cdb.keys())))
 
@@ -506,7 +509,6 @@ class Authorization(Endpoint):
             }
         else:
             return {"function": authn, "args": authn_args}
-
 
     def aresp_check(self, aresp, request):
         return ""
@@ -527,7 +529,8 @@ class Authorization(Endpoint):
                 _args = response_args
             msg = FORM_POST.format(inputs=inputs(_args), action=return_uri,)
             kwargs.update(
-                {"response_msg": msg, "content_type": "text/html", "response_placement": "body",}
+                {"response_msg": msg, "content_type": "text/html",
+                    "response_placement": "body", }
             )
         elif resp_mode == "fragment":
             if fragment_enc is False:
@@ -543,12 +546,14 @@ class Authorization(Endpoint):
             raise InvalidRequest("Unknown response_mode")
 
         if resp_mode in ["fragment", "query"]:
-            kwargs.update({"response_args": response_args, "return_uri": return_uri})
+            kwargs.update({"response_args": response_args,
+                           "return_uri": return_uri})
 
         return kwargs
 
     def error_response(self, response_info, error, error_description):
-        resp = self.error_cls(error=error, error_description=str(error_description))
+        resp = self.error_cls(
+            error=error, error_description=str(error_description))
         response_info["response_args"] = resp
         return response_info
 
@@ -598,7 +603,8 @@ class Authorization(Endpoint):
                 aresp["access_token"] = _access_token.value
                 aresp["token_type"] = "Bearer"
                 if _access_token.expires_at:
-                    aresp["expires_in"] = _access_token.expires_at - utc_time_sans_frac()
+                    aresp["expires_in"] = _access_token.expires_at - \
+                        utc_time_sans_frac()
                 handled_response_type.append("token")
             else:
                 _access_token = None
@@ -606,7 +612,8 @@ class Authorization(Endpoint):
             if "id_token" in request["response_type"]:
                 kwargs = {}
                 if {"code", "id_token", "token"}.issubset(rtype):
-                    kwargs = {"code": _code.value, "access_token": _access_token.value}
+                    kwargs = {"code": _code.value,
+                              "access_token": _access_token.value}
                 elif {"code", "id_token"}.issubset(rtype):
                     kwargs = {"code": _code.value}
                 elif {"id_token", "token"}.issubset(rtype):
@@ -713,14 +720,13 @@ class Authorization(Endpoint):
         if "check_session_iframe" in _context.provider_info:
             salt = rndstr()
             try:
-                authn_event = _context.session_manager.get_authentication_event(session_id)
+                authn_event = _context.session_manager.get_authentication_event(
+                    session_id)
             except KeyError:
                 return self.error_response({}, "server_error", "No such session")
             else:
                 if authn_event.is_valid() is False:
                     return self.error_response({}, "server_error", "Authentication has timed out")
-
-            _state = b64e(as_bytes(json.dumps({"authn_time": authn_event["authn_time"]})))
 
             logger.debug(
                 "compute_session_state: client_id=%s, origin=%s, salt=%s",
@@ -729,11 +735,13 @@ class Authorization(Endpoint):
                 salt,
             )
 
-            _session_state = compute_session_state(
-                salt, request["client_id"], resp_info["return_uri"]
-            )
-
-            resp_info["response_args"]["session_state"] = _session_state
+            # TODO: get session state from sman
+            # _state = b64e(
+            #   as_bytes(json.dumps({"authn_time": authn_event["authn_time"]})))
+            # _session_state = compute_session_state(
+            # salt, request["client_id"], resp_info["return_uri"]
+            # )
+            # resp_info["response_args"]["session_state"] = _session_state
 
         # Mix-Up mitigation
         resp_info["response_args"]["iss"] = _context.issuer
@@ -774,7 +782,8 @@ class Authorization(Endpoint):
 
         kwargs = self.do_request_user(request_info=request, **kwargs)
 
-        info = self.setup_auth(request, request["redirect_uri"], cinfo, **kwargs)
+        info = self.setup_auth(
+            request, request["redirect_uri"], cinfo, **kwargs)
 
         if "error" in info:
             return info
@@ -810,7 +819,8 @@ class AllowedAlgorithms:
             _allowed = _pinfo.get(_sup)
 
         if alg not in _allowed:
-            logger.error("Signing alg user: {} not among allowed: {}".format(alg, _allowed))
+            logger.error(
+                "Signing alg user: {} not among allowed: {}".format(alg, _allowed))
             raise ValueError("Not allowed '%s' algorithm used", alg)
 
 

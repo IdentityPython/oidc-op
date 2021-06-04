@@ -70,7 +70,8 @@ class DPoPProof(Message):
             if "jwk" in _jwt.headers:
                 _pub_key = key_from_jwk_dict(_jwt.headers["jwk"])
                 _pub_key.deserialize()
-                _info = _jws.verify_compact(keys=[_pub_key], sigalg=_jwt.headers["alg"])
+                _info = _jws.verify_compact(
+                    keys=[_pub_key], sigalg=_jwt.headers["alg"])
                 for k, v in _jwt.headers.items():
                     self[k] = v
 
@@ -126,7 +127,8 @@ def token_args(endpoint_context, client_id, token_args: Optional[dict] = None):
         if token_args is None:
             token_args = {"cnf": {"jkt": _jkt}}
         else:
-            token_args.update({"cnf": {"jkt": endpoint_context.cdb[client_id]["dpop_jkt"]}})
+            token_args.update(
+                {"cnf": {"jkt": endpoint_context.cdb[client_id]["dpop_jkt"]}})
 
     return token_args
 

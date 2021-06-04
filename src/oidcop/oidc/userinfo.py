@@ -42,7 +42,8 @@ class UserInfo(Endpoint):
         self.allowed_targets.append("")
 
     def get_client_id_from_token(self, endpoint_context, token, request=None):
-        _info = endpoint_context.session_manager.get_session_info_by_token(token)
+        _info = endpoint_context.session_manager.get_session_info_by_token(
+            token)
         return _info["client_id"]
 
     def do_response(
@@ -106,7 +107,8 @@ class UserInfo(Endpoint):
 
     def process_request(self, request=None, **kwargs):
         _mngr = self.server_get("endpoint_context").session_manager
-        _session_info = _mngr.get_session_info_by_token(request["access_token"], grant=True)
+        _session_info = _mngr.get_session_info_by_token(
+            request["access_token"], grant=True)
         _grant = _session_info["grant"]
         token = _grant.get_token(request["access_token"])
         # should be an access token
@@ -162,7 +164,8 @@ class UserInfo(Endpoint):
 
         # Verify that the client is allowed to do this
         try:
-            auth_info = self.client_authentication(request, http_info, **kwargs)
+            auth_info = self.client_authentication(
+                request, http_info, **kwargs)
         except (ValueError, UnknownToken) as e:
             return self.error_cls(error="invalid_token", error_description=e.args[0])
 

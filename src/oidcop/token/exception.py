@@ -9,6 +9,7 @@ class WrongTokenType(Exception):
 class WrongTokenClass(Exception):
     pass
 
+
 class AccessCodeUsed(Exception):
     pass
 

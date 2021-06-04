@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 # USAGE = Literal["userinfo", "id_token", "introspection"]
 
-IGNORE = ["error", "error_description", "error_uri", "_claim_names", "_claim_sources"]
+IGNORE = ["error", "error_description",
+          "error_uri", "_claim_names", "_claim_sources"]
 STANDARD_CLAIMS = [c for c in OpenIDSchema.c_param.keys() if c not in IGNORE]
 
 
@@ -24,8 +25,10 @@ def available_claims(endpoint_context):
 
 
 class ClaimsInterface:
-    init_args = {"add_claims_by_scope": False, "enable_claims_per_client": False}
-    claims_release_points = ["userinfo", "introspection", "id_token", "access_token"]
+    init_args = {"add_claims_by_scope": False,
+                 "enable_claims_per_client": False}
+    claims_release_points = ["userinfo",
+                             "introspection", "id_token", "access_token"]
 
     def __init__(self, server_get):
         self.server_get = server_get
@@ -33,14 +36,16 @@ class ClaimsInterface:
     def authorization_request_claims(self,
                                      session_id: str,
                                      claims_release_point: Optional[str] = "") -> dict:
-        _grant = self.server_get("endpoint_context").session_manager.get_grant(session_id)
+        _grant = self.server_get(
+            "endpoint_context").session_manager.get_grant(session_id)
         if _grant.authorization_request and "claims" in _grant.authorization_request:
             return _grant.authorization_request["claims"].get(claims_release_point, {})
 
         return {}
 
     def _get_client_claims(self, client_id, usage):
-        client_info = self.server_get("endpoint_context").cdb.get(client_id, {})
+        client_info = self.server_get(
+            "endpoint_context").cdb.get(client_id, {})
         client_claims = client_info.get("{}_claims".format(usage), {})
         if isinstance(client_claims, list):
             client_claims = {k: None for k in client_claims}
@@ -84,7 +89,8 @@ class ClaimsInterface:
         else:
             return {}
 
-        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
+        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(
+            session_id)
 
         # Can there be per client specification of which claims to use.
         if module.kwargs.get("enable_claims_per_client"):
@@ -97,9 +103,11 @@ class ClaimsInterface:
         # Scopes can in some cases equate to set of claims, is that used here ?
         if module.kwargs.get("add_claims_by_scope"):
             if scopes:
-                _scopes = _context.scopes_handler.filter_scopes(client_id, _context, scopes)
+                _scopes = _context.scopes_handler.filter_scopes(
+                    client_id, _context, scopes)
 
-                _claims = convert_scopes2claims(_scopes, scope2claim_map=_context.scope2claims)
+                _claims = convert_scopes2claims(
+                    _scopes, scope2claim_map=_context.scope2claims)
                 claims.update(_claims)
 
         # Bring in claims specification from the authorization request
@@ -129,7 +137,8 @@ class ClaimsInterface:
         """
         if claims_restriction:
             # Get all possible claims
-            user_info = self.server_get("endpoint_context").userinfo(user_id, client_id=None)
+            user_info = self.server_get(
+                "endpoint_context").userinfo(user_id, client_id=None)
             # Filter out the claims that can be returned
             return {
                 k: user_info.get(k)

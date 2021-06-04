@@ -1,4 +1,3 @@
-import json
 import logging
 from typing import Optional
 from typing import Union
@@ -17,7 +16,6 @@ from cryptojwt.jwt import JWT
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 from oidcmsg.exception import InvalidRequest
-from oidcmsg.exception import VerificationError
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import verified_claim_name
@@ -89,18 +87,21 @@ class Session(Endpoint):
     def __init__(self, server_get, **kwargs):
         _csi = kwargs.get("check_session_iframe")
         if _csi and not _csi.startswith("http"):
-            kwargs["check_session_iframe"] = add_path(server_get("endpoint_context").issuer, _csi)
+            kwargs["check_session_iframe"] = add_path(
+                server_get("endpoint_context").issuer, _csi)
         Endpoint.__init__(self, server_get, **kwargs)
         self.iv = as_bytes(rndstr(24))
 
     def _encrypt_sid(self, sid):
-        encrypter = AES_GCMEncrypter(key=as_bytes(self.server_get("endpoint_context").symkey))
+        encrypter = AES_GCMEncrypter(key=as_bytes(
+            self.server_get("endpoint_context").symkey))
         enc_msg = encrypter.encrypt(as_bytes(sid), iv=self.iv)
         return as_unicode(b64e(enc_msg))
 
     def _decrypt_sid(self, enc_msg):
         _msg = b64d(as_bytes(enc_msg))
-        encrypter = AES_GCMEncrypter(key=as_bytes(self.server_get("endpoint_context").symkey))
+        encrypter = AES_GCMEncrypter(key=as_bytes(
+            self.server_get("endpoint_context").symkey))
         ctx, tag = split_ctx_and_tag(_msg)
         return as_unicode(encrypter.decrypt(as_bytes(ctx), iv=self.iv, tag=as_bytes(tag)))
 
@@ -132,7 +133,8 @@ class Session(Endpoint):
         except KeyError:
             alg = _context.provider_info["id_token_signing_alg_values_supported"][0]
 
-        _jws = JWT(_context.keyjar, iss=_context.issuer, lifetime=86400, sign_alg=alg)
+        _jws = JWT(_context.keyjar, iss=_context.issuer,
+                   lifetime=86400, sign_alg=alg)
         _jws.with_jti = True
         _logout_token = _jws.pack(payload=payload, recv=cinfo["client_id"])
 
@@ -169,7 +171,8 @@ class Session(Endpoint):
                 # Construct an IFrame
                 _sid = _mngr.encrypted_session_id(_user_id, _client_id)
                 _rel_sid.append(_sid)
-                _spec = do_front_channel_logout_iframe(_cdb[_client_id], _iss, _sid)
+                _spec = do_front_channel_logout_iframe(
+                    _cdb[_client_id], _iss, _sid)
                 if _spec:
                     fc_iframes[_client_id] = _spec
 
@@ -190,7 +193,8 @@ class Session(Endpoint):
             else:
                 alg = self.kwargs["signing_alg"]
 
-            sign_keys = self.server_get("endpoint_context").keyjar.get_signing_key(alg2keytype(alg))
+            sign_keys = self.server_get(
+                "endpoint_context").keyjar.get_signing_key(alg2keytype(alg))
             _info = _jwt.verify_compact(keys=sign_keys, sigalg=alg)
             return _info
         else:
@@ -199,7 +203,8 @@ class Session(Endpoint):
     def logout_from_client(self, sid):
         _context = self.server_get("endpoint_context")
         _cdb = _context.cdb
-        _session_information = _context.session_manager.get_session_info(sid, grant=True)
+        _session_information = _context.session_manager.get_session_info(
+            sid, grant=True)
         _client_id = _session_information["client_id"]
 
         res = {}
@@ -209,7 +214,8 @@ class Session(Endpoint):
                 res["blu"] = {_client_id: _spec}
         elif "frontchannel_logout_uri" in _cdb[_client_id]:
             # Construct an IFrame
-            _spec = do_front_channel_logout_iframe(_cdb[_client_id], _context.issuer, sid)
+            _spec = do_front_channel_logout_iframe(
+                _cdb[_client_id], _context.issuer, sid)
             if _spec:
                 res["flu"] = {_client_id: _spec}
 
@@ -231,11 +237,12 @@ class Session(Endpoint):
         :return:
         """
         _context = self.server_get("endpoint_context")
-        _mngr = _context.session_manager
+        _context.session_manager
 
         if "post_logout_redirect_uri" in request:
             if "id_token_hint" not in request:
-                raise InvalidRequest("If post_logout_redirect_uri then id_token_hint is a MUST")
+                raise InvalidRequest(
+                    "If post_logout_redirect_uri then id_token_hint is a MUST")
 
         id_token_hint = request['id_token_hint']
         _context.session_manager.dump()['db'].keys()
@@ -243,9 +250,9 @@ class Session(Endpoint):
         # TODO: a sesman method that gets all the active sessions
         # This section MUST be improved !!!
         sman_db = _context.session_manager.dump()['db']
-        sessions = {i:sman_db[i] for i in sman_db if len(i) > 128}
+        sessions = {i: sman_db[i] for i in sman_db if len(i) > 128}
         client_id = None
-        for k,v in sessions.items():
+        for k, v in sessions.items():
             if v[1]['issued_token'][2]['oidcop.session.token.IDToken']['value'] == id_token_hint:
                 client_id = v[1]['authorization_request']['oidcmsg.oidc.AuthorizationRequest']['client_id']
                 session_id = k
@@ -261,9 +268,11 @@ class Session(Endpoint):
             _uri = request["post_logout_redirect_uri"]
         except KeyError:
             if _context.issuer.endswith("/"):
-                _uri = "{}{}".format(_context.issuer, self.kwargs["post_logout_uri_path"])
+                _uri = "{}{}".format(
+                    _context.issuer, self.kwargs["post_logout_uri_path"])
             else:
-                _uri = "{}/{}".format(_context.issuer, self.kwargs["post_logout_uri_path"])
+                _uri = "{}/{}".format(_context.issuer,
+                                      self.kwargs["post_logout_uri_path"])
             plur = False
         else:
             plur = True
@@ -292,7 +301,8 @@ class Session(Endpoint):
         )
         sjwt = _jws.pack(payload=payload, recv=_context.issuer)
 
-        location = "{}?{}".format(self.kwargs["logout_verify_url"], urlencode({"sjwt": sjwt}))
+        location = "{}?{}".format(
+            self.kwargs["logout_verify_url"], urlencode({"sjwt": sjwt}))
         return {"redirect_location": location}
 
     def parse_request(self, request, http_info=None, **kwargs):
@@ -309,7 +319,8 @@ class Session(Endpoint):
 
         # Verify that the client is allowed to do this
         try:
-            auth_info = self.client_authentication(request, http_info, **kwargs)
+            auth_info = self.client_authentication(
+                request, http_info, **kwargs)
         except UnknownOrNoAuthnMethod:
             pass
         else:

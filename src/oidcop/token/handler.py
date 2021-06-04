@@ -183,9 +183,11 @@ def factory(
         for kid, cnf in [("code", code), ("refresh", refresh), ("token", token)]:
             if cnf is not None:
                 if default_token(cnf):
-                    key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": kid})
+                    key_defs.append(
+                        {"type": "oct", "bytes": 24, "use": ["enc"], "kid": kid})
 
-    kj = init_key_jar(key_defs=key_defs, private_path=jwks_file, read_only=read_only)
+    kj = init_key_jar(key_defs=key_defs,
+                      private_path=jwks_file, read_only=read_only)
 
     args = {}
     for cls, cnf, attr in [
@@ -196,9 +198,11 @@ def factory(
         if cnf is not None:
             if default_token(cnf):
                 _add_passwd(kj, cnf, cls)
-            args[attr] = init_token_handler(server_get, cnf, token_class_map[cls])
+            args[attr] = init_token_handler(
+                server_get, cnf, token_class_map[cls])
 
     if id_token is not None:
-        args["id_token"] = init_token_handler(server_get, id_token, token_class="")
+        args["id_token"] = init_token_handler(
+            server_get, id_token, token_class="")
 
     return TokenHandler(**args)

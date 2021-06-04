@@ -1,4 +1,3 @@
-import json
 import logging
 from typing import Any
 from typing import Optional
@@ -55,7 +54,8 @@ def init_service(conf, server_get=None):
         try:
             return importer(conf["class"])(**kwargs)
         except TypeError as err:
-            logger.error("Could not init service class: {}".format(conf["class"]), err)
+            logger.error("Could not init service class: {}".format(
+                conf["class"]), err)
             raise
 
     return conf["class"](**kwargs)
@@ -119,7 +119,8 @@ class EndpointContext(OidcContext):
         cwd: Optional[str] = "",
         httpc: Optional[Any] = None,
     ):
-        OidcContext.__init__(self, conf, keyjar, entity_id=conf.get("issuer", ""))
+        OidcContext.__init__(self, conf, keyjar,
+                             entity_id=conf.get("issuer", ""))
         self.conf = conf
 
         # For my Dev environment
@@ -177,7 +178,8 @@ class EndpointContext(OidcContext):
             if _loader is None:
                 _template_dir = conf.get("template_dir")
                 if _template_dir:
-                    _loader = Environment(loader=FileSystemLoader(_template_dir), autoescape=True)
+                    _loader = Environment(loader=FileSystemLoader(
+                        _template_dir), autoescape=True)
 
             if _loader:
                 self.template_handler = Jinja2TemplateHandler(_loader)
@@ -253,7 +255,8 @@ class EndpointContext(OidcContext):
                 self.userinfo = init_user_info(_conf, self.cwd)
                 self.session_manager.userinfo = self.userinfo
             else:
-                logger.warning("Cannot init_user_info if no session manager was provided.")
+                logger.warning(
+                    "Cannot init_user_info if no session manager was provided.")
 
     def do_sub_func(self) -> None:
         """
@@ -294,7 +297,8 @@ class EndpointContext(OidcContext):
             _provider_info["jwks_uri"] = self.jwks_uri
 
         if "scopes_supported" not in _provider_info:
-            _provider_info["scopes_supported"] = [s for s in self.scope2claims.keys()]
+            _provider_info["scopes_supported"] = [
+                s for s in self.scope2claims.keys()]
         if "claims_supported" not in _provider_info:
             _provider_info["claims_supported"] = STANDARD_CLAIMS[:]
 

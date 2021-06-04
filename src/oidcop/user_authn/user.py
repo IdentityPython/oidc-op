@@ -1,13 +1,10 @@
 # coding=utf-8
 import base64
 import inspect
-import json
 import logging
-import os
 import sys
 import time
 import warnings
-from typing import List
 from urllib.parse import unquote
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -83,6 +80,7 @@ class UserAuthnMethod(object):
         else:
             return False
 
+
 def create_signed_jwt(issuer, keyjar, sign_alg="RS256", **kwargs):
     signer = JWT(keyjar, iss=issuer, sign_alg=sign_alg)
     return signer.pack(payload=kwargs)
@@ -93,7 +91,8 @@ def verify_signed_jwt(token, keyjar, allowed_sign_algs=None):
     return verifier.unpack(token)
 
 
-LABELS = {"tos_uri": "Terms of Service", "policy_uri": "Service policy", "logo_uri": ""}
+LABELS = {"tos_uri": "Terms of Service",
+          "policy_uri": "Service policy", "logo_uri": ""}
 
 
 class UserPassJinja2(UserAuthnMethod):
@@ -138,7 +137,8 @@ class UserPassJinja2(UserAuthnMethod):
             OnlyForTestingWarning,
         )
         if not self.server_get:
-            raise Exception(f"{self.__class__.__name__} doesn't have a working server_get")
+            raise Exception(
+                f"{self.__class__.__name__} doesn't have a working server_get")
         _context = self.server_get("endpoint_context")
         # Stores information need afterwards in a signed JWT that then
         # appears as a hidden input in the form

@@ -1,6 +1,5 @@
 import logging
 from typing import Callable
-from typing import List
 from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
@@ -118,8 +117,10 @@ class Endpoint(object):
         elif self.default_capabilities:
             _methods = self.default_capabilities.get("client_authn_method")
             if _methods:
-                self.client_authn_method = client_auth_setup(_methods, server_get)
-        self.endpoint_info = construct_endpoint_info(self.default_capabilities, **kwargs)
+                self.client_authn_method = client_auth_setup(
+                    _methods, server_get)
+        self.endpoint_info = construct_endpoint_info(
+            self.default_capabilities, **kwargs)
 
         # This is for matching against aud in JWTs
         # By default the endpoint's endpoint URL is an allowed target
@@ -169,7 +170,8 @@ class Endpoint(object):
 
         # Verify that the client is allowed to do this
         _client_id = ""
-        auth_info = self.client_authentication(req, http_info, endpoint=self, **kwargs)
+        auth_info = self.client_authentication(
+            req, http_info, endpoint=self, **kwargs)
 
         if "client_id" in auth_info:
             req["client_id"] = auth_info["client_id"]
@@ -233,7 +235,8 @@ class Endpoint(object):
         for meth in self.post_parse_request:
             if isinstance(request, self.error_cls):
                 break
-            request = meth(request, client_id, endpoint_context=_context, **kwargs)
+            request = meth(request, client_id,
+                           endpoint_context=_context, **kwargs)
         return request
 
     def do_pre_construct(
@@ -241,7 +244,8 @@ class Endpoint(object):
     ) -> dict:
         _context = self.server_get("endpoint_context")
         for meth in self.pre_construct:
-            response_args = meth(response_args, request, endpoint_context=_context, **kwargs)
+            response_args = meth(response_args, request,
+                                 endpoint_context=_context, **kwargs)
 
         return response_args
 
@@ -253,7 +257,8 @@ class Endpoint(object):
     ) -> dict:
         _context = self.server_get("endpoint_context")
         for meth in self.post_construct:
-            response_args = meth(response_args, request, endpoint_context=_context, **kwargs)
+            response_args = meth(response_args, request,
+                                 endpoint_context=_context, **kwargs)
 
         return response_args
 
@@ -373,12 +378,14 @@ class Endpoint(object):
                         resp = _response.request(kwargs["return_uri"])
                 else:
                     raise ValueError(
-                        "Don't know where that is: '{}".format(self.response_placement)
+                        "Don't know where that is: '{}".format(
+                            self.response_placement)
                     )
 
         if content_type:
             try:
-                http_headers = set_content_type(kwargs["http_headers"], content_type)
+                http_headers = set_content_type(
+                    kwargs["http_headers"], content_type)
             except KeyError:
                 http_headers = [("Content-type", content_type)]
         else:

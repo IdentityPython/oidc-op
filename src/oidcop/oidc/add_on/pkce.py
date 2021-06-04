@@ -88,7 +88,8 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
     :return:
     """
     if isinstance(
-        request, (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest),
+        request, (AuthorizationErrorResponse,
+                  RefreshAccessTokenRequest, TokenExchangeRequest),
     ):
         return request
 
@@ -120,7 +121,8 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
 def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
     authn_endpoint = endpoint.get("authorization")
     if authn_endpoint is None:
-        LOGGER.warning("No authorization endpoint found, skipping PKCE configuration")
+        LOGGER.warning(
+            "No authorization endpoint found, skipping PKCE configuration")
         return
 
     token_endpoint = endpoint.get("token")
@@ -134,7 +136,8 @@ def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
     if "essential" not in kwargs:
         kwargs["essential"] = False
 
-    code_challenge_methods = kwargs.get("code_challenge_methods", CC_METHOD.keys())
+    code_challenge_methods = kwargs.get(
+        "code_challenge_methods", CC_METHOD.keys())
 
     kwargs["code_challenge_methods"] = {}
     for method in code_challenge_methods:

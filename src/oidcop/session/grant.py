@@ -217,8 +217,10 @@ class Grant(Item):
         _claims_restriction = endpoint_context.claims_interface.get_claims(
             session_id, scopes=scope, claims_release_point=claims_release_point
         )
-        user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
-        user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
+        user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(
+            session_id)
+        user_info = endpoint_context.claims_interface.get_user_claims(
+            user_id, _claims_restriction)
         payload.update(user_info)
 
         return payload
@@ -252,7 +254,8 @@ class Grant(Item):
 
         if based_on:
             if based_on.supports_minting(token_class) is False:
-                raise MintingNotAllowed(f"Minting of {token_class} not supported")
+                raise MintingNotAllowed(
+                    f"Minting of {token_class} not supported")
             if not based_on.is_active():
                 raise MintingNotAllowed("Token inactive")
             _base_on_ref = based_on.value
@@ -264,8 +267,10 @@ class Grant(Item):
 
         _class = self.token_map.get(token_class)
         if token_class == "id_token":
-            class_args = {k: v for k, v in kwargs.items() if k not in ["code", "access_token"]}
-            handler_args = {k: v for k, v in kwargs.items() if k in ["code", "access_token"]}
+            class_args = {k: v for k, v in kwargs.items() if k not in [
+                "code", "access_token"]}
+            handler_args = {k: v for k, v in kwargs.items() if k in [
+                "code", "access_token"]}
         else:
             class_args = kwargs
             handler_args = {}
@@ -288,7 +293,8 @@ class Grant(Item):
                 **class_args,
             )
             if token_handler is None:
-                token_handler = endpoint_context.session_manager.token_handler.handler[token_class]
+                token_handler = endpoint_context.session_manager.token_handler.handler[
+                    token_class]
 
             # Only access_token and id_token can give rise to claims release
             if token_class in ["access_token", "id_token"]:
@@ -319,11 +325,11 @@ class Grant(Item):
         return None
 
     def revoke_token(
-            self,
-            value: Optional[str] = "",
-            based_on: Optional[str] = "",
-            recursive: bool = True
-        ):
+        self,
+        value: Optional[str] = "",
+        based_on: Optional[str] = "",
+        recursive: bool = True
+    ):
         for t in self.issued_token:
             if not value and not based_on:
                 t.revoked = True
