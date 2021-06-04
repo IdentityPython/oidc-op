@@ -55,47 +55,10 @@ class TestUserAuthn(object):
                 },
                 "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"}, },
             },
-            "template_dir": "templates",
-            "cookie_handler": {
-                "class": "oidcop.cookie_handler.CookieHandler",
-                "kwargs": {
-                    "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                    "name": {
-                        "session": "oidc_op",
-                        "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman",
-                    },
-                },
-            },
+            "template_dir": "templates"
         }
         self.server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.endpoint_context = self.server.endpoint_context
-
-    def test_authenticated_as_without_cookie(self):
-        authn_item = self.endpoint_context.authn_broker.pick(INTERNETPROTOCOLPASSWORD)
-        method = authn_item[0]["method"]
-
-        _info, _time_stamp = method.authenticated_as(None)
-        assert _info is None
-
-    def test_authenticated_as_with_cookie(self):
-        authn_item = self.endpoint_context.authn_broker.pick(INTERNETPROTOCOLPASSWORD)
-        method = authn_item[0]["method"]
-
-        authn_req = {"state": "state_identifier", "client_id": "client 12345"}
-        _cookie = self.endpoint_context.new_cookie(
-            name=self.endpoint_context.cookie_handler.name["session"],
-            sub="diana",
-            sid=self.endpoint_context.session_manager.encrypted_session_id(
-                "diana", "client 12345", "abcdefgh"
-            ),
-            state=authn_req["state"],
-            client_id=authn_req["client_id"],
-        )
-
-        _info, _time_stamp = method.authenticated_as("client 12345", [_cookie])
-        assert set(_info.keys()) == {"sub", "sid", "state", "client_id"}
-        assert _info["sub"] == "diana"
 
     def test_userpassjinja2(self):
         db = {

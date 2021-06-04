@@ -15,7 +15,6 @@ from oidcop import JWT_BEARER
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.client_authn import verify_client
-from oidcop.cookie_handler import CookieHandler
 from oidcop.exception import UnAuthorizedClient
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
@@ -33,11 +32,6 @@ KEYDEFS = [
 ]
 
 CLIENT_KEYJAR = build_keyjar(KEYDEFS)
-
-COOKIE_KEYDEFS = [
-    {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]},
-]
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -116,10 +110,6 @@ def conf():
                 "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
             },
             "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
-        },
-        "cookie_handler": {
-            "class": CookieHandler,
-            "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
         },
         "endpoint": {
             "provider_config": {
@@ -278,7 +268,7 @@ class TestEndpoint(object):
         _resp = self.token_endpoint.process_request(request=_req)
 
         assert _resp
-        assert set(_resp.keys()) == {"cookie", "http_headers", "response_args"}
+        assert set(_resp.keys()) == {"http_headers", "response_args"}
 
     def test_process_request_using_code_twice(self):
         session_id = self._create_session(AUTH_REQ)
@@ -361,7 +351,7 @@ class TestEndpoint(object):
 
         _req = self.token_endpoint.parse_request(_request.to_json())
         _resp = self.token_endpoint.process_request(request=_req)
-        assert set(_resp.keys()) == {"cookie", "response_args", "http_headers"}
+        assert set(_resp.keys()) == {"response_args", "http_headers"}
         assert set(_resp["response_args"].keys()) == {
             "access_token",
             "token_type",
@@ -408,7 +398,7 @@ class TestEndpoint(object):
         _2nd_req = self.token_endpoint.parse_request(_request.to_json())
         _2nd_resp = self.token_endpoint.process_request(request=_req)
 
-        assert set(_2nd_resp.keys()) == {"cookie", "response_args", "http_headers"}
+        assert set(_2nd_resp.keys()) == {"response_args", "http_headers"}
         assert set(_2nd_resp["response_args"].keys()) == {
             "access_token",
             "token_type",

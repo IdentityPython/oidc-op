@@ -6,7 +6,6 @@ from cryptojwt.jwk.hmac import SYMKey
 from oidcmsg.time_util import time_sans_frac
 
 from oidcop.authn_event import AuthnEvent
-from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.token import Token
@@ -142,16 +141,7 @@ class TestAuthnBrokerEC:
             "template_dir": "template",
             "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
         }
-        cookie_conf = {
-            "sign_key": SYMKey(k="ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch"),
-            "name": {
-                "session": "oidc_op",
-                "register": "oidc_op_reg",
-                "session_management": "oidc_op_sman",
-            },
-        }
-        cookie_handler = CookieHandler(**cookie_conf)
-        server = Server(conf, cookie_handler=cookie_handler)
+        server = Server(conf)
         endpoint_context = server.endpoint_context
         endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",

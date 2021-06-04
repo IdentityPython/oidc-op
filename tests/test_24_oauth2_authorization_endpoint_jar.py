@@ -1,7 +1,6 @@
 import io
 import json
 import os
-from http.cookies import SimpleCookie
 
 from oidcop.configure import ASConfiguration
 import pytest
@@ -14,7 +13,6 @@ from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oauth2 import JWTSecuredAuthorizationRequest
 from oidcmsg.time_util import in_a_while
 
-from oidcop.cookie_handler import CookieHandler
 from oidcop.oauth2.authorization import Authorization
 from oidcop.server import Server
 from oidcop.user_info import UserInfo
@@ -55,55 +53,15 @@ def full_path(local_file):
 USERINFO_db = json.loads(open(full_path("users.json")).read())
 
 
-class SimpleCookieDealer(object):
-    def __init__(self, name=""):
-        self.name = name
-
-    def create_cookie(self, value, typ, **kwargs):
-        cookie = SimpleCookie()
-        timestamp = str(utc_time_sans_frac())
-
-        _payload = "::".join([value, timestamp, typ])
-
-        bytes_load = _payload.encode("utf-8")
-        bytes_timestamp = timestamp.encode("utf-8")
-
-        cookie_payload = [bytes_load, bytes_timestamp]
-        cookie[self.name] = (b"|".join(cookie_payload)).decode("utf-8")
-        try:
-            ttl = kwargs["ttl"]
-        except KeyError:
-            pass
-        else:
-            cookie[self.name]["expires"] = in_a_while(seconds=ttl)
-
-        return cookie
-
-    @staticmethod
-    def get_cookie_value(cookie=None, name=None):
-        if cookie is None or name is None:
-            return None
-        else:
-            try:
-                info, timestamp = cookie[name].split("|")
-            except (TypeError, AssertionError):
-                return None
-            else:
-                value = info.split("::")
-                if timestamp == value[1]:
-                    return value
-        return None
-
-
 client_yaml = """
 clients:
   client_1:
     "client_secret": 'hemligtkodord'
-    "redirect_uris": 
+    "redirect_uris":
         - ['https://example.com/cb', '']
     "client_salt": "salted"
     'token_endpoint_auth_method': 'client_secret_post'
-    'response_types': 
+    'response_types':
         - 'code'
         - 'token'
   client2:
@@ -148,17 +106,6 @@ class TestEndpoint(object):
             },
             "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_db}},
             "template_dir": "template",
-            "cookie_handler": {
-                "class": CookieHandler,
-                "kwargs": {
-                    "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                    "name": {
-                        "session": "oidc_op",
-                        "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman",
-                    },
-                },
-            },
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         endpoint_context = server.endpoint_context

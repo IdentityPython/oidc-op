@@ -208,27 +208,6 @@ op:
         #class: oidcop.user_authn.user.NoAuthn
         #kwargs:
           #user: diana
-    cookie_handler:
-      class: oidcop.cookie_handler.CookieHandler
-      kwargs":
-        keys:
-          private_path: "private/cookie_jwks.json"
-          key_defs:
-              -
-                type: OCT
-                kid: enc
-                use:
-                  - enc
-              -
-                type: OCT
-                kid: sig
-                use:
-                  - sig
-          read_only: false
-        name:
-          session: "oidc_op"
-          register: "oidc_op_rp"
-          session_management: "sman"
     login_hint2acrs:
       class: oidcop.login_hint.LoginHint2Acrs
       kwargs:

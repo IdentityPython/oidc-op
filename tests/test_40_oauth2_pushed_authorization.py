@@ -10,7 +10,6 @@ from cryptojwt.key_jar import init_key_jar
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AuthorizationRequest
 
-from oidcop.cookie_handler import CookieHandler
 from oidcop.oauth2.authorization import Authorization
 from oidcop.oauth2.pushed_authorization import PushedAuthorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -49,11 +48,11 @@ client_yaml = """
 oidc_clients:
   s6BhdRkqt3:
     "client_secret": 7Fjfp0ZBr1KtDRbnfVdmIw
-    "redirect_uris": 
+    "redirect_uris":
         - ['https://client.example.org/cb', '']
     "client_salt": "salted"
     'token_endpoint_auth_method': 'client_secret_post'
-    'response_types': 
+    'response_types':
         - 'code'
         - 'token'
         - 'code id_token'
@@ -142,18 +141,7 @@ class TestEndpoint(object):
                     "kwargs": {"user": "diana"},
                 }
             },
-            "template_dir": "template",
-            "cookie_handler": {
-                "class": CookieHandler,
-                "kwargs": {
-                    "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                    "name": {
-                        "session": "oidc_op",
-                        "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman",
-                    },
-                },
-            },
+            "template_dir": "template"
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         endpoint_context = server.endpoint_context

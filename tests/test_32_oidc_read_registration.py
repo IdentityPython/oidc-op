@@ -6,7 +6,6 @@ from oidcop.configure import OPConfiguration
 import pytest
 from oidcmsg.oidc import RegistrationRequest
 
-from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.read_registration import RegistrationRead
 from oidcop.oidc.registration import Registration
@@ -19,11 +18,6 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
-]
-
-COOKIE_KEY_DEFS = [
-    {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]},
 ]
 
 RESPONSE_TYPES_SUPPORTED = [
@@ -86,10 +80,6 @@ class TestEndpoint(object):
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
             "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
-            "cookie_handler": {
-                "class": CookieHandler,
-                "kwargs": {"keys": {"key_defs": COOKIE_KEY_DEFS}},
-            },
             "endpoint": {
                 "registration": {
                     "path": "registration",

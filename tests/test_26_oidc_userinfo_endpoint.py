@@ -10,7 +10,6 @@ from oidcmsg.time_util import time_sans_frac
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
-from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -23,11 +22,6 @@ from oidcop.user_info import UserInfo
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
-]
-
-COOKIE_KEYDEFS = [
-    {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]},
 ]
 
 RESPONSE_TYPES_SUPPORTED = [
@@ -87,17 +81,6 @@ class TestEndpoint(object):
             "password": "mycket hemligt",
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
-            "cookie_handler": {
-                "class": CookieHandler,
-                "kwargs": {
-                    "keys": {"key_defs": COOKIE_KEYDEFS},
-                    "name": {
-                        "session": "oidc_op",
-                        "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman",
-                    },
-                },
-            },
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "endpoint": {
                 "provider_config": {

@@ -89,11 +89,11 @@ oidc_clients:
   client_1:
     client_secret: hemligtkodord,
     client_id: client_1,
-    "redirect_uris": 
+    "redirect_uris":
         - ['https://example.com/cb', '']
     "client_salt": "salted"
     'token_endpoint_auth_method': 'client_secret_post'
-    'response_types': 
+    'response_types':
         - 'code'
         - 'token'
         - 'code id_token'
@@ -146,18 +146,7 @@ class TestUserAuthn(object):
             "authentication": {
                 "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"},},
             },
-            "cookie_handler": {
-                "class": "oidcop.cookie_handler.CookieHandler",
-                "kwargs": {
-                    "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
-                    "name": {
-                        "session": "oidc_op",
-                        "register": "oidc_op_reg",
-                        "session_management": "oidc_op_sman",
-                    },
-                },
-            },
-            "template_dir": "template",
+            "template_dir": "template"
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
@@ -172,87 +161,3 @@ class TestUserAuthn(object):
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
         endpoint_context.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-
-    def test_sso(self):
-        request = self.endpoint.parse_request(AUTH_REQ_DICT)
-        redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
-        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=None)
-        # info = self.endpoint.process_request(request)
-
-        assert "user" in info
-
-        res = self.endpoint.authz_part2(request, info["session_id"], cookie="")
-        assert res
-        cookies_1 = res["cookie"]
-
-        # second login - from 2nd client
-        request = self.endpoint.parse_request(AUTH_REQ_2.to_dict())
-        redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
-        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=None)
-        sid2 = info["session_id"]
-
-        assert set(info.keys()) == {"session_id", "identity", "user"}
-        assert info["user"] == "diana"
-
-        res = self.endpoint.authz_part2(request, info["session_id"], cookie="")
-        cookies_2 = res["cookie"]
-
-        # third login - from 3rd client
-        request = self.endpoint.parse_request(AUTH_REQ_3.to_dict())
-        redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
-        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=None)
-
-        assert set(info.keys()) == {"session_id", "identity", "user"}
-        assert info["user"] == "diana"
-
-        res = self.endpoint.authz_part2(request, info["session_id"], cookie="")
-        cookies_3 = res["cookie"]
-
-        # fourth login - from 1st client
-        request = self.endpoint.parse_request(AUTH_REQ_4.to_dict())
-        redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
-        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=cookies_1)
-
-        assert set(info.keys()) == {"session_id", "identity", "user"}
-        assert info["user"] == "diana"
-
-        self.endpoint.authz_part2(request, info["session_id"], cookie="")
-
-        # Fifth login - from 2nd client - wrong cookie
-        request = self.endpoint.parse_request(AUTH_REQ_2.to_dict())
-        redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
-        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=cookies_1)
-        # No valid login cookie so new session
-        assert info["session_id"] != sid2
-
-        user_session_info = self.endpoint.server_get("endpoint_context").session_manager.get(
-            ["diana"]
-        )
-        assert len(user_session_info.subordinate) == 3
-        assert set(user_session_info.subordinate) == {
-            "client_1",
-            "client_2",
-            "client_3",
-        }
-
-        # Should be one grant for each of client_2 and client_3 and
-        # 2 grants for client_1
-
-        csi1 = self.endpoint.server_get("endpoint_context").session_manager.get(
-            ["diana", "client_1"]
-        )
-        csi2 = self.endpoint.server_get("endpoint_context").session_manager.get(
-            ["diana", "client_2"]
-        )
-        csi3 = self.endpoint.server_get("endpoint_context").session_manager.get(
-            ["diana", "client_3"]
-        )
-
-        assert len(csi1.subordinate) == 2
-        assert len(csi2.subordinate) == 1
-        assert len(csi3.subordinate) == 1

@@ -9,7 +9,6 @@ from cryptojwt.key_jar import init_key_jar
 from oidcmsg.oidc import RegistrationRequest
 from oidcmsg.oidc import RegistrationResponse
 
-from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.registration import match_sp_sep
@@ -27,11 +26,6 @@ KEYDEFS = [
 
 KEYJAR = init_key_jar(key_defs=KEYDEFS)
 JWKS = KEYJAR.export_jwks_as_json()
-
-COOKIE_KEYDEFS = [
-    {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]},
-]
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -115,10 +109,6 @@ class TestEndpoint(object):
                         }
                     },
                 },
-            },
-            "cookie_handler": {
-                "class": CookieHandler,
-                "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
             },
             "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
             "endpoint": {

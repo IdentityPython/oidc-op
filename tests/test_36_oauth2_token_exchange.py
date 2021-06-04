@@ -11,7 +11,6 @@ from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.client_authn import verify_client
 from oidcop.configure import ASConfiguration
-from oidcop.cookie_handler import CookieHandler
 from oidcop.oauth2.authorization import Authorization
 from oidcop.oauth2.token import Token
 from oidcop.server import Server
@@ -25,11 +24,6 @@ KEYDEFS = [
 ]
 
 CLIENT_KEYJAR = build_keyjar(KEYDEFS)
-
-COOKIE_KEYDEFS = [
-    {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]},
-]
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -88,10 +82,6 @@ class TestEndpoint(object):
             "password": "mycket hemligt",
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
-            "cookie_handler": {
-                "class": CookieHandler,
-                "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
-            },
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "endpoint": {
                 "authorization": {

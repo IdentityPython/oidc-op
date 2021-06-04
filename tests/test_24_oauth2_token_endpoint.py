@@ -246,7 +246,7 @@ class TestEndpoint(object):
         _resp = self.token_endpoint.process_request(request=_req)
 
         assert _resp
-        assert set(_resp.keys()) == {"cookie", "http_headers", "response_args"}
+        assert set(_resp.keys()) == {"http_headers", "response_args"}
 
     def test_process_request_using_code_twice(self):
         session_id = self._create_session(AUTH_REQ)
@@ -325,7 +325,7 @@ class TestEndpoint(object):
 
         _req = self.token_endpoint.parse_request(_request.to_json())
         _resp = self.token_endpoint.process_request(request=_req)
-        assert set(_resp.keys()) == {"cookie", "response_args", "http_headers"}
+        assert set(_resp.keys()) == {"response_args", "http_headers"}
         assert set(_resp["response_args"].keys()) == {
             "access_token",
             "token_type",
@@ -371,7 +371,7 @@ class TestEndpoint(object):
         _2nd_req = self.token_endpoint.parse_request(_request.to_json())
         _2nd_resp = self.token_endpoint.process_request(request=_req)
 
-        assert set(_2nd_resp.keys()) == {"cookie", "response_args", "http_headers"}
+        assert set(_2nd_resp.keys()) == {"response_args", "http_headers"}
         assert set(_2nd_resp["response_args"].keys()) == {
             "access_token",
             "token_type",
