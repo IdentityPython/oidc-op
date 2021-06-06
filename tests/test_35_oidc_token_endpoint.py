@@ -223,8 +223,8 @@ class TestEndpoint(object):
         _code = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="authorization_code",
-            token_handler=self.session_manager.token_handler["code"],
+            token_class="authorization_code",
+            token_handler=self.session_manager.token_handler["authorization_code"],
             usage_rules=usage_rules,
         )
 
@@ -243,7 +243,7 @@ class TestEndpoint(object):
         _token = grant.mint_token(
             _session_info,
             endpoint_context=self.endpoint_context,
-            token_type="access_token",
+            token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             based_on=token_ref,  # Means the token (tok) was used to mint this token
             usage_rules=usage_rules,

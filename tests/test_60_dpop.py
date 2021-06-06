@@ -218,8 +218,8 @@ class TestEndpoint(object):
         _code = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="authorization_code",
-            token_handler=self.session_manager.token_handler["code"],
+            token_class="authorization_code",
+            token_handler=self.session_manager.token_handler["authorization_code"],
             usage_rules=usage_rules,
         )
 
@@ -264,3 +264,8 @@ class TestEndpoint(object):
         _payload = jws.jwt.payload()
         assert "cnf" in _payload
         assert _payload["cnf"]["jkt"] == _req["dpop_jkt"]
+
+        # Make sure DPoP also is in the session access token instance.
+        _session_info = self.session_manager.get_session_info_by_token(access_token)
+        _token = self.session_manager.find_token(_session_info["session_id"], access_token)
+        assert _token.token_type == "DPoP"

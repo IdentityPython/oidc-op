@@ -32,6 +32,7 @@ def full_path(local_file):
 
 USERS = json.loads(open(full_path("users.json")).read())
 USERINFO = UserInfo(USERS)
+LIFETIME = 200
 
 AREQ = AuthorizationRequest(
     response_type="code",
@@ -91,7 +92,8 @@ conf = {
                 "base_claims": {
                     "email": {"essential": True},
                     "email_verified": {"essential": True},
-                }
+                },
+                "lifetime": LIFETIME,
             },
         },
     },
@@ -186,8 +188,8 @@ class TestEndpoint(object):
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="authorization_code",
-            token_handler=self.session_manager.token_handler["code"],
+            token_class="authorization_code",
+            token_handler=self.session_manager.token_handler["authorization_code"],
             expires_at=time_sans_frac() + 300,  # 5 minutes from now
         )
 
@@ -195,7 +197,7 @@ class TestEndpoint(object):
         access_token = grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="access_token",
+            token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=time_sans_frac() + 900,  # 15 minutes from now
             based_on=token_ref,  # Means the token (tok) was used to mint this token
@@ -206,7 +208,7 @@ class TestEndpoint(object):
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint_context,
-            token_type="id_token",
+            token_class="id_token",
             token_handler=self.session_manager.token_handler["id_token"],
             expires_at=time_sans_frac() + 900,  # 15 minutes from now
             based_on=token_ref,  # Means the token (tok) was used to mint this token
@@ -397,6 +399,37 @@ class TestEndpoint(object):
         res = _jwt.unpack(id_token.value)
         assert "nickname" in res
 
+    def test_lifetime_default(self):
+        session_id = self._create_session(AREQ)
+        grant = self.session_manager[session_id]
+
+        id_token = self._mint_id_token(grant, session_id)
+
+        client_keyjar = KeyJar()
+        _jwks = self.endpoint_context.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwt = JWT(key_jar=client_keyjar, iss="client_1")
+        res = _jwt.unpack(id_token.value)
+
+        assert res["exp"] - res["iat"] == LIFETIME
+
+    def test_lifetime(self):
+        lifetime = 100
+
+        self.session_manager.token_handler["id_token"].lifetime = lifetime
+        session_id = self._create_session(AREQ)
+        grant = self.session_manager[session_id]
+
+        id_token = self._mint_id_token(grant, session_id)
+
+        client_keyjar = KeyJar()
+        _jwks = self.endpoint_context.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwt = JWT(key_jar=client_keyjar, iss="client_1")
+        res = _jwt.unpack(id_token.value)
+
+        assert res["exp"] - res["iat"] == lifetime
+
     def test_no_available_claims(self):
         session_id = self._create_session(AREQ)
         grant = self.session_manager[session_id]
@@ -419,7 +452,7 @@ class TestEndpoint(object):
         self.endpoint_context.cdb["client_1"]["id_token_claims"] = {"address": None}
 
         _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=AREQ["scope"], usage="id_token"
+            session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
 
@@ -438,7 +471,7 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
 
         _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=AREQ["scope"], usage="id_token"
+            session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
 
@@ -461,7 +494,7 @@ class TestEndpoint(object):
         self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
 
         _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=AREQS["scope"], usage="id_token"
+            session_id=session_id, scopes=AREQS["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
 
@@ -483,7 +516,7 @@ class TestEndpoint(object):
         self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
 
         _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=AREQRC["scope"], usage="id_token"
+            session_id=session_id, scopes=AREQRC["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
 
@@ -510,7 +543,7 @@ class TestEndpoint(object):
         self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
 
         _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=_req["scope"], usage="id_token"
+            session_id=session_id, scopes=_req["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
 
@@ -538,7 +571,6 @@ class TestEndpoint(object):
 
         endpoint_context = self.endpoint_context
         sman = endpoint_context.session_manager
-        server_get = sman.token_handler.handler["id_token"].server_get
         _info = self.session_manager.token_handler.info(id_token.value)
         assert "sid" in _info
         assert "exp" in _info

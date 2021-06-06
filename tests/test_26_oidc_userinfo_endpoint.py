@@ -189,18 +189,18 @@ class TestEndpoint(object):
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint.server_get("endpoint_context"),
-            token_type="authorization_code",
-            token_handler=self.session_manager.token_handler["code"],
+            token_class="authorization_code",
+            token_handler=self.session_manager.token_handler["authorization_code"],
             expires_at=time_sans_frac() + 300,  # 5 minutes from now
         )
 
-    def _mint_token(self, token_type, grant, session_id, token_ref=None):
+    def _mint_token(self, token_class, grant, session_id, token_ref=None):
         _session_info = self.session_manager.get_session_info(session_id, grant=True)
         return grant.mint_token(
             session_id=session_id,
             endpoint_context=self.endpoint.server_get("endpoint_context"),
-            token_type=token_type,
-            token_handler=self.session_manager.token_handler[token_type],
+            token_class=token_class,
+            token_handler=self.session_manager.token_handler[token_class],
             expires_at=time_sans_frac() + 900,  # 15 minutes from now
             based_on=token_ref,  # Means the token (tok) was used to mint this token
         )
@@ -324,7 +324,7 @@ class TestEndpoint(object):
         self.endpoint.server_get("endpoint_context").claims_interface.add_claims_by_scope = True
         grant.claims = {
             "userinfo": self.endpoint.server_get("endpoint_context").claims_interface.get_claims(
-                session_id=session_id, scopes=_auth_req["scope"], usage="userinfo"
+                session_id=session_id, scopes=_auth_req["scope"], claims_release_point="userinfo"
             )
         }
 

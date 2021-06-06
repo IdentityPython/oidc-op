@@ -6,7 +6,6 @@ from typing import Union
 
 import requests
 from cryptojwt import KeyJar
-from cryptojwt.utils import as_bytes
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from oidcmsg.context import OidcContext
@@ -111,7 +110,6 @@ class EndpointContext(OidcContext):
         "provider_info": {},
         "registration_access_token": {},
         "scope2claims": {},
-        "seed": "",
         # "session_db": {},
         "session_manager": SessionManager,
         "sso_ttl": None,
@@ -138,12 +136,6 @@ class EndpointContext(OidcContext):
         # self.session_db = {}
 
         self.cwd = cwd
-
-        # Those that use seed wants bytes but I can only store str.
-        try:
-            self.seed = as_bytes(conf["seed"])
-        except KeyError:
-            self.seed = as_bytes(rndstr(32))
 
         # Default values, to be changed below depending on configuration
         # arguments for endpoints add-ons
@@ -292,8 +284,9 @@ class EndpointContext(OidcContext):
 
         :return: string
         """
-        _conf = self.conf.get("sub_func", {})
-        for key, args in _conf.items():
+        ses_par = self.conf.get("session_params") or {}
+        sub_func = ses_par.get("sub_func") or {}
+        for key, args in sub_func.items():
             if "class" in args:
                 self._sub_func[key] = init_service(args)
             elif "function" in args:

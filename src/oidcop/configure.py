@@ -67,7 +67,6 @@ OP_DEFAULT_CONFIG = {
     },
     "httpc_params": {"verify": False},
     "issuer": "https://{domain}:{port}",
-    # "session_key": {"filename": "private/session_jwk.json", "type": "OCT", "use": "sig", },
     "template_dir": "templates",
     "token_handler_args": {
         "jwks_file": "private/token_jwks.json",
@@ -277,7 +276,6 @@ class OPConfiguration(EntityConfiguration):
         "login_hint_lookup": None,
         "sub_func": {}
     })
-
 
 class ASConfiguration(EntityConfiguration):
     "Authorization server configuration"
@@ -524,7 +522,6 @@ DEFAULT_EXTENDED_CONF = {
                 "email": ["urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"]}
         },
     },
-    "session_key": {"filename": "private/session_jwk.json", "type": "OCT", "use": "sig", },
     "template_dir": "templates",
     "token_handler_args": {
         "jwks_def": {

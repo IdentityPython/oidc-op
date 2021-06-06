@@ -8,37 +8,43 @@ issuer
 
 The issuer ID of the OP, a unique value in URI format.
 
-----
-seed
-----
 
-Used in dynamic client registration endpoint when creating a new client_secret.
-If unset it will be random.
+--------------
+session params
+--------------
 
---------
+Configuration parameters used by session manager
+
+    "session_params": {
+      "password": "__password_used_to_encrypt_access_token_sid_value",
+      "salt": "salt involved in session sub hash ",
+      "sub_func": {
+        "public": {
+          "class": "oidcop.session.manager.PublicID",
+          "kwargs": {
+            "salt": "sdfsdfdsf"
+          }
+        },
+        "pairwise": {
+          "class": "oidcop.session.manager.PairWiseID",
+          "kwargs": {
+            "salt": "sdfsdfsdf"
+          }
+        }
+     }
+  },
+
 password
---------
+########
 
 Encryption key used to encrypt the SessionID (sid) in access_token.
 If unset it will be random.
 
-----
+
 salt
-----
+####
 
 Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
-
------------
-session_key
------------
-
-An example::
-
-    "session_key": {
-        "filename": "private/session_jwk.json",
-        "type": "OCT",
-        "use": "sig"
-      },
 
 ------
 add_on
@@ -209,8 +215,14 @@ An example::
           "path": "registration",
           "class": "oidcop.oidc.registration.Registration",
           "kwargs": {
-            "client_authn_method": null,
-            "client_secret_expiration_time": 432000
+            "client_authn_method": None,
+            "client_secret_expiration_time": 432000,
+            "client_id_generator": {
+               "class": 'oidcop.oidc.registration.random_client_id',
+               "kwargs": {
+                    "seed": "that-optional-random-value"
+               }
+           }
           }
         },
         "registration_api": {

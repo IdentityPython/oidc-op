@@ -124,7 +124,7 @@ class TestDB:
         assert len(grant_info.issued_token) == 1
         token = grant_info.issued_token[0]
         assert token.value == "1234567890"
-        assert token.type == "access_code"
+        assert token.token_class == "access_code"
 
     def test_replace_grant_info_not_there(self):
         grant = Grant()

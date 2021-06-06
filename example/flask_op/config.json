@@ -293,11 +293,6 @@
           }
         }
       },
-      "session_key": {
-        "filename": "private/session_jwk.json",
-        "type": "OCT",
-        "use": "sig"
-      },
       "template_dir": "templates",
       "token_handler_args": {
         "jwks_file": "private/token_jwks.json",

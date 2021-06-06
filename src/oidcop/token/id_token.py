@@ -25,7 +25,6 @@ DEF_SIGN_ALG = {
     "client_secret_jwt": "HS256",
     "private_key_jwt": "RS256",
 }
-DEF_LIFETIME = 300
 
 
 def include_session_id(endpoint_context, client_id, where):
@@ -119,12 +118,12 @@ class IDToken(Token):
 
     def __init__(
         self,
-        typ: Optional[str] = "I",
+        token_class: Optional[str] = "id_token",
         lifetime: Optional[int] = 300,
         server_get: Callable = None,
         **kwargs
     ):
-        Token.__init__(self, typ, **kwargs)
+        Token.__init__(self, token_class, **kwargs)
         self.lifetime = lifetime
         self.server_get = server_get
         self.kwargs = kwargs
@@ -241,7 +240,7 @@ class IDToken(Token):
         )
 
         if lifetime is None:
-            lifetime = DEF_LIFETIME
+            lifetime = self.lifetime
 
         _jwt = JWT(_context.keyjar, iss=_context.issuer, lifetime=lifetime, **alg_dict)
 
@@ -261,7 +260,7 @@ class IDToken(Token):
         else:
             xargs = {}
 
-        lifetime = self.kwargs.get("lifetime")
+        lifetime = self.lifetime
 
         # Weed out stuff that doesn't belong here
         kwargs = {k: v for k, v in kwargs.items() if k in ["encrypt", "code", "access_token"]}

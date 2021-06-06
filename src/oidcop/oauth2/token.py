@@ -48,16 +48,17 @@ class TokenEndpointHelper(object):
 
     def _mint_token(
         self,
-        type: str,
+        token_class: str,
         grant: Grant,
         session_id: str,
         client_id: str,
         based_on: Optional[SessionToken] = None,
         token_args: Optional[dict] = None,
+        token_type: Optional[str] = ""
     ) -> SessionToken:
         _context = self.endpoint.server_get("endpoint_context")
         _mngr = _context.session_manager
-        usage_rules = grant.usage_rules.get(type)
+        usage_rules = grant.usage_rules.get(token_class)
         if usage_rules:
             _exp_in = usage_rules.get("expires_in")
         else:
@@ -75,10 +76,11 @@ class TokenEndpointHelper(object):
         token = grant.mint_token(
             session_id,
             endpoint_context=_context,
-            token_type=type,
-            token_handler=_mngr.token_handler[type],
+            token_class=token_class,
+            token_handler=_mngr.token_handler[token_class],
             based_on=based_on,
             usage_rules=usage_rules,
+            token_type=token_type,
             **_args,
         )
 
@@ -143,7 +145,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         if "access_token" in _supports_minting:
             try:
                 token = self._mint_token(
-                    type="access_token",
+                    token_class="access_token",
                     grant=grant,
                     session_id=_session_info["session_id"],
                     client_id=_session_info["client_id"],
@@ -159,7 +161,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         if issue_refresh and "refresh_token" in _supports_minting:
             try:
                 refresh_token = self._mint_token(
-                    type="refresh_token",
+                    token_class="refresh_token",
                     grant=grant,
                     session_id=_session_info["session_id"],
                     client_id=_session_info["client_id"],
@@ -227,7 +229,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         _grant = _session_info["grant"]
         token = _grant.get_token(token_value)
         access_token = self._mint_token(
-            type="access_token",
+            token_class="access_token",
             grant=_grant,
             session_id=_session_info["session_id"],
             client_id=_session_info["client_id"],
@@ -236,7 +238,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         _resp = {
             "access_token": access_token.value,
-            "token_type": access_token.type,
+            "token_type": access_token.token_type,
             "scope": _grant.scope,
         }
 
@@ -246,7 +248,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         _mints = token.usage_rules.get("supports_minting")
         if "refresh_token" in _mints:
             refresh_token = self._mint_token(
-                type="refresh_token",
+                token_class="refresh_token",
                 grant=_grant,
                 session_id=_session_info["session_id"],
                 client_id=_session_info["client_id"],

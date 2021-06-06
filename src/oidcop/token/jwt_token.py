@@ -10,24 +10,25 @@ from . import Token
 from . import is_expired
 from .exception import UnknownToken
 
-TYPE_MAP = {"A": "code", "T": "access_token", "R": "refresh_token"}
+
+# TYPE_MAP = {"A": "code", "T": "access_token", "R": "refresh_token"}
 
 
 class JWTToken(Token):
     def __init__(
-        self,
-        typ,
-        # keyjar: KeyJar = None,
-        issuer: str = None,
-        aud: Optional[list] = None,
-        alg: str = "ES256",
-        lifetime: int = 300,
-        server_get: Callable = None,
-        token_type: str = "Bearer",
-        password: str = "",
-        **kwargs
+            self,
+            token_class,
+            # keyjar: KeyJar = None,
+            issuer: str = None,
+            aud: Optional[list] = None,
+            alg: str = "ES256",
+            lifetime: int = 300,
+            server_get: Callable = None,
+            token_type: str = "Bearer",
+            password: str = "",
+            **kwargs
     ):
-        Token.__init__(self, typ, **kwargs)
+        Token.__init__(self, token_class, **kwargs)
         self.token_type = token_type
         self.lifetime = lifetime
         self.crypt = Crypt(password)
@@ -46,23 +47,23 @@ class JWTToken(Token):
         # inherit me and do your things here
         return payload
 
-    def __call__(self, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload) -> str:
+    def __call__(self, session_id: Optional[str] = "", token_class: Optional[str] = "",
+                 **payload) -> str:
 
         """
         Return a token.
 
         :param session_id: Session id
-        :param subject:
-        :param grant:
-        :param kwargs: KeyWord arguments
+        :param token_class: Token class
+        :param payload: A dictionary with information that is part of the payload of the JWT.
         :return: Signed JSON Web Token
         """
-        if not ttype and self.type:
-            ttype = self.type
+        if not token_class and self.token_class:
+            token_class = self.token_class
         else:
-            ttype = "A"
+            token_class = "authorization_code"
 
-        payload.update({"sid": session_id, "ttype": ttype})
+        payload.update({"sid": session_id, "token_class": token_class})
         payload = self.load_custom_claims(payload)
 
         # payload.update(kwargs)
@@ -73,6 +74,16 @@ class JWTToken(Token):
 
         return signer.pack(payload)
 
+    def get_payload(self, token):
+        _context = self.server_get("endpoint_context")
+        verifier = JWT(key_jar=_context.keyjar, allowed_sign_algs=[self.alg])
+        try:
+            _payload = verifier.unpack(token)
+        except JWSException:
+            raise UnknownToken()
+
+        return _payload
+
     def info(self, token):
         """
         Return type of Token (A=Access code, T=Token, R=Refresh token) and
@@ -81,19 +92,14 @@ class JWTToken(Token):
         :param token: A token
         :return: tuple of token type and session id
         """
-        _context = self.server_get("endpoint_context")
-        verifier = JWT(key_jar=_context.keyjar, allowed_sign_algs=[self.alg])
-        try:
-            _payload = verifier.unpack(token)
-        except JWSException:
-            raise UnknownToken()
+        _payload = self.get_payload(token)
 
         if is_expired(_payload["exp"]):
             raise ToOld("Token has expired")
         # All the token metadata
         _res = {
             "sid": _payload["sid"],
-            "type": _payload["ttype"],
+            "token_class": _payload["token_class"],
             "exp": _payload["exp"],
             "handler": self,
         }
@@ -104,12 +110,10 @@ class JWTToken(Token):
         Evaluate whether the token has expired or not
 
         :param token: The token
-        :param when: The time against which to check the expiration
-            0 means now.
+        :param when: The time against which to check the expiration. 0 means now.
         :return: True/False
         """
-        verifier = JWT(key_jar=self.key_jar, allowed_sign_algs=[self.alg])
-        _payload = verifier.unpack(token)
+        _payload = self.get_payload(token)
         return is_expired(_payload["exp"], when)
 
     def gather_args(self, sid, sdb, udb):

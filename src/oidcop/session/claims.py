@@ -25,15 +25,17 @@ def available_claims(endpoint_context):
 
 class ClaimsInterface:
     init_args = {"add_claims_by_scope": False, "enable_claims_per_client": False}
-    claims_types = ["userinfo", "introspection", "id_token", "access_token"]
+    claims_release_points = ["userinfo", "introspection", "id_token", "access_token"]
 
     def __init__(self, server_get):
         self.server_get = server_get
 
-    def authorization_request_claims(self, session_id: str, usage: Optional[str] = "") -> dict:
+    def authorization_request_claims(self,
+                                     session_id: str,
+                                     claims_release_point: Optional[str] = "") -> dict:
         _grant = self.server_get("endpoint_context").session_manager.get_grant(session_id)
         if _grant.authorization_request and "claims" in _grant.authorization_request:
-            return _grant.authorization_request["claims"].get(usage, {})
+            return _grant.authorization_request["claims"].get(claims_release_point, {})
 
         return {}
 
@@ -63,19 +65,19 @@ class ClaimsInterface:
 
         return module
 
-    def get_claims(self, session_id: str, scopes: str, usage: str) -> dict:
+    def get_claims(self, session_id: str, scopes: str, claims_release_point: str) -> dict:
         """
 
         :param session_id: Session identifier
         :param scopes: Scopes
-        :param usage: Where to use the claims. One of
-        "userinfo"/"id_token"/"introspection"/"access_token"
+        :param claims_release_point: Where to release the claims. One of
+            "userinfo"/"id_token"/"introspection"/"access_token"
         :return: Claims specification as a dictionary.
         """
 
         _context = self.server_get("endpoint_context")
         # which endpoint module configuration to get the base claims from
-        module = self._get_module(usage, _context)
+        module = self._get_module(claims_release_point, _context)
 
         if module:
             base_claims = module.kwargs.get("base_claims", {})
@@ -86,7 +88,7 @@ class ClaimsInterface:
 
         # Can there be per client specification of which claims to use.
         if module.kwargs.get("enable_claims_per_client"):
-            claims = self._get_client_claims(client_id, usage)
+            claims = self._get_client_claims(client_id, claims_release_point)
         else:
             claims = {}
 
@@ -102,7 +104,8 @@ class ClaimsInterface:
 
         # Bring in claims specification from the authorization request
         # This only goes for ID Token and user info
-        request_claims = self.authorization_request_claims(session_id=session_id, usage=usage)
+        request_claims = self.authorization_request_claims(session_id=session_id,
+                                                           claims_release_point=claims_release_point)
 
         # This will add claims that has not be added before and
         # set filters on those claims that also appears in one of the sources above
@@ -113,7 +116,7 @@ class ClaimsInterface:
 
     def get_claims_all_usage(self, session_id: str, scopes: str) -> dict:
         _claims = {}
-        for usage in self.claims_types:
+        for usage in self.claims_release_points:
             _claims[usage] = self.get_claims(session_id, scopes, usage)
         return _claims
 
@@ -189,7 +192,7 @@ def by_schema(cls, **kwa):
 
 
 class OAuth2ClaimsInterface(ClaimsInterface):
-    claims_types = ["introspection", "access_token"]
+    claims_release_points = ["introspection", "access_token"]
 
     def _get_module(self, usage, endpoint_context):
         module = None
@@ -205,6 +208,6 @@ class OAuth2ClaimsInterface(ClaimsInterface):
 
     def get_claims_all_usage(self, session_id: str, scopes: str) -> dict:
         _claims = {}
-        for usage in self.claims_types:
+        for usage in self.claims_release_points:
             _claims[usage] = self.get_claims(session_id, scopes, usage)
         return _claims

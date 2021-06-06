@@ -89,11 +89,12 @@ class AccessTokenHelper(TokenEndpointHelper):
         if "access_token" in _supports_minting:
             try:
                 token = self._mint_token(
-                    type="access_token",
+                    token_class="access_token",
                     grant=grant,
                     session_id=_session_info["session_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
+                    token_type=token_type,
                 )
             except MintingNotAllowed as err:
                 logger.warning(err)
@@ -105,7 +106,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         if issue_refresh and "refresh_token" in _supports_minting:
             try:
                 refresh_token = self._mint_token(
-                    type="refresh_token",
+                    token_class="refresh_token",
                     grant=grant,
                     session_id=_session_info["session_id"],
                     client_id=_session_info["client_id"],
@@ -123,7 +124,7 @@ class AccessTokenHelper(TokenEndpointHelper):
             if "id_token" in _based_on.usage_rules.get("supports_minting"):
                 try:
                     _idtoken = self._mint_token(
-                        type="id_token",
+                        token_class="id_token",
                         grant=grant,
                         session_id=_session_info["session_id"],
                         client_id=_session_info["client_id"],
@@ -202,11 +203,12 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token = _grant.get_token(token_value)
         access_token = self._mint_token(
-            type="access_token",
+            token_class="access_token",
             grant=_grant,
             session_id=_session_info["session_id"],
             client_id=_session_info["client_id"],
             based_on=token,
+            token_type=token_type
         )
 
         _resp = {
@@ -221,7 +223,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         _mints = token.usage_rules.get("supports_minting")
         if "refresh_token" in _mints:
             refresh_token = self._mint_token(
-                type="refresh_token",
+                token_class="refresh_token",
                 grant=_grant,
                 session_id=_session_info["session_id"],
                 client_id=_session_info["client_id"],
@@ -233,7 +235,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         if "id_token" in _mints:
             try:
                 _idtoken = self._mint_token(
-                    type="refresh_token",
+                    token_class="refresh_token",
                     grant=_grant,
                     session_id=_session_info["session_id"],
                     client_id=_session_info["client_id"],

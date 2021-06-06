@@ -6,6 +6,7 @@ from oidcmsg import oauth2
 
 from oidcop.endpoint import Endpoint
 from oidcop.token.exception import UnknownToken
+from oidcop.token.exception import WrongTokenClass
 
 LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class Introspection(Endpoint):
 
     def _introspect(self, token, client_id, grant):
         # Make sure that the token is an access_token or a refresh_token
-        if token.type not in ["access_token", "refresh_token"]:
+        if token.token_class not in ["access_token", "refresh_token"]:
             return None
 
         if not token.is_active():
@@ -34,7 +35,10 @@ class Introspection(Endpoint):
 
         scope = token.scope
         if not scope:
-            scope = grant.scope
+            if token.based_on:
+                scope = grant.find_scope(token.based_on)
+            else:
+                scope = grant.scope
         aud = token.resources
         if not aud:
             aud = grant.resources
@@ -44,12 +48,20 @@ class Introspection(Endpoint):
             "active": True,
             "scope": " ".join(scope),
             "client_id": client_id,
-            "token_type": token.type,
+            "token_class": token.token_class,
             "exp": token.expires_at,
             "iat": token.issued_at,
             "sub": grant.sub,
             "iss": _context.issuer,
         }
+
+        try:
+            _token_type = token.token_type
+        except AttributeError:
+            _token_type = None
+
+        if _token_type:
+            ret["token_type"] = _token_type
 
         if aud:
             ret["aud"] = aud
@@ -83,7 +95,7 @@ class Introspection(Endpoint):
             _session_info = _context.session_manager.get_session_info_by_token(
                 request_token, grant=True
             )
-        except UnknownToken:
+        except (UnknownToken, WrongTokenClass):
             return {"response_args": _resp}
 
         grant = _session_info["grant"]

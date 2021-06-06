@@ -18,6 +18,7 @@ from .grant import SessionToken
 from .info import ClientSessionInfo
 from .info import UserSessionInfo
 from ..token import UnknownToken
+from ..token import WrongTokenClass
 from ..token.handler import TokenHandler
 
 logger = logging.getLogger(__name__)
@@ -77,8 +78,9 @@ class SessionManager(Database):
         self.conf = conf or {}
 
         # these won't change runtime
-        self._key = self.conf.get("password") or rndstr(24)
-        self._salt = self.conf.get("salt") or rndstr(32)
+        session_params = self.conf.get("session_params") or {}
+        self._key = session_params.get("password") or rndstr(24)
+        self._salt = session_params.get("salt") or rndstr(32)
 
         self.key = self.load_key()
         self.salt = self.load_key()
@@ -456,8 +458,13 @@ class SessionManager(Database):
         authorization_request: bool = False,
     ) -> dict:
         _token_info = self.token_handler.info(token_value)
-        sid = _token_info["sid"]
-        session_info = self.get_session_info(
+        sid = _token_info.get("sid")
+        # If the token is an ID Token then the sid will not be in the
+        # _token_info
+        if not sid:
+            raise WrongTokenClass
+
+        return self.get_session_info(
             sid,
             user_session_info=user_session_info,
             client_session_info=client_session_info,
@@ -465,7 +472,6 @@ class SessionManager(Database):
             authentication_event=authentication_event,
             authorization_request=authorization_request,
         )
-        return session_info
 
     def get_session_id_by_token(self, token_value: str) -> str:
         _token_info = self.token_handler.info(token_value)
