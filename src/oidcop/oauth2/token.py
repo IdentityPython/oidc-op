@@ -137,13 +137,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         _log_debug("All checks OK")
 
-        issue_refresh = False
-        if "issue_refresh" in kwargs:
-            issue_refresh = kwargs["issue_refresh"]
-        else:
-            if "offline_access" in grant.scope:
-                issue_refresh = True
-
+        issue_refresh = kwargs.get("issue_refresh", False)
         _response = {
             "token_type": "Bearer",
             "scope": grant.scope,
@@ -267,12 +261,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
             _resp["expires_in"] = access_token.expires_at - utc_time_sans_frac()
 
         _mints = token.usage_rules.get("supports_minting")
-        issue_refresh = False
-        if "issue_refresh" in kwargs:
-            issue_refresh = kwargs["issue_refresh"]
-        else:
-            if "offline_access" in scope:
-                issue_refresh = True
+        issue_refresh = kwargs.get("issue_refresh", False)
         if "refresh_token" in _mints and issue_refresh:
             refresh_token = self._mint_token(
                 token_class="refresh_token",
