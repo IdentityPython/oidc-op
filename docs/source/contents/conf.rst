@@ -150,42 +150,32 @@ An example::
       check_session_iframe: https://127.0.0.1:5000/check_session_iframe
 
 
------------
-cookie_name
------------
-
-An example::
-
-    "cookie_name": {
-        "session": "oidc_op",
-        "register": "oidc_op_rp",
-        "session_management": "sman"
-      },
-
 -------------
-cookie_dealer
+cookie_handler
 -------------
 
 An example::
 
-    "cookie_dealer": {
-        "class": "oidcop.cookie.CookieDealer",
+      "cookie_handler": {
+        "class": "oidcop.cookie_handler.CookieHandler",
         "kwargs": {
-          "sign_jwk": {
-            "filename": "private/cookie_sign_jwk.json",
-            "type": "OCT",
-            "kid": "cookie_sign_key_id"
+          "keys": {
+            "private_path": f"{OIDC_JWKS_PRIVATE_PATH}/cookie_jwks.json",
+            "key_defs": [
+              {"type": "OCT", "use": ["enc"], "kid": "enc"},
+              {"type": "OCT", "use": ["sig"], "kid": "sig"}
+            ],
+            "read_only": False
           },
-          "enc_jwk": {
-            "filename": "private/cookie_enc_jwk.json",
-            "type": "OCT",
-            "kid": "cookie_enc_key_id"
+          "flags": {
+              "samesite": "None",
+              "httponly": True,
+              "secure": True,
           },
-          "default_values": {
-            "name": "oidc_op",
-            "domain": "127.0.0.1",
-            "path": "/",
-            "max_age": 3600
+          "name": {
+            "session": "oidc_op",
+            "register": "oidc_op_rp",
+            "session_management": "sman"
           }
         }
       },

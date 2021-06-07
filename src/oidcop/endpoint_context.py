@@ -232,9 +232,10 @@ class EndpointContext(OidcContext):
         self.claims_interface = None
 
     def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
-        return self.cookie_handler.make_cookie_content(
+        cookie_cont = self.cookie_handler.make_cookie_content(
             name=name, value=json.dumps(kwargs), max_age=max_age
         )
+        return cookie_cont
 
     def set_scopes_handler(self):
         _spec = self.conf.get("scopes_handler")

@@ -28,10 +28,9 @@ oidc_op_views = Blueprint('oidc_rp', __name__, url_prefix='')
 
 
 def _add_cookie(resp, cookie_spec):
-    kwargs = {'value': cookie_spec["value"]}
-    for param in ['expires', 'max-age']:
-        if param in cookie_spec:
-            kwargs[param] = cookie_spec[param]
+    kwargs = {k:v
+              for k,v in cookie_spec.items()
+              if k not in ('name',)}
     kwargs["path"] = "/"
     resp.set_cookie(cookie_spec["name"], **kwargs)
 
