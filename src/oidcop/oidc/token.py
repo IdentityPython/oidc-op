@@ -202,13 +202,17 @@ class RefreshTokenHelper(TokenEndpointHelper):
                 token_type = "DPoP"
 
         token = _grant.get_token(token_value)
+        scope = _grant.find_scope(token.based_on)
+        if "scope" in req:
+            scope = req["scope"]
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
             session_id=_session_info["session_id"],
             client_id=_session_info["client_id"],
             based_on=token,
-            token_type=token_type
+            scope=scope,
+            token_type=token_type,
         )
 
         _resp = {
@@ -221,18 +225,25 @@ class RefreshTokenHelper(TokenEndpointHelper):
             _resp["expires_in"] = access_token.expires_at - utc_time_sans_frac()
 
         _mints = token.usage_rules.get("supports_minting")
-        if "refresh_token" in _mints:
+        issue_refresh = False
+        if "issue_refresh" in kwargs:
+            issue_refresh = kwargs["issue_refresh"]
+        else:
+            if "offline_access" in scope:
+                issue_refresh = True
+        if "refresh_token" in _mints and issue_refresh:
             refresh_token = self._mint_token(
                 token_class="refresh_token",
                 grant=_grant,
                 session_id=_session_info["session_id"],
                 client_id=_session_info["client_id"],
                 based_on=token,
+                scope=scope,
             )
             refresh_token.usage_rules = token.usage_rules.copy()
             _resp["refresh_token"] = refresh_token.value
 
-        if "id_token" in _mints:
+        if "id_token" in _mints and "openid" in scope:
             try:
                 _idtoken = self._mint_token(
                     token_class="refresh_token",
@@ -240,6 +251,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
                     session_id=_session_info["session_id"],
                     client_id=_session_info["client_id"],
                     based_on=token,
+                    scope=scope,
                 )
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
@@ -281,7 +293,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
             logger.error("Access Code invalid")
             return self.error_cls(error="invalid_grant")
 
-        token = _session_info["grant"].get_token(request["refresh_token"])
+        grant = _session_info["grant"]
+        token = grant.get_token(request["refresh_token"])
 
         if not isinstance(token, RefreshToken):
             return self.error_cls(error="invalid_request", error_description="Wrong token type")
@@ -290,6 +303,15 @@ class RefreshTokenHelper(TokenEndpointHelper):
             return self.error_cls(
                 error="invalid_request", error_description="Refresh token inactive"
             )
+
+        if "scope" in request:
+            req_scopes = set(request["scope"])
+            scopes = set(grant.find_scope(token.based_on))
+            if scopes < req_scopes:
+                return self.error_cls(
+                    error="invalid_request",
+                    error_description="Invalid refresh scopes",
+                )
 
         return request
 

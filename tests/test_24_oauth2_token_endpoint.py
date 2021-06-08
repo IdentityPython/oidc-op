@@ -47,7 +47,7 @@ CAPABILITIES = {
 AUTH_REQ = AuthorizationRequest(
     client_id="client_1",
     redirect_uri="https://example.com/cb",
-    scope=["openid"],
+    scope=["email"],
     state="STATE",
     response_type="code",
 )
@@ -302,7 +302,7 @@ class TestEndpoint(object):
 
     def test_do_refresh_access_token(self):
         areq = AUTH_REQ.copy()
-        areq["scope"] = ["openid"]
+        areq["scope"] = ["email"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -324,7 +324,7 @@ class TestEndpoint(object):
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
-        _resp = self.token_endpoint.process_request(request=_req)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
         assert set(_resp.keys()) == {"cookie", "response_args", "http_headers"}
         assert set(_resp["response_args"].keys()) == {
             "access_token",
@@ -338,7 +338,7 @@ class TestEndpoint(object):
 
     def test_do_2nd_refresh_access_token(self):
         areq = AUTH_REQ.copy()
-        areq["scope"] = ["openid", "offline_access"]
+        areq["scope"] = ["email"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -361,16 +361,15 @@ class TestEndpoint(object):
         _token.usage_rules["supports_minting"] = [
             "access_token",
             "refresh_token",
-            "id_token",
         ]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
-        _resp = self.token_endpoint.process_request(request=_req)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
 
         _2nd_request = REFRESH_TOKEN_REQ.copy()
         _2nd_request["refresh_token"] = _resp["response_args"]["refresh_token"]
         _2nd_req = self.token_endpoint.parse_request(_request.to_json())
-        _2nd_resp = self.token_endpoint.process_request(request=_req)
+        _2nd_resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
 
         assert set(_2nd_resp.keys()) == {"cookie", "response_args", "http_headers"}
         assert set(_2nd_resp["response_args"].keys()) == {
@@ -393,7 +392,7 @@ class TestEndpoint(object):
         }
 
         areq = AUTH_REQ.copy()
-        areq["scope"] = ["openid", "offline_access"]
+        areq["scope"] = ["email"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -422,9 +421,124 @@ class TestEndpoint(object):
 
         assert first_refresh_token != second_refresh_token
 
+    def test_refresh_scopes(self):
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["email", "profile"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+        _request["scope"] = ["email"]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+        assert set(_resp.keys()) == {"cookie", "response_args", "http_headers"}
+        assert set(_resp["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "expires_in",
+            "refresh_token",
+            "scope",
+        }
+
+        _token_value = _resp["response_args"]["access_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        at = self.session_manager.find_token(
+            _session_info["session_id"], _token_value
+        )
+        rt = self.session_manager.find_token(
+            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+        )
+
+        assert at.scope == rt.scope == _request["scope"]
+
+    def test_refresh_more_scopes(self):
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["email"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+        _request["scope"] = ["email", "profile"]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        assert isinstance(_req, TokenErrorResponse)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+
+        assert _resp.to_dict() == {
+            "error": "invalid_request",
+            "error_description": "Invalid refresh scopes"
+        }
+
+    def test_refresh_more_scopes_2(self):
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["email", "profile"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+        _request["scope"] = ["email"]
+
+        _token_value = _resp["response_args"]["refresh_token"]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+
+        _token_value = _resp["response_args"]["refresh_token"]
+        _request["refresh_token"] = _token_value
+        # We should be able to request the original requests scopes
+        _request["scope"] = ["email", "profile"]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+
+        assert set(_resp.keys()) == {"cookie", "response_args", "http_headers"}
+        assert set(_resp["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "expires_in",
+            "refresh_token",
+            "scope",
+        }
+
+        _token_value = _resp["response_args"]["access_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        at = self.session_manager.find_token(
+            _session_info["session_id"], _token_value
+        )
+        rt = self.session_manager.find_token(
+            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+        )
+
+        assert at.scope == rt.scope == _request["scope"]
+
     def test_do_refresh_access_token_not_allowed(self):
         areq = AUTH_REQ.copy()
-        areq["scope"] = ["openid", "offline_access"]
+        areq["scope"] = ["email"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -448,7 +562,7 @@ class TestEndpoint(object):
 
     def test_do_refresh_access_token_revoked(self):
         areq = AUTH_REQ.copy()
-        areq["scope"] = ["openid"]
+        areq["scope"] = ["email"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
