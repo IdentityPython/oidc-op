@@ -13,7 +13,7 @@ The issuer ID of the OP, a unique value in URI format.
 session params
 --------------
 
-Configuration parameters used by session manager
+Configuration parameters used by session manager::
 
     "session_params": {
       "password": "__password_used_to_encrypt_access_token_sid_value",
@@ -32,19 +32,26 @@ Configuration parameters used by session manager
           }
         }
      }
-  },
+    },
+
 
 password
 ########
 
-Encryption key used to encrypt the SessionID (sid) in access_token.
+Optional. Encryption key used to encrypt the SessionID (sid) in access_token.
 If unset it will be random.
 
 
 salt
 ####
 
-Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
+Optional. Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
+
+
+sub_funcs
+#########
+
+Optional. Functions involved in *sub*ject value creation.
 
 ------
 add_on
@@ -149,7 +156,6 @@ An example::
       backchannel_logout_session_supported: True
       check_session_iframe: https://127.0.0.1:5000/check_session_iframe
 
-
 -------------
 cookie_handler
 -------------
@@ -178,7 +184,7 @@ An example::
             "session_management": "sman"
           }
         }
-      },
+    },
 
 --------
 endpoint
@@ -434,7 +440,7 @@ An example::
 
       "template_dir": "templates"
 
-For any further customization of template here an example of what used in django-oidc-op
+For any further customization of template here an example of what used in django-oidc-op::
 
       "authentication": {
         "user": {
