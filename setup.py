@@ -43,7 +43,7 @@ extra_install_requires = []
 from os import path
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+    readme_description = f.read()
 
 with open('src/oidcop/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
@@ -78,6 +78,6 @@ setup(
     ],
     zip_safe=False,
     cmdclass={'test': PyTest},
-    long_description=long_description,
+    long_description=readme_description,
     long_description_content_type='text/markdown',
 )
