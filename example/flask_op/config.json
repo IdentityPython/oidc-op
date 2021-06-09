@@ -91,7 +91,7 @@
           "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
           "class": "oidcop.user_authn.user.UserPassJinja2",
           "kwargs": {
-            "verify_endpoint": "verify/user",
+            "verify_endpoint": "/verify/user",
             "template": "user_pass.jinja2",
             "db": {
               "class": "oidcop.util.JSONDictDB",
