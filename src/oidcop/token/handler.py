@@ -1,7 +1,7 @@
 import logging
 import os
-from typing import Optional
 import warnings
+from typing import Optional
 
 from cryptojwt.exception import Invalid
 from cryptojwt.key_jar import init_key_jar
@@ -13,6 +13,7 @@ from oidcop.exception import InvalidToken
 from oidcop.token import DefaultToken
 from oidcop.token import Token
 from oidcop.token import UnknownToken
+from oidcop.token import WrongTokenClass
 from oidcop.token import WrongTokenType
 from oidcop.util import importer
 
@@ -73,7 +74,15 @@ class TokenHandler(ImpExp):
         for typ in order:
             try:
                 res = self.handler[typ].info(token)
-            except (KeyError, WrongTokenType, InvalidToken, UnknownToken, Invalid, AttributeError):
+            except (
+                KeyError,
+                WrongTokenType,
+                InvalidToken,
+                UnknownToken,
+                Invalid,
+                AttributeError,
+                WrongTokenClass,
+            ):
                 pass
             else:
                 return self.handler[typ], res
