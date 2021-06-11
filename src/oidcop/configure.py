@@ -65,7 +65,7 @@ OP_DEFAULT_CONFIG = {
             }
         },
     },
-    "httpc_params": {"verify": False},
+    "httpc_params": {"verify": False, "timeout": 4},
     "issuer": "https://{domain}:{port}",
     "template_dir": "templates",
     "token_handler_args": {
@@ -503,7 +503,7 @@ DEFAULT_EXTENDED_CONF = {
             },
         },
     },
-    "httpc_params": {"verify": False},
+    "httpc_params": {"verify": False, "timeout": 4},
     "issuer": "https://{domain}:{port}",
     "keys": {
         "private_path": "private/jwks.json",
