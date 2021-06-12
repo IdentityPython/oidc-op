@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 import re
 import sys
 
@@ -43,10 +44,16 @@ with open('src/oidcop/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
 
+with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
+    README = readme.read()
+
+
 setup(
     name="oidcop",
     version=version,
     description="Python implementation of OIDC Provider",
+    long_description=README,
+    long_description_content_type='text/markdown',
     author="Roland Hedberg",
     author_email="roland@catalogix.se",
     license="Apache 2.0",
@@ -64,7 +71,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        "oidcmsg==1.3.2",
+        "oidcmsg==1.3.3",
         "cryptojwt==1.5.2",
         "pyyaml",
         "jinja2>=2.11.3",
