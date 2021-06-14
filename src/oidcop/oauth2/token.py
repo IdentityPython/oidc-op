@@ -5,7 +5,6 @@ from typing import Union
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jwt import utc_time_sans_frac
 
-from oidcmsg import oidc
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AccessTokenResponse
 from oidcmsg.oauth2 import ResponseMessage
