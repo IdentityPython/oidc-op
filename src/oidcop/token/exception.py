@@ -1,21 +1,33 @@
-class ExpiredToken(Exception):
+from oidcop.exception import OidcOPError
+
+
+class TokenException(OidcOPError):
     pass
 
 
-class WrongTokenType(Exception):
+class ExpiredToken(TokenException):
     pass
 
 
-class WrongTokenClass(Exception):
-    pass
-
-class AccessCodeUsed(Exception):
+class WrongTokenType(TokenException):
     pass
 
 
-class UnknownToken(Exception):
+class WrongTokenClass(TokenException):
     pass
 
 
-class NotAllowed(Exception):
+class AccessCodeUsed(TokenException):
+    pass
+
+
+class UnknownToken(TokenException):
+    pass
+
+
+class NotAllowed(TokenException):
+    pass
+
+
+class InvalidToken(TokenException):
     pass

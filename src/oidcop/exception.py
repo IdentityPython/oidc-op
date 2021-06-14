@@ -1,4 +1,8 @@
-class OidcEndpointError(Exception):
+class OidcOPError(Exception):
+    pass
+
+
+class OidcEndpointError(OidcOPError):
     pass
 
 
@@ -95,8 +99,4 @@ class CapabilitiesMisMatch(OidcEndpointError):
 
 
 class MultipleCodeUsage(OidcEndpointError):
-    pass
-
-
-class InvalidToken(Exception):
     pass
