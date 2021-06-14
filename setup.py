@@ -47,6 +47,7 @@ with open('src/oidcop/__init__.py', 'r') as fd:
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
     README = readme.read()
 
+
 setup(
     name="oidcop",
     version=version,
@@ -71,7 +72,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        "oidcmsg==1.3.2-1",
+        "oidcmsg==1.3.3-1",
         "cryptojwt==1.5.2",
         "pyyaml",
         "jinja2>=2.11.3",

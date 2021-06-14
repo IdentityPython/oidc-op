@@ -49,6 +49,41 @@ The identity representation with the information fetched from the user info endp
 We can even test the single logout
 
 
+Refresh token
+-------------
+
+Here an example about how to refresh a token.
+It is important to consider that only scope=offline_access will get a usable refresh token.
+
+
+    import requests
+
+    CLIENT_ID = "DBP60x3KUQfCYWZlqFaS_Q"
+    CLIENT_SECRET="8526270403788522b2444e87ea90c53bcafb984119cec92eeccc12f1"
+    REFRESH_TOKEN = "Z0FBQUFBQ ... lN2JNODYtZThjMnFsZUNDcg=="
+
+    data = {
+        "grant_type" : "refresh_token",
+        "client_id" : f"{CLIENT_ID}",
+        "client_secret" : f"{CLIENT_SECRET}",
+        "refresh_token" : f"{REFRESH_TOKEN}"
+    }
+    headers = {'Content-Type': "application/x-www-form-urlencoded" }
+    response = requests.post(
+        'https://127.0.0.1:8000/oidcop/token', verify=False, data=data, headers=headers
+    )
+
+oidc-op will return a json response like this::
+
+{
+ 'access_token': 'eyJhbGc ... CIOH_09tT_YVa_gyTqg',
+ 'token_type': 'Bearer',
+ 'scope': 'openid profile email address phone offline_access',
+ 'refresh_token': 'Z0FBQ ... 1TE16cm1Tdg=='
+}
+
+
+
 Introspection endpoint
 ----------------------
 

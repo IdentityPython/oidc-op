@@ -9,11 +9,10 @@ from cryptojwt.utils import as_unicode
 from oidcmsg.impexp import ImpExp
 from oidcmsg.item import DLDict
 
-from oidcop.exception import InvalidToken
 from oidcop.token import DefaultToken
 from oidcop.token import Token
 from oidcop.token import UnknownToken
-from oidcop.token import WrongTokenType
+from oidcop.token.exception import TokenException
 from oidcop.util import importer
 
 __author__ = "Roland Hedberg"
@@ -25,11 +24,11 @@ class TokenHandler(ImpExp):
     parameter = {"handler": DLDict, "handler_order": [""]}
 
     def __init__(
-        self,
-        access_token: Optional[Token] = None,
-        authorization_code: Optional[Token] = None,
-        refresh_token: Optional[Token] = None,
-        id_token: Optional[Token] = None,
+            self,
+            access_token: Optional[Token] = None,
+            authorization_code: Optional[Token] = None,
+            refresh_token: Optional[Token] = None,
+            id_token: Optional[Token] = None,
     ):
         ImpExp.__init__(self)
         self.handler = {"authorization_code": authorization_code,
@@ -73,7 +72,7 @@ class TokenHandler(ImpExp):
         for typ in order:
             try:
                 res = self.handler[typ].info(token)
-            except (KeyError, WrongTokenType, InvalidToken, UnknownToken, Invalid, AttributeError):
+            except (KeyError, TokenException, Invalid, AttributeError):
                 pass
             else:
                 return self.handler[typ], res
@@ -143,13 +142,13 @@ JWKS_FILE = "private/token_jwks.json"
 
 
 def factory(
-    server_get,
-    code: Optional[dict] = None,
-    token: Optional[dict] = None,
-    refresh: Optional[dict] = None,
-    id_token: Optional[dict] = None,
-    jwks_file: Optional[str] = "",
-    **kwargs
+        server_get,
+        code: Optional[dict] = None,
+        token: Optional[dict] = None,
+        refresh: Optional[dict] = None,
+        id_token: Optional[dict] = None,
+        jwks_file: Optional[str] = "",
+        **kwargs
 ) -> TokenHandler:
     """
     Create a token handler

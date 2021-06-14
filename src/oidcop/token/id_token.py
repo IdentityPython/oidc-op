@@ -11,9 +11,9 @@ from oidcop.construct import construct_endpoint_info
 from oidcop.exception import ToOld
 from oidcop.session.claims import claims_match
 from oidcop.token import is_expired
+from oidcop.token.exception import InvalidToken
 from . import Token
 from . import UnknownToken
-from ..exception import InvalidToken
 from ..util import get_logout_id
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ def include_session_id(endpoint_context, client_id, where):
 
 
 def get_sign_and_encrypt_algorithms(
-    endpoint_context, client_info, payload_type, sign=False, encrypt=False
+        endpoint_context, client_info, payload_type, sign=False, encrypt=False
 ):
     args = {"sign": sign, "encrypt": encrypt}
     if sign:
@@ -117,11 +117,11 @@ class IDToken(Token):
     }
 
     def __init__(
-        self,
-        token_class: Optional[str] = "id_token",
-        lifetime: Optional[int] = 300,
-        server_get: Callable = None,
-        **kwargs
+            self,
+            token_class: Optional[str] = "id_token",
+            lifetime: Optional[int] = 300,
+            server_get: Callable = None,
+            **kwargs
     ):
         Token.__init__(self, token_class, **kwargs)
         self.lifetime = lifetime
@@ -131,7 +131,7 @@ class IDToken(Token):
         self.provider_info = construct_endpoint_info(self.default_capabilities, **kwargs)
 
     def payload(
-        self, session_id, alg="RS256", code=None, access_token=None, extra_claims=None,
+            self, session_id, alg="RS256", code=None, access_token=None, extra_claims=None,
     ):
         """
 
@@ -200,15 +200,15 @@ class IDToken(Token):
         return _args
 
     def sign_encrypt(
-        self,
-        session_id,
-        client_id,
-        code=None,
-        access_token=None,
-        sign=True,
-        encrypt=False,
-        lifetime=None,
-        extra_claims=None,
+            self,
+            session_id,
+            client_id,
+            code=None,
+            access_token=None,
+            sign=True,
+            encrypt=False,
+            lifetime=None,
+            extra_claims=None,
     ) -> str:
         """
         Signed and or encrypt a IDToken
@@ -253,7 +253,7 @@ class IDToken(Token):
 
         # Should I add session ID. This is about Single Logout.
         if include_session_id(_context, client_id, "back") or include_session_id(
-            _context, client_id, "front"
+                _context, client_id, "front"
         ):
 
             xargs = {"sid": get_logout_id(_context, user_id=user_id, client_id=client_id)}

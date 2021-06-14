@@ -1054,7 +1054,13 @@ class TestUserAuthn(object):
             "grant_expires_in": 300,
             "refresh_token_expires_in": 86400,
             "verify_ssl": False,
-            "endpoint": {},
+            "endpoint": {
+                "authorization": {
+                    "path": "{}/authorization",
+                    "class": Authorization,
+                    "kwargs": {},
+                }
+            },
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "authentication": {
                 "user": {

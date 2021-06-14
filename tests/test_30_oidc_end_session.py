@@ -605,7 +605,7 @@ class TestEndpoint(object):
         assert set(_names) == {"oidc_op_sman", "oidc_op"}
         _values = [ci["value"] for ci in _info]
         assert set(_values) == {"", ""}
-        _exps = [ci["Expires"] for ci in _info]
+        _exps = [ci["expires"] for ci in _info]
         assert set(_exps) == {
             "Thu, 01 Jan 1970 00:00:00 GMT;",
             "Thu, 01 Jan 1970 00:00:00 GMT;",
