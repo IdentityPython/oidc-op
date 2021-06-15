@@ -115,6 +115,9 @@ class TestEndpoint:
                     "class": "oidcop.token.jwt_token.JWTToken",
                     "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
                 },
+                "id_token": {
+                    "class": "oidcop.token.id_token.IDToken",
+                }
             },
             "endpoint": {
                 "authorization": {
@@ -468,4 +471,23 @@ class TestEndpoint:
             }
         )
         _resp = self.introspection_endpoint.process_request(_req)
+        assert _resp["response_args"]["active"] is False
+
+    def test_introspect_id_token(self):
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.token_endpoint.server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        self.session_manager[session_id] = grant
+        code = self._mint_token("authorization_code", grant, session_id)
+        id_token = self._mint_token("id_token", grant, session_id, code)
+
+        _context = self.introspection_endpoint.server_get("endpoint_context")
+        _req = self.introspection_endpoint.parse_request(
+            {
+                "token": id_token.value,
+                "client_id": "client_1",
+                "client_secret": _context.cdb["client_1"]["client_secret"],
+            }
+        )
+        _resp = self.introspection_endpoint.process_request(_req)
+
         assert _resp["response_args"]["active"] is False

@@ -7,7 +7,6 @@ from oidcmsg.time_util import time_sans_frac
 from oidcop import rndstr
 from oidcop.token.exception import UnknownToken
 from oidcop.token.exception import WrongTokenClass
-from oidcop.token.exception import WrongTokenType
 from oidcop.util import Crypt
 from oidcop.util import lv_pack
 from oidcop.util import lv_unpack

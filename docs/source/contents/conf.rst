@@ -156,28 +156,33 @@ An example::
       backchannel_logout_session_supported: True
       check_session_iframe: https://127.0.0.1:5000/check_session_iframe
 
---------------
+-------------
 cookie_handler
---------------
+-------------
 
 An example::
 
-    "cookie_handler": {
+      "cookie_handler": {
         "class": "oidcop.cookie_handler.CookieHandler",
-            "kwargs": {
-              "keys": {
-                "private_path": f"{OIDC_JWKS_PRIVATE_PATH}/cookie_jwks.json",
-                "key_defs": [
-                  {"type": "OCT", "use": ["enc"], "kid": "enc"},
-                  {"type": "OCT", "use": ["sig"], "kid": "sig"}
-                ],
-                "read_only": False
-              },
-              "name": {
-                "session": "oidc_op",
-                "register": "oidc_op_rp",
-                "session_management": "sman"
-              }
+        "kwargs": {
+          "keys": {
+            "private_path": f"{OIDC_JWKS_PRIVATE_PATH}/cookie_jwks.json",
+            "key_defs": [
+              {"type": "OCT", "use": ["enc"], "kid": "enc"},
+              {"type": "OCT", "use": ["sig"], "kid": "sig"}
+            ],
+            "read_only": False
+          },
+          "flags": {
+              "samesite": "None",
+              "httponly": True,
+              "secure": True,
+          },
+          "name": {
+            "session": "oidc_op",
+            "register": "oidc_op_rp",
+            "session_management": "sman"
+          }
         }
     },
 

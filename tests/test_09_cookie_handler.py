@@ -25,7 +25,9 @@ class TestCookieSign(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {"name", "value"}
+        assert set(_cookie_info.keys()) == {
+            "name", "value", "samesite", "httponly", "secure"
+        }
         assert len(_cookie_info["value"].split("|")) == 3
 
     def test_make_cookie_content_max_age(self):
@@ -33,7 +35,9 @@ class TestCookieSign(object):
             "oidcop", "value", "sso", max_age=3600
         )
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {"name", "value", "Max-Age"}
+        assert set(_cookie_info.keys()) == {
+            'name', 'value', 'max-age', 'samesite', 'httponly', 'secure'
+        }
         assert len(_cookie_info["value"].split("|")) == 3
 
     def test_read_cookie_info(self):
@@ -72,7 +76,9 @@ class TestCookieHandlerSignEnc(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {"name", "value"}
+        assert set(_cookie_info.keys()) == {
+            'name', 'value', 'samesite', 'httponly', 'secure'
+        }
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_make_cookie_content_max_age(self):
@@ -80,7 +86,9 @@ class TestCookieHandlerSignEnc(object):
             "oidcop", "value", "sso", max_age=3600
         )
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {"name", "value", "Max-Age"}
+        assert set(_cookie_info.keys()) == {
+            'name', 'value', 'max-age', 'samesite', 'httponly', 'secure'
+        }
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_read_cookie_info(self):
@@ -118,7 +126,9 @@ class TestCookieHandlerEnc(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {"name", "value"}
+        assert set(_cookie_info.keys()) == {
+            'name', 'value', 'samesite', 'httponly', 'secure'
+        }
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_make_cookie_content_max_age(self):
@@ -126,7 +136,9 @@ class TestCookieHandlerEnc(object):
             "oidcop", "value", "sso", max_age=3600
         )
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {"name", "value", "Max-Age"}
+        assert set(_cookie_info.keys()) == {
+            'name', 'value', 'max-age', 'samesite', 'httponly', 'secure'
+        }
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_read_cookie_info(self):
@@ -168,7 +180,9 @@ class TestCookieHandlerSignEncKeys(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("oidcop", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {"name", "value"}
+        assert set(_cookie_info.keys()) == {
+            'name', 'value', 'samesite', 'httponly', 'secure'
+        }
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_make_cookie_content_max_age(self):
@@ -176,7 +190,9 @@ class TestCookieHandlerSignEncKeys(object):
             "oidcop", "value", "sso", max_age=3600
         )
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {"name", "value", "Max-Age"}
+        assert set(_cookie_info.keys()) == {
+            'name', 'value', 'max-age', 'samesite', 'httponly', 'secure'
+        }
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_read_cookie_info(self):

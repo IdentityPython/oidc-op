@@ -65,7 +65,7 @@ OP_DEFAULT_CONFIG = {
             }
         },
     },
-    "httpc_params": {"verify": False},
+    "httpc_params": {"verify": False, "timeout": 4},
     "issuer": "https://{domain}:{port}",
     "template_dir": "templates",
     "token_handler_args": {
@@ -103,9 +103,6 @@ def add_base_path(conf: Union[dict, str], base_path: str, file_attributes: List[
                 conf[key] = add_base_path(val, base_path, file_attributes)
 
     return conf
-
-
-URIS = ["issuer", "base_url"]
 
 
 def set_domain_and_port(conf: dict, uris: List[str], domain: str, port: int):
@@ -154,7 +151,7 @@ def create_from_config_file(
     )
 
 
-class Base:
+class Base(dict):
     """ Configuration base class """
 
     parameter = {}
@@ -162,6 +159,8 @@ class Base:
     def __init__(
             self, conf: Dict, base_path: str = "", file_attributes: Optional[List[str]] = None,
     ):
+        dict.__init__(self)
+
         if file_attributes is None:
             file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
 
@@ -169,27 +168,42 @@ class Base:
             # this adds a base path to all paths in the configuration
             add_base_path(conf, base_path, file_attributes)
 
-    def __getitem__(self, item):
-        if item in self.__dict__:
-            return self.__dict__[item]
-        else:
-            raise KeyError
+    def __getattr__(self, item):
+        return self[item]
 
-    def get(self, item, default=None):
-        return getattr(self, item, default)
+    def __setattr__(self, key, value):
+        if key in self:
+            raise KeyError('{} has already been set'.format(key))
+        super(Base, self).__setitem__(key, value)
 
-    def __contains__(self, item):
-        return item in self.__dict__
-
-    def items(self):
-        for key in self.__dict__:
-            if key.startswith("__") and key.endswith("__"):
-                continue
-            yield key, getattr(self, key)
+    def __setitem__(self, key, value):
+        if key in self:
+            raise KeyError('{} has already been set'.format(key))
+        super(Base, self).__setitem__(key, value)
 
 
 class EntityConfiguration(Base):
     default_config = AS_DEFAULT_CONFIG
+    uris = ["issuer", "base_url"]
+    parameter = {
+        "add_on": None,
+        "authz": None,
+        "authentication": None,
+        "base_url": "",
+        "capabilities": None,
+        "claims_interface": None,
+        "cookie_handler": None,
+        "endpoint": {},
+        "httpc_params": {},
+        "issuer": "",
+        "keys": None,
+        "session_key": None,
+        "template_dir": None,
+        "token_handler_args": {},
+        "userinfo": None,
+        "password": None,
+        "salt": None,
+    }
 
     def __init__(
             self,
@@ -204,40 +218,8 @@ class EntityConfiguration(Base):
         conf = copy.deepcopy(conf)
         Base.__init__(self, conf, base_path, file_attributes)
 
-        self.add_on = None
-        self.authz = None
-        self.authentication = None
-        self.base_url = ""
-        self.capabilities = None
-        self.claims_interface = None
-        self.cookie_handler = None
-        self.endpoint = {}
-        self.httpc_params = {}
-        self.issuer = ""
-        self.keys = None
-        self.template_dir = None
-        self.token_handler_args = {}
-        self.userinfo = None
-        self.session_params = None
-
         if file_attributes is None:
             file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
-
-        for key in self.__dict__.keys():
-            _val = conf.get(key)
-            if not _val:
-                if key in self.default_config:
-                    _dc = copy.deepcopy(self.default_config[key])
-                    add_base_path(_dc, base_path, file_attributes)
-                    _val = _dc
-                else:
-                    continue
-            setattr(self, key, _val)
-
-        if self.template_dir is None:
-            self.template_dir = os.path.abspath("templates")
-        else:
-            self.template_dir = os.path.abspath(self.template_dir)
 
         if not domain:
             domain = conf.get("domain", "127.0.0.1")
@@ -245,31 +227,55 @@ class EntityConfiguration(Base):
         if not port:
             port = conf.get("port", 80)
 
-        set_domain_and_port(conf, URIS, domain=domain, port=port)
+        for key in self.parameter.keys():
+            _val = conf.get(key)
+            if not _val:
+                if key in self.default_config:
+                    _val = copy.deepcopy(self.default_config[key])
+                    self.format(_val, base_path=base_path, file_attributes=file_attributes,
+                                domain=domain, port=port)
+                else:
+                    continue
+
+            if key == "template_dir":
+                _val = os.path.abspath(_val)
+
+            setattr(self, key, _val)
+
+        # try:
+        #     _dir = self.template_dir
+        # except AttributeError:
+        #     self.template_dir = os.path.abspath("templates")
+        # else:
+        #     self.template_dir =
+
+    def format(self, conf, base_path, file_attributes, domain, port):
+        """
+        Formats parts of the configuration. That includes replacing the strings {domain} and {port}
+        with the used domain and port and making references to files and directories absolute
+        rather then relative. The formatting is done in place.
+
+        :param conf: The configuration part
+        :param base_path: The base path used to make file/directory refrences absolute
+        :param file_attributes: Attribute names that refer to files or directories.
+        :param domain: The domain name
+        :param port: The port used
+        """
+        add_base_path(conf, base_path, file_attributes)
+        if isinstance(conf, dict):
+            set_domain_and_port(conf, self.uris, domain=domain, port=port)
 
 
 class OPConfiguration(EntityConfiguration):
     "Provider configuration"
     default_config = OP_DEFAULT_CONFIG
-
-    def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
-    ):
-        # OP special
-        self.id_token = None
-        self.login_hint2acrs = {}
-        self.login_hint_lookup = None
-
-        EntityConfiguration.__init__(self, conf=conf, base_path=base_path,
-                                     entity_conf=entity_conf, domain=domain, port=port,
-                                     file_attributes=file_attributes)
-
+    parameter = EntityConfiguration.parameter.copy()
+    parameter.update({
+        "id_token": None,
+        "login_hint2acrs": {},
+        "login_hint_lookup": None,
+        "sub_func": {}
+    })
 
 class ASConfiguration(EntityConfiguration):
     "Authorization server configuration"
@@ -290,6 +296,7 @@ class ASConfiguration(EntityConfiguration):
 
 class Configuration(Base):
     """Server Configuration"""
+    uris = ["issuer", "base_url"]
 
     def __init__(
             self,
@@ -316,7 +323,7 @@ class Configuration(Base):
         if not port:
             port = conf.get("port", 80)
 
-        set_domain_and_port(conf, URIS, domain=domain, port=port)
+        set_domain_and_port(conf, self.uris, domain=domain, port=port)
 
         if entity_conf:
             for econf in entity_conf:
@@ -496,7 +503,7 @@ DEFAULT_EXTENDED_CONF = {
             },
         },
     },
-    "httpc_params": {"verify": False},
+    "httpc_params": {"verify": False, "timeout": 4},
     "issuer": "https://{domain}:{port}",
     "keys": {
         "private_path": "private/jwks.json",
@@ -511,7 +518,8 @@ DEFAULT_EXTENDED_CONF = {
     "login_hint2acrs": {
         "class": "oidcop.login_hint.LoginHint2Acrs",
         "kwargs": {
-            "scheme_map": {"email": ["urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"]}
+            "scheme_map": {
+                "email": ["urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"]}
         },
     },
     "template_dir": "templates",

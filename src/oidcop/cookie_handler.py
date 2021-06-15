@@ -37,6 +37,7 @@ class CookieHandler:
         keys: Optional[dict] = None,
         sign_alg: [str] = "SHA256",
         name: Optional[dict] = None,
+        **kwargs
     ):
 
         if keys:
@@ -76,6 +77,15 @@ class CookieHandler:
             }
         else:
             self.name = name
+
+        self.flags = kwargs.get(
+            'flags',
+            {
+              "samesite": "None",
+              "httponly": True,
+              "secure": True,
+            }
+        )
 
     def _sign_enc_payload(self, payload: str, timestamp: Optional[Union[int, str]] = 0):
         """
@@ -211,9 +221,12 @@ class CookieHandler:
         content = {"name": name, "value": _cookie_value}
 
         if max_age == -1:
-            content["Expires"] = "Thu, 01 Jan 1970 00:00:00 GMT;"
+            content["expires"] = "Thu, 01 Jan 1970 00:00:00 GMT;"
         elif max_age:
-            content["Max-Age"] = epoch_in_a_while(seconds=max_age)
+            content["max-age"] = epoch_in_a_while(seconds=max_age)
+
+        for k,v in self.flags.items():
+            content[k] = v
 
         return content
 
