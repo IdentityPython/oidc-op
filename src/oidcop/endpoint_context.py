@@ -93,7 +93,7 @@ class EndpointContext(OidcContext):
         "args": {},
         # "authn_broker": AuthnBroker,
         # "authz": AuthzHandling,
-        "cdb": {},
+        "cdb": "DICT_TYPE",
         "conf": {},
         # "cookie_handler": None,
         "cwd": "",
@@ -129,8 +129,13 @@ class EndpointContext(OidcContext):
         OidcContext.__init__(self, conf, keyjar, entity_id=conf.get("issuer", ""))
         self.conf = conf
 
+        _client_db = conf.get("client_db")
+        if _client_db:
+            self.cdb = importer(_client_db["class"])(**_client_db["kwargs"])
+        else:
+            self.cdb = {}
+
         # For my Dev environment
-        self.cdb = {}
         self.jti_db = {}
         self.registration_access_token = {}
         # self.session_db = {}

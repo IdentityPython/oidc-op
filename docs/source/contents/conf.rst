@@ -156,9 +156,32 @@ An example::
       backchannel_logout_session_supported: True
       check_session_iframe: https://127.0.0.1:5000/check_session_iframe
 
--------------
+---------
+client_db
+---------
+
+If you're running an OP with static client registration you want to keep the
+registered clients in a database separate from the session database since
+it will change independent of the OP process. In this case you need this.
+If you are on the other hand only allowing dynamic client registration then
+keeping registered clients in the session database makes total sense.
+
+The class you reference in the specification MUST be a subclass of
+oidcmsg.storage.DictType and have some of the methods a dictionary has.
+
+An example::
+
+    client_db: {
+        "class": 'oidcmsg.abfile.AbstractFileSystem',
+        "kwargs": {
+            'fdir': full_path("afs"),
+            'value_conv': 'oidcmsg.util.JSON'
+        }
+    }
+
+--------------
 cookie_handler
--------------
+--------------
 
 An example::
 
