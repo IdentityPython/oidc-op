@@ -131,6 +131,7 @@ class EndpointContext(OidcContext):
 
         _client_db = conf.get("client_db")
         if _client_db:
+            logger.debug(f"Loading client db using: {_client_db}")
             self.cdb = importer(_client_db["class"])(**_client_db["kwargs"])
         else:
             self.cdb = {}
