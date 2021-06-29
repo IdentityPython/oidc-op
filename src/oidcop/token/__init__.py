@@ -15,6 +15,13 @@ __author__ = "Roland Hedberg"
 
 logger = logging.getLogger(__name__)
 
+ALT_TOKEN_NAME = {
+    "authorization_code": "A",
+    "access_token": "T",
+    "refresh_token": "R",
+    "id_token": "I"
+}
+
 
 def is_expired(exp, when=0):
     if exp < 0:
@@ -28,6 +35,11 @@ def is_expired(exp, when=0):
 class Token(object):
     def __init__(self, token_class, lifetime=300, **kwargs):
         self.token_class = token_class
+        try:
+            self.alt_token_name = ALT_TOKEN_NAME[token_class]
+        except KeyError:
+            self.alt_token_name = ""
+
         self.lifetime = lifetime
         self.kwargs = kwargs
 
@@ -70,7 +82,8 @@ class DefaultToken(Token):
         self.crypt = Crypt(password)
         self.token_type = token_type
 
-    def __call__(self, session_id: Optional[str] = "", token_class: Optional[str] = "", **payload) -> str:
+    def __call__(self, session_id: Optional[str] = "", token_class: Optional[str] = "",
+                 **payload) -> str:
         """
         Return a token.
 
@@ -112,9 +125,10 @@ class DefaultToken(Token):
         :return: dictionary with info about the token
         """
         _res = dict(zip(["_id", "token_class", "sid", "exp"], self.split_token(token)))
-        if _res["token_class"] != self.token_class:
+        if _res["token_class"] not in [self.token_class, self.alt_token_name]:
             raise WrongTokenClass(_res["token_class"])
         else:
+            _res["token_class"] = self.token_class
             _res["handler"] = self
             return _res
 
