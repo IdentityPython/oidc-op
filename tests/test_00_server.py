@@ -5,7 +5,7 @@ import json
 import os
 
 from cryptojwt.key_jar import build_keyjar
-from oidcmsg.abfile import AbstractFileSystem
+from oidcmsg.storage.abfile import AbstractFileSystem
 import yaml
 
 from oidcop.configure import OPConfiguration
@@ -151,7 +151,7 @@ def test_cdb():
 def test_cdb_afs():
     _cnf = copy(CONF)
     _cnf["client_db"] = {
-        "class": 'oidcmsg.abfile.AbstractFileSystem',
+        "class": 'oidcmsg.storage.abfile.AbstractFileSystem',
         "kwargs": {
             'fdir': full_path("afs"),
             'value_conv': 'oidcmsg.util.JSON'
