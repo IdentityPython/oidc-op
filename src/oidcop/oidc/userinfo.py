@@ -10,6 +10,7 @@ from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg import oidc
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
+from oidcop.session.claims import claims_match
 
 from oidcop.endpoint import Endpoint
 from oidcop.token.exception import UnknownToken
@@ -140,6 +141,11 @@ class UserInfo(Endpoint):
                 user_id=_session_info["user_id"], claims_restriction=_claims
             )
             info["sub"] = _grant.sub
+            if _claims:
+                _acr_request = _claims.get("acr")
+                if _acr_request:
+                    if claims_match(_grant.authentication_event["authn_info"], _acr):
+                        info["acr"] = _grant.authentication_event["authn_info"]
         else:
             info = {
                 "error": "invalid_request",
