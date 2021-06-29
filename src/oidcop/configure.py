@@ -192,6 +192,7 @@ class EntityConfiguration(Base):
         "base_url": "",
         "capabilities": None,
         "claims_interface": None,
+        "client_db": None,
         "cookie_handler": None,
         "endpoint": {},
         "httpc_params": {},
