@@ -134,6 +134,7 @@ class EndpointContext(OidcContext):
             logger.debug(f"Loading client db using: {_client_db}")
             self.cdb = importer(_client_db["class"])(**_client_db["kwargs"])
         else:
+            logger.debug("No special client db, will use memory based dictionary")
             self.cdb = {}
 
         # For my Dev environment
