@@ -144,7 +144,7 @@ class UserInfo(Endpoint):
             if _claims:
                 _acr_request = _claims.get("acr")
                 if _acr_request:
-                    if claims_match(_grant.authentication_event["authn_info"], _acr):
+                    if claims_match(_grant.authentication_event["authn_info"], _acr_request):
                         info["acr"] = _grant.authentication_event["authn_info"]
         else:
             info = {

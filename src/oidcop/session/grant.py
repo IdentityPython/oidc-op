@@ -9,6 +9,7 @@ from oidcmsg.oauth2 import AuthorizationRequest
 
 from oidcop.authn_event import AuthnEvent
 from oidcop.session import MintingNotAllowed
+from oidcop.session.claims import claims_match
 from oidcop.session.token import AccessToken
 from oidcop.session.token import AuthorizationCode
 from oidcop.session.token import IDToken
@@ -220,6 +221,13 @@ class Grant(Item):
         user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
         user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
         payload.update(user_info)
+
+        # Should I add the acr value
+        _release = self.claims.get(claims_release_point)
+        if _release:
+            _acr_request = _release.get("acr")
+            if claims_match(self.authentication_event["authn_info"], _acr_request):
+                payload["acr"] = self.authentication_event["authn_info"]
 
         return payload
 
