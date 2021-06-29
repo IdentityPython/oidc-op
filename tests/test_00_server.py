@@ -1,13 +1,15 @@
+from copy import copy
+from copy import deepcopy
 import io
 import json
 import os
-from copy import copy
 
-import yaml
 from cryptojwt.key_jar import build_keyjar
+from oidcmsg.storage.abfile import AbstractFileSystem
+import yaml
 
-import oidcop.login_hint
 from oidcop.configure import OPConfiguration
+import oidcop.login_hint
 from oidcop.oidc.add_on.pkce import add_pkce_support
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -32,7 +34,7 @@ KEYDEFS = [
 
 KEYJAR = build_keyjar(KEYDEFS)
 
-conf = {
+CONF = {
     "issuer": "https://example.com/",
     "password": "mycket hemligt",
     "verify_ssl": False,
@@ -44,8 +46,8 @@ conf = {
             "class": ProviderConfiguration,
             "kwargs": {},
         },
-        "registration_endpoint": {"path": "registration", "class": Registration, "kwargs": {},},
-        "authorization_endpoint": {"path": "authorization", "class": Authorization, "kwargs": {},},
+        "registration_endpoint": {"path": "registration", "class": Registration, "kwargs": {}, },
+        "authorization_endpoint": {"path": "authorization", "class": Authorization, "kwargs": {}, },
         "token_endpoint": {"path": "token", "class": Token, "kwargs": {}},
         "userinfo_endpoint": {
             "path": "userinfo",
@@ -114,14 +116,14 @@ def test_capabilities_default():
 
 
 def test_capabilities_subset1():
-    _cnf = copy(conf)
+    _cnf = deepcopy(CONF)
     _cnf["capabilities"] = {"response_types_supported": ["code"]}
     server = Server(_cnf)
     assert server.endpoint_context.provider_info["response_types_supported"] == ["code"]
 
 
 def test_capabilities_subset2():
-    _cnf = copy(conf)
+    _cnf = deepcopy(CONF)
     _cnf["capabilities"] = {"response_types_supported": ["code", "id_token"]}
     server = Server(_cnf)
     assert set(server.endpoint_context.provider_info["response_types_supported"]) == {
@@ -131,15 +133,29 @@ def test_capabilities_subset2():
 
 
 def test_capabilities_bool():
-    _cnf = copy(conf)
+    _cnf = deepcopy(CONF)
     _cnf["capabilities"] = {"request_uri_parameter_supported": False}
     server = Server(_cnf)
     assert server.endpoint_context.provider_info["request_uri_parameter_supported"] is False
 
 
 def test_cdb():
-    server = Server(conf)
+    _cnf = deepcopy(CONF)
+    server = Server(_cnf)
     _clients = yaml.safe_load(io.StringIO(client_yaml))
     server.endpoint_context.cdb = _clients["oidc_clients"]
 
     assert set(server.endpoint_context.cdb.keys()) == {"client1", "client2", "client3"}
+
+
+def test_cdb_afs():
+    _cnf = copy(CONF)
+    _cnf["client_db"] = {
+        "class": 'oidcmsg.storage.abfile.AbstractFileSystem',
+        "kwargs": {
+            'fdir': full_path("afs"),
+            'value_conv': 'oidcmsg.util.JSON'
+        }
+    }
+    server = Server(_cnf)
+    assert isinstance(server.endpoint_context.cdb, AbstractFileSystem)
