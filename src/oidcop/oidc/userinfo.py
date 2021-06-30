@@ -141,11 +141,8 @@ class UserInfo(Endpoint):
                 user_id=_session_info["user_id"], claims_restriction=_claims
             )
             info["sub"] = _grant.sub
-            if _claims:
-                _acr_request = _claims.get("acr")
-                if _acr_request:
-                    if claims_match(_grant.authentication_event["authn_info"], _acr_request):
-                        info["acr"] = _grant.authentication_event["authn_info"]
+            if _grant.add_acr_value("userinfo"):
+                info["acr"] = _grant.authentication_event["authn_info"]
         else:
             info = {
                 "error": "invalid_request",

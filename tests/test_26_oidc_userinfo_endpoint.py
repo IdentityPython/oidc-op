@@ -382,10 +382,11 @@ class TestEndpoint(object):
         assert args["error_description"] == "Invalid Token"
 
     def test_userinfo_claims(self):
+        _acr = "https://refeds.org/profile/mfa"
         _auth_req = AUTH_REQ.copy()
-        _auth_req["claims"] = {"userinfo": {"acr": {"value": "https://refeds.org/profile/mfa"}}}
+        _auth_req["claims"] = {"userinfo": {"acr": {"value": _acr}}}
 
-        session_id = self._create_session(_auth_req, authn_info="https://refeds.org/profile/mfa")
+        session_id = self._create_session(_auth_req, authn_info=_acr)
         grant = self.session_manager[session_id]
         code = self._mint_code(grant, session_id)
         access_token = self._mint_token("access_token", grant, session_id, code)
@@ -396,4 +397,24 @@ class TestEndpoint(object):
         args = self.endpoint.process_request(_req)
         assert args
         res = self.endpoint.do_response(request=_req, **args)
-        assert res
+        _response = json.loads(res["response"])
+        assert _response["acr"] == _acr
+
+    def test_userinfo_claims_acr_none(self):
+        _acr = "https://refeds.org/profile/mfa"
+        _auth_req = AUTH_REQ.copy()
+        _auth_req["claims"] = '{"userinfo": {"acr": null}}'
+
+        session_id = self._create_session(_auth_req, authn_info=_acr)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, session_id)
+        access_token = self._mint_token("access_token", grant, session_id, code)
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        _req = self.endpoint.parse_request({}, http_info=http_info)
+
+        args = self.endpoint.process_request(_req)
+        assert args
+        res = self.endpoint.do_response(request=_req, **args)
+        _response = json.loads(res["response"])
+        assert _response["acr"] == _acr

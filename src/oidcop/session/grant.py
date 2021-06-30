@@ -181,6 +181,14 @@ class Grant(Item):
 
         return self.scope
 
+    def add_acr_value(self, claims_release_point):
+        _release = self.claims.get(claims_release_point)
+        if _release:
+            _acr_request = _release.get("acr")
+            _used_acr = self.authentication_event.get("authn_info")
+            return claims_match(_used_acr, _acr_request)
+        return False
+
     def payload_arguments(
             self,
             session_id: str,
@@ -223,11 +231,8 @@ class Grant(Item):
         payload.update(user_info)
 
         # Should I add the acr value
-        _release = self.claims.get(claims_release_point)
-        if _release:
-            _acr_request = _release.get("acr")
-            if claims_match(self.authentication_event["authn_info"], _acr_request):
-                payload["acr"] = self.authentication_event["authn_info"]
+        if self.add_acr_value(claims_release_point):
+            payload["acr"] = self.authentication_event["authn_info"]
 
         return payload
 
