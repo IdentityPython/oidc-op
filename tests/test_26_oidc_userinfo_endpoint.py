@@ -403,7 +403,7 @@ class TestEndpoint(object):
     def test_userinfo_claims_acr_none(self):
         _acr = "https://refeds.org/profile/mfa"
         _auth_req = AUTH_REQ.copy()
-        _auth_req["claims"] = '{"userinfo": {"acr": null}}'
+        _auth_req["claims"] = {"userinfo": {"acr": None}}
 
         session_id = self._create_session(_auth_req, authn_info=_acr)
         grant = self.session_manager[session_id]
