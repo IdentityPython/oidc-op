@@ -452,6 +452,13 @@ class SessionManager(Database):
 
         return res
 
+    def _compatible_sid(self, sid):
+        # To be backward compatible is this an old time sid
+        p = self.unpack_session_key(sid)
+        if len(p) == 3:
+            sid = self.encrypted_session_id(*p)
+        return sid
+
     def get_session_info_by_token(
             self,
             token_value: str,
@@ -468,10 +475,8 @@ class SessionManager(Database):
         if not sid:
             raise WrongTokenClass
 
-        # To be backward compatible is this an oldtime sid
-        p = self.unpack_session_key(sid)
-        if len(p) == 3:
-            sid = self.encrypted_session_id(*p)
+        # To be backward compatible is this an old time sid
+        sid = self._compatible_sid(sid)
 
         return self.get_session_info(
             sid,
@@ -484,7 +489,8 @@ class SessionManager(Database):
 
     def get_session_id_by_token(self, token_value: str) -> str:
         _token_info = self.token_handler.info(token_value)
-        return _token_info["sid"]
+        sid = _token_info.get("sid")
+        return self._compatible_sid(sid)
 
     def add_grant(self, user_id: str, client_id: str, **kwargs) -> Grant:
         """
