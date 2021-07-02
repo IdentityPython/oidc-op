@@ -1,15 +1,15 @@
 import json
 import os
 
-from oidcop.configure import OPConfiguration
-import pytest
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac
+import pytest
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
+from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
@@ -105,8 +105,8 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "registration", "class": Registration, "kwargs": {},},
-                "authorization": {"path": "authorization", "class": Authorization, "kwargs": {},},
+                "registration": {"path": "registration", "class": Registration, "kwargs": {}, },
+                "authorization": {"path": "authorization", "class": Authorization, "kwargs": {}, },
                 "token": {
                     "path": "token",
                     "class": Token,
@@ -123,7 +123,7 @@ class TestEndpoint(object):
                     "path": "userinfo",
                     "class": userinfo.UserInfo,
                     "kwargs": {
-                        "claim_types_supported": ["normal", "aggregated", "distributed",],
+                        "claim_types_supported": ["normal", "aggregated", "distributed", ],
                         "client_authn_method": ["bearer_header"],
                     },
                 },
@@ -138,7 +138,13 @@ class TestEndpoint(object):
                     "acr": INTERNETPROTOCOLPASSWORD,
                     "class": "oidcop.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
+                },
+                "mfa": {
+                    "acr": "https://refeds.org/profile/mfa",
+                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "kwargs": {"user": "diana"},
                 }
+
             },
             "template_dir": "template",
             "add_on": {
@@ -172,14 +178,15 @@ class TestEndpoint(object):
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier="",
+                        authn_info=None):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
         client_id = authz_req["client_id"]
-        ae = create_authn_event(self.user_id)
+        ae = create_authn_event(self.user_id, authn_info=authn_info)
         return self.session_manager.create_session(
             ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
         )
@@ -210,28 +217,28 @@ class TestEndpoint(object):
         assert set(
             self.endpoint.server_get("endpoint_context").provider_info["claims_supported"]
         ) == {
-            "address",
-            "birthdate",
-            "email",
-            "email_verified",
-            "eduperson_scoped_affiliation",
-            "family_name",
-            "gender",
-            "given_name",
-            "locale",
-            "middle_name",
-            "name",
-            "nickname",
-            "phone_number",
-            "phone_number_verified",
-            "picture",
-            "preferred_username",
-            "profile",
-            "sub",
-            "updated_at",
-            "website",
-            "zoneinfo",
-        }
+                   "address",
+                   "birthdate",
+                   "email",
+                   "email_verified",
+                   "eduperson_scoped_affiliation",
+                   "family_name",
+                   "gender",
+                   "given_name",
+                   "locale",
+                   "middle_name",
+                   "name",
+                   "nickname",
+                   "phone_number",
+                   "phone_number_verified",
+                   "picture",
+                   "preferred_username",
+                   "profile",
+                   "sub",
+                   "updated_at",
+                   "website",
+                   "zoneinfo",
+               }
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ)
@@ -373,3 +380,41 @@ class TestEndpoint(object):
 
         assert isinstance(args, ResponseMessage)
         assert args["error_description"] == "Invalid Token"
+
+    def test_userinfo_claims(self):
+        _acr = "https://refeds.org/profile/mfa"
+        _auth_req = AUTH_REQ.copy()
+        _auth_req["claims"] = {"userinfo": {"acr": {"value": _acr}}}
+
+        session_id = self._create_session(_auth_req, authn_info=_acr)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, session_id)
+        access_token = self._mint_token("access_token", grant, session_id, code)
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        _req = self.endpoint.parse_request({}, http_info=http_info)
+
+        args = self.endpoint.process_request(_req)
+        assert args
+        res = self.endpoint.do_response(request=_req, **args)
+        _response = json.loads(res["response"])
+        assert _response["acr"] == _acr
+
+    def test_userinfo_claims_acr_none(self):
+        _acr = "https://refeds.org/profile/mfa"
+        _auth_req = AUTH_REQ.copy()
+        _auth_req["claims"] = {"userinfo": {"acr": None}}
+
+        session_id = self._create_session(_auth_req, authn_info=_acr)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, session_id)
+        access_token = self._mint_token("access_token", grant, session_id, code)
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        _req = self.endpoint.parse_request({}, http_info=http_info)
+
+        args = self.endpoint.process_request(_req)
+        assert args
+        res = self.endpoint.do_response(request=_req, **args)
+        _response = json.loads(res["response"])
+        assert _response["acr"] == _acr

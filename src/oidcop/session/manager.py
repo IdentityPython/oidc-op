@@ -38,7 +38,7 @@ class PairWiseID(object):
             if os.path.isfile(filename):
                 self.salt = open(filename).read()
             elif not os.path.isfile(filename) and os.path.exists(
-                filename
+                    filename
             ):  # Not a file, Something else
                 raise ConfigurationError("Salt filename points to something that is not a file")
             else:
@@ -73,7 +73,8 @@ class SessionManager(Database):
     init_args = ["handler"]
 
     def __init__(
-        self, handler: TokenHandler, conf: Optional[dict] = None, sub_func: Optional[dict] = None,
+            self, handler: TokenHandler, conf: Optional[dict] = None,
+            sub_func: Optional[dict] = None,
     ):
         self.conf = conf or {}
 
@@ -125,9 +126,9 @@ class SessionManager(Database):
 
     def _init_db(self):
         Database.__init__(
-                    self,
-                    key=self.load_key(),
-                    salt=self.load_salt()
+            self,
+            key=self.load_key(),
+            salt=self.load_salt()
         )
 
     def get_user_info(self, uid: str) -> UserSessionInfo:
@@ -153,14 +154,14 @@ class SessionManager(Database):
         return None  # pragma: no cover
 
     def create_grant(
-        self,
-        authn_event: AuthnEvent,
-        auth_req: AuthorizationRequest,
-        user_id: str,
-        client_id: Optional[str] = "",
-        sub_type: Optional[str] = "public",
-        token_usage_rules: Optional[dict] = None,
-        scopes: Optional[list] = None,
+            self,
+            authn_event: AuthnEvent,
+            auth_req: AuthorizationRequest,
+            user_id: str,
+            client_id: Optional[str] = "",
+            sub_type: Optional[str] = "public",
+            token_usage_rules: Optional[dict] = None,
+            scopes: Optional[list] = None,
     ) -> str:
         """
 
@@ -175,14 +176,16 @@ class SessionManager(Database):
         """
         sector_identifier = auth_req.get("sector_identifier_uri", "")
 
+        _claims = auth_req.get("claims", {})
+
         grant = Grant(
             authorization_request=auth_req,
             authentication_event=authn_event,
-            sub=self.sub_func[sub_type](
-                user_id, salt=self.salt, sector_identifier=sector_identifier
-            ),
+            sub=self.sub_func[sub_type](user_id, salt=self.salt,
+                                        sector_identifier=sector_identifier),
             usage_rules=token_usage_rules,
             scope=scopes,
+            claims=_claims
         )
 
         self.set([user_id, client_id, grant.id], grant)
@@ -190,14 +193,14 @@ class SessionManager(Database):
         return self.encrypted_session_id(user_id, client_id, grant.id)
 
     def create_session(
-        self,
-        authn_event: AuthnEvent,
-        auth_req: AuthorizationRequest,
-        user_id: str,
-        client_id: Optional[str] = "",
-        sub_type: Optional[str] = "public",
-        token_usage_rules: Optional[dict] = None,
-        scopes: Optional[list] = None,
+            self,
+            authn_event: AuthnEvent,
+            auth_req: AuthorizationRequest,
+            user_id: str,
+            client_id: Optional[str] = "",
+            sub_type: Optional[str] = "public",
+            token_usage_rules: Optional[dict] = None,
+            scopes: Optional[list] = None,
     ) -> str:
         """
         Create part of a user session. The parts added are user- and client
@@ -309,10 +312,10 @@ class SessionManager(Database):
             self._revoke_dependent(grant, token)
 
     def get_authentication_events(
-        self,
-        session_id: Optional[str] = "",
-        user_id: Optional[str] = "",
-        client_id: Optional[str] = "",
+            self,
+            session_id: Optional[str] = "",
+            user_id: Optional[str] = "",
+            client_id: Optional[str] = "",
     ) -> List[AuthnEvent]:
         """
         Return the authentication events that exists for a user/client combination.
@@ -371,10 +374,10 @@ class SessionManager(Database):
         self.set(_path, _info)
 
     def grants(
-        self,
-        session_id: Optional[str] = "",
-        user_id: Optional[str] = "",
-        client_id: Optional[str] = "",
+            self,
+            session_id: Optional[str] = "",
+            user_id: Optional[str] = "",
+            client_id: Optional[str] = "",
     ) -> List[Grant]:
         """
         Find all grant connected to a user session
@@ -395,13 +398,13 @@ class SessionManager(Database):
         return [self.get([user_id, client_id, gid]) for gid in _csi.subordinate]
 
     def get_session_info(
-        self,
-        session_id: str,
-        user_session_info: bool = False,
-        client_session_info: bool = False,
-        grant: bool = False,
-        authentication_event: bool = False,
-        authorization_request: bool = False,
+            self,
+            session_id: str,
+            user_session_info: bool = False,
+            client_session_info: bool = False,
+            grant: bool = False,
+            authentication_event: bool = False,
+            authorization_request: bool = False,
     ) -> dict:
         """
         Returns information connected to a session.
@@ -449,13 +452,13 @@ class SessionManager(Database):
         return res
 
     def get_session_info_by_token(
-        self,
-        token_value: str,
-        user_session_info: bool = False,
-        client_session_info: bool = False,
-        grant: bool = False,
-        authentication_event: bool = False,
-        authorization_request: bool = False,
+            self,
+            token_value: str,
+            user_session_info: bool = False,
+            client_session_info: bool = False,
+            grant: bool = False,
+            authentication_event: bool = False,
+            authorization_request: bool = False,
     ) -> dict:
         _token_info = self.token_handler.info(token_value)
         sid = _token_info.get("sid")
