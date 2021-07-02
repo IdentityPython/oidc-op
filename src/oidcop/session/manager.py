@@ -76,6 +76,7 @@ class SessionManager(Database):
             self, handler: TokenHandler, conf: Optional[dict] = None,
             sub_func: Optional[dict] = None,
     ):
+        super(SessionManager, self).__init__()
         self.conf = conf or {}
 
         # these won't change runtime
@@ -466,6 +467,11 @@ class SessionManager(Database):
         # _token_info
         if not sid:
             raise WrongTokenClass
+
+        # To be backward compatible is this an oldtime sid
+        p = self.unpack_session_key(sid)
+        if len(p) == 3:
+            sid = self.encrypted_session_id(*p)
 
         return self.get_session_info(
             sid,

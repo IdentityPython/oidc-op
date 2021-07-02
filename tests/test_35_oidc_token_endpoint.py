@@ -2,7 +2,6 @@ import base64
 import json
 import os
 
-import pytest
 from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oidc import AccessTokenRequest
@@ -10,6 +9,7 @@ from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import utc_time_sans_frac
+import pytest
 
 from oidcop import JWT_BEARER
 from oidcop.authn_event import create_authn_event
@@ -812,6 +812,25 @@ class TestOldTokens(object):
 
         _info = self.session_manager.token_handler.info(_old_type_value)
         assert _info["token_class"] == "authorization_code"
+
+    def test_old_default_token_sid_unencrypted(self):
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+        # pack and unpack
+        _handler = self.session_manager.token_handler.handler["authorization_code"]
+        _res = dict(zip(["_id", "token_class", "sid", "exp"], _handler.split_token(code.value)))
+
+        _clear_txt_sid = self.session_manager.session_key(
+            *self.session_manager.decrypt_session_id(_res["sid"]))
+
+        _old_type_token = base64.b64encode(
+            _handler.crypt.encrypt(lv_pack(_res["_id"], "A", _clear_txt_sid, _res["exp"]).encode())
+        ).decode("utf-8")
+
+        _session_info = self.session_manager.get_session_info_by_token(_old_type_token)
+        assert _session_info["user_id"] == "diana"
 
     def test_old_jwt_token(self):
         session_id = self._create_session(AUTH_REQ)
