@@ -169,6 +169,9 @@ keeping registered clients in the session database makes total sense.
 The class you reference in the specification MUST be a subclass of
 oidcmsg.storage.DictType and have some of the methods a dictionary has.
 
+Note also that this class MUST support the dump and load methods as defined
+in :py:class:`oidcmsg.impexp.ImpExp`.
+
 An example::
 
     client_db: {
