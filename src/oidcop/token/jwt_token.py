@@ -6,10 +6,11 @@ from cryptojwt.jws.exception import JWSException
 
 from oidcop.exception import ToOld
 from oidcop.token import Crypt
+from oidcop.token.exception import WrongTokenClass
+
 from . import Token
 from . import is_expired
 from .exception import UnknownToken
-
 
 # TYPE_MAP = {"A": "code", "T": "access_token", "R": "refresh_token"}
 
@@ -58,10 +59,11 @@ class JWTToken(Token):
         :param payload: A dictionary with information that is part of the payload of the JWT.
         :return: Signed JSON Web Token
         """
-        if not token_class and self.token_class:
-            token_class = self.token_class
-        else:
-            token_class = "authorization_code"
+        if not token_class:
+            if self.token_class:
+                token_class = self.token_class
+            else:
+                token_class = "authorization_code"
 
         payload.update({"sid": session_id, "token_class": token_class})
         payload = self.load_custom_claims(payload)
@@ -86,13 +88,21 @@ class JWTToken(Token):
 
     def info(self, token):
         """
-        Return type of Token (A=Access code, T=Token, R=Refresh token) and
-        the session id.
+        Return token information
 
         :param token: A token
-        :return: tuple of token type and session id
+        :return: dictionary with token information
         """
         _payload = self.get_payload(token)
+
+        _class = _payload.get("ttype")
+        if _class is None:
+            _class = _payload.get("token_class")
+
+        if _class not in [self.token_class, self.alt_token_name]:
+            raise WrongTokenClass(_payload["token_class"])
+        else:
+            _payload["token_class"] = self.token_class
 
         if is_expired(_payload["exp"]):
             raise ToOld("Token has expired")

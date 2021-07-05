@@ -115,6 +115,11 @@ conf = {
             "acr": INTERNETPROTOCOLPASSWORD,
             "class": "oidcop.user_authn.user.NoAuthn",
             "kwargs": {"user": "diana"},
+        },
+        "mfa": {
+            "acr": 'https://refeds.org/profile/mfa',
+            "class": "oidcop.user_authn.user.NoAuthn",
+            "kwargs": {"user": "diana"},
         }
     },
     "session_manager": {
@@ -170,7 +175,7 @@ class TestEndpoint(object):
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = USER_ID
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier="", authn_info=''):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
@@ -178,7 +183,7 @@ class TestEndpoint(object):
             authz_req = auth_req
 
         client_id = authz_req["client_id"]
-        ae = create_authn_event(self.user_id)
+        ae = create_authn_event(self.user_id, authn_info=authn_info)
         return self.session_manager.create_session(
             ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
         )
@@ -587,3 +592,20 @@ class TestEndpoint(object):
         get_sign_and_encrypt_algorithms(
             endpoint_context, client_info, payload_type="id_token", sign=True, encrypt=True
         )
+
+    def test_id_token_acr_claim(self):
+        _req = AREQS.copy()
+        _req["claims"] = {"id_token": {"acr": {"value": "https://refeds.org/profile/mfa"}}}
+
+        session_id = self._create_session(_req,authn_info="https://refeds.org/profile/mfa")
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, session_id)
+        access_token = self._mint_access_token(grant, session_id, code)
+
+        id_token = self._mint_id_token(
+            grant, session_id, token_ref=code, access_token=access_token.value
+        )
+
+        _jwt = factory(id_token.value)
+        _id_token_content = _jwt.jwt.payload()
+        assert _id_token_content["acr"] == "https://refeds.org/profile/mfa"

@@ -108,6 +108,19 @@ class AuthnBroker(object):
             return None
 
 
+def _acr_claim(request):
+    _claims = request.get("claims")
+    if _claims:
+        _id_token_claim = _claims.get("id_token")
+        if _id_token_claim:
+            _acr = _id_token_claim.get("acr")
+            if 'value' in _acr:
+                return [_acr["value"]]
+            elif 'values' in _acr:
+                return _acr["values"]
+    return None
+
+
 def pick_auth(endpoint_context, areq, pick_all=False):
     """
     Pick authentication method
@@ -125,9 +138,8 @@ def pick_auth(endpoint_context, areq, pick_all=False):
         acrs = areq["acr_values"]
 
     else:
-        try:
-            acrs = areq["claims"]["id_token"]["acr"]["values"]
-        except KeyError:
+        acrs = _acr_claim(areq)
+        if not acrs:
             _ith = verified_claim_name("id_token_hint")
             if areq.get(_ith):
                 _ith = areq[verified_claim_name("id_token_hint")]

@@ -4,6 +4,8 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
+from cryptojwt.jws.jws import factory
+
 from oidcop.configure import OPConfiguration
 import pytest
 import responses
@@ -989,6 +991,177 @@ class TestEndpoint(object):
 
         # With login_hint and login_hint_lookup
         assert self.endpoint.do_request_user(request) == {"req_user": "diana"}
+
+class TestACR(object):
+    @pytest.fixture(autouse=True)
+    def create_endpoint(self):
+        conf = {
+            "issuer": "https://example.com/",
+            "password": "mycket hemligt zebra",
+            "verify_ssl": False,
+            "capabilities": CAPABILITIES,
+            "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+            "token_handler_args": {
+                "jwks_file": "private/token_jwks.json",
+                "code": {"kwargs": {"lifetime": 600}},
+                "token": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "add_claims_by_scope": True,
+                        "aud": ["https://example.org/appl"],
+                    },
+                },
+                "refresh": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                },
+                "id_token": {
+                    "class": "oidcop.token.id_token.IDToken",
+                    "kwargs": {
+                        "base_claims": {
+                            "email": {"essential": True},
+                            "email_verified": {"essential": True},
+                            "given_name": {"essential": True},
+                            "nickname": None,
+                        }
+                    },
+                },
+            },
+            "endpoint": {
+                "provider_config": {
+                    "path": "{}/.well-known/openid-configuration",
+                    "class": ProviderConfiguration,
+                    "kwargs": {},
+                },
+                "registration": {"path": "{}/registration", "class": Registration,
+                                 "kwargs": {}, },
+                "authorization": {
+                    "path": "{}/authorization",
+                    "class": Authorization,
+                    "kwargs": {
+                        "response_types_supported": [" ".join(x) for x in
+                                                     RESPONSE_TYPES_SUPPORTED],
+                        "response_modes_supported": ["query", "fragment", "form_post"],
+                        "claims_parameter_supported": True,
+                        "request_parameter_supported": True,
+                        "request_uri_parameter_supported": True,
+                    },
+                },
+                "token": {
+                    "path": "token",
+                    "class": Token,
+                    "kwargs": {
+                        "client_authn_method": [
+                            "client_secret_post",
+                            "client_secret_basic",
+                            "client_secret_jwt",
+                            "private_key_jwt",
+                        ]
+                    },
+                },
+                "userinfo": {
+                    "path": "userinfo",
+                    "class": userinfo.UserInfo,
+                    "kwargs": {
+                        "db_file": "users.json",
+                        "claim_types_supported": ["normal", "aggregated", "distributed", ],
+                    },
+                },
+            },
+            "authentication": {
+                "anon": {
+                    "acr": "http://www.swamid.se/policy/assurance/al1",
+                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "kwargs": {"user": "diana"},
+                },
+                "mfa": {
+                    "acr": "https://refeds.org/profile/mfa",
+                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "kwargs": {"user": "diana"},
+                }
+            },
+            "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_db}},
+            "template_dir": "template",
+            "authz": {
+                "class": AuthzHandling,
+                "kwargs": {
+                    "grant_config": {
+                        "usage_rules": {
+                            "authorization_code": {
+                                "supports_minting": ["access_token", "refresh_token",
+                                                     "id_token", ],
+                                "max_usage": 1,
+                            },
+                            "access_token": {},
+                            "refresh_token": {
+                                "supports_minting": ["access_token", "refresh_token"],
+                            },
+                        },
+                        "expires_in": 43200,
+                    }
+                },
+            },
+            "cookie_handler": {
+                "class": CookieHandler,
+                "kwargs": {
+                    "sign_key": "ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch",
+                    "name": {
+                        "session": "oidc_op",
+                        "register": "oidc_op_reg",
+                        "session_management": "oidc_op_sman",
+                    },
+                },
+            },
+            "login_hint2acrs": {
+                "class": LoginHint2Acrs,
+                "kwargs": {"scheme_map": {"email": [INTERNETPROTOCOLPASSWORD]}},
+            },
+        }
+        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+
+        endpoint_context = server.endpoint_context
+
+        _clients = yaml.safe_load(io.StringIO(client_yaml))
+        endpoint_context.cdb = _clients["oidc_clients"]
+        endpoint_context.keyjar.import_jwks(
+            endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
+        )
+        self.endpoint = server.server_get("endpoint", "authorization")
+        self.session_manager = endpoint_context.session_manager
+        self.user_id = "diana"
+
+        self.rp_keyjar = KeyJar()
+        self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+        endpoint_context.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+
+    def test_setup_acr_claim(self):
+        request = AuthorizationRequest(
+            client_id="client_1",
+            redirect_uri="https://example.com/cb",
+            response_type=["id_token"],
+            state="state",
+            nonce="nonce",
+            scope="openid",
+            claims={"id_token": {"acr": {"value": "https://refeds.org/profile/mfa"}}}
+        )
+
+        redirect_uri = request["redirect_uri"]
+        _context = self.endpoint.server_get("endpoint_context")
+        cinfo = _context.cdb["client_1"]
+
+        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
+        _session_info = self.session_manager.get_session_info(session_id=res["session_id"],
+                                                              grant=True)
+        _grant = _session_info["grant"]
+        assert _grant.authentication_event["authn_info"] == "https://refeds.org/profile/mfa"
+
+        id_token = self.endpoint.mint_token("id_token", _grant, res["session_id"])
+        assert id_token
+        _jws = factory(id_token.value)
+        _payload = _jws.jwt.payload()
+        assert 'acr' in _payload
+        assert _payload["acr"] == "https://refeds.org/profile/mfa"
 
 
 def test_authn_args_gather_message():
