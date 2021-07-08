@@ -134,6 +134,7 @@ class IDToken(Token):
             self, session_id, alg="RS256", code=None, access_token=None, extra_claims=None,
     ):
         """
+        Collect payload for the ID Token.
 
         :param session_id: Session identifier
         :param alg: Which signing algorithm to use for the IdToken
@@ -196,6 +197,8 @@ class IDToken(Token):
                 _args["nonce"] = authn_req["nonce"]
             except KeyError:
                 pass
+
+        logger.debug(f"Constructed ID Token payload: {_args}")
 
         return _args
 
@@ -296,6 +299,8 @@ class IDToken(Token):
             _payload = verifier.unpack(token)
         except JWSException:
             raise UnknownToken()
+
+        logger.debug(f"Received ID Token payload: {_payload}")
 
         if is_expired(_payload["exp"]):
             raise ToOld("Token has expired")

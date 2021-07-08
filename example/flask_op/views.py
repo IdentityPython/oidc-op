@@ -32,6 +32,7 @@ def _add_cookie(resp, cookie_spec):
               for k,v in cookie_spec.items()
               if k not in ('name',)}
     kwargs["path"] = "/"
+    kwargs["samesite"] = "Lax"
     resp.set_cookie(cookie_spec["name"], **kwargs)
 
 

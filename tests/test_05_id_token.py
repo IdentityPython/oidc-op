@@ -609,3 +609,20 @@ class TestEndpoint(object):
         _jwt = factory(id_token.value)
         _id_token_content = _jwt.jwt.payload()
         assert _id_token_content["acr"] == "https://refeds.org/profile/mfa"
+
+    def test_id_token_acr_none(self):
+        _req = AREQS.copy()
+        _req["claims"] = {"id_token": {"acr": None}}
+
+        session_id = self._create_session(_req,authn_info="https://refeds.org/profile/mfa")
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, session_id)
+        access_token = self._mint_access_token(grant, session_id, code)
+
+        id_token = self._mint_id_token(
+            grant, session_id, token_ref=code, access_token=access_token.value
+        )
+
+        _jwt = factory(id_token.value)
+        _id_token_content = _jwt.jwt.payload()
+        assert _id_token_content["acr"] == "https://refeds.org/profile/mfa"
