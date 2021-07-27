@@ -255,4 +255,4 @@ class TestUserAuthn(object):
 
         assert len(csi1.subordinate) == 2
         assert len(csi2.subordinate) == 1
-        assert len(csi3.subordinate) == 1
+        assert len(csi3.subordinate) == 2
