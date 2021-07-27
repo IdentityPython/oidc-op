@@ -41,7 +41,11 @@ class ClaimsInterface:
 
     def _get_client_claims(self, client_id, usage):
         client_info = self.server_get("endpoint_context").cdb.get(client_id, {})
-        client_claims = client_info.get("{}_claims".format(usage), {})
+        client_claims = (
+            client_info.get("add_claims", {})
+            .get("always", {})
+            .get(usage, {})
+        )
         if isinstance(client_claims, list):
             client_claims = {k: None for k in client_claims}
         return client_claims
@@ -94,8 +98,19 @@ class ClaimsInterface:
 
         claims.update(base_claims)
 
-        # Scopes can in some cases equate to set of claims, is that used here ?
-        if module.kwargs.get("add_claims_by_scope"):
+        # If specific client configuration exists overwrite add_claims_by_scope
+        if client_id in _context.cdb:
+            add_claims_by_scope = (
+                _context.cdb[client_id].get("add_claims", {})
+                .get("by_scope", {})
+                .get(claims_release_point, {})
+            )
+            if isinstance(add_claims_by_scope, dict) and not add_claims_by_scope:
+                add_claims_by_scope = module.kwargs.get("add_claims_by_scope")
+        else:
+            add_claims_by_scope = module.kwargs.get("add_claims_by_scope")
+
+        if add_claims_by_scope:
             if scopes:
                 _scopes = _context.scopes_handler.filter_scopes(client_id, _context, scopes)
 
