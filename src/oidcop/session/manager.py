@@ -12,6 +12,7 @@ from oidcop.authn_event import AuthnEvent
 from oidcop.exception import ConfigurationError
 from oidcop.token import handler
 from oidcop.util import Crypt
+from oidcop.session.database import NoSuchClientSession
 from .database import Database
 from .grant import Grant
 from .grant import SessionToken
@@ -226,9 +227,11 @@ class SessionManager(Database):
         if not client_id:
             client_id = auth_req["client_id"]
 
-        client_info = ClientSessionInfo(client_id=client_id)
-
-        self.set([user_id, client_id], client_info)
+        try:
+            self.get([user_id, client_id])
+        except (NoSuchClientSession, ValueError):
+            client_info = ClientSessionInfo(client_id=client_id)
+            self.set([user_id, client_id], client_info)
 
         return self.create_grant(
             auth_req=auth_req,
