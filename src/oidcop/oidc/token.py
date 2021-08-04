@@ -218,7 +218,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         _resp = {
             "access_token": access_token.value,
             "token_type": token_type,
-            "scope": _grant.scope,
+            "scope": scope,
         }
 
         if access_token.expires_at:
@@ -307,7 +307,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         if "scope" in request:
             req_scopes = set(request["scope"])
             scopes = set(grant.find_scope(token.based_on))
-            if scopes < req_scopes:
+            if not req_scopes.issubset(scopes):
                 return self.error_cls(
                     error="invalid_request",
                     error_description="Invalid refresh scopes",

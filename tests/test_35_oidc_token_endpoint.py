@@ -485,7 +485,7 @@ class TestEndpoint(object):
             _session_info["session_id"], _resp["response_args"]["refresh_token"]
         )
 
-        assert at.scope == rt.scope == _request["scope"]
+        assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
 
     def test_refresh_more_scopes(self):
         areq = AUTH_REQ.copy()
@@ -590,7 +590,7 @@ class TestEndpoint(object):
             _session_info["session_id"], _resp["response_args"]["refresh_token"]
         )
 
-        assert at.scope == rt.scope == _request["scope"]
+        assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
 
     def test_refresh_less_scopes(self):
         areq = AUTH_REQ.copy()
@@ -635,6 +635,7 @@ class TestEndpoint(object):
         )
 
         assert "email" not in idtoken
+        assert  _resp["response_args"]["scope"] == ["openid", "offline_access"]
 
     def test_refresh_no_openid_scope(self):
         areq = AUTH_REQ.copy()
@@ -673,6 +674,7 @@ class TestEndpoint(object):
             "refresh_token",
             "scope",
         }
+        assert _resp["response_args"]["scope"] == ["offline_access"]
 
     def test_refresh_no_offline_access_scope(self):
         areq = AUTH_REQ.copy()
@@ -716,6 +718,7 @@ class TestEndpoint(object):
             self.endpoint_context.keyjar,
             sender="",
         )
+        assert _resp["response_args"]["scope"] == ["openid"]
 
     def test_new_refresh_token(self, conf):
         self.endpoint_context.cdb["client_1"] = {
