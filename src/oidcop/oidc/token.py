@@ -246,7 +246,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         if "id_token" in _mints and "openid" in scope:
             try:
                 _idtoken = self._mint_token(
-                    token_class="refresh_token",
+                    token_class="id_token",
                     grant=_grant,
                     session_id=_session_info["session_id"],
                     client_id=_session_info["client_id"],

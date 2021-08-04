@@ -2,14 +2,15 @@ import base64
 import json
 import os
 
+import pytest
 from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import utc_time_sans_frac
-import pytest
 
 from oidcop import JWT_BEARER
 from oidcop.authn_event import create_authn_event
@@ -372,6 +373,10 @@ class TestEndpoint(object):
             "id_token",
             "scope",
         }
+        AuthorizationResponse().from_jwt(
+            _resp["response_args"]["id_token"], _cntx.keyjar, sender=""
+        )
+
         msg = self.token_endpoint.do_response(request=_req, **_resp)
         assert isinstance(msg, dict)
 
@@ -420,6 +425,10 @@ class TestEndpoint(object):
             "id_token",
             "scope",
         }
+        AuthorizationResponse().from_jwt(
+            _2nd_resp["response_args"]["id_token"], _cntx.keyjar, sender=""
+        )
+
         msg = self.token_endpoint.do_response(request=_req, **_resp)
         assert isinstance(msg, dict)
 
@@ -460,6 +469,11 @@ class TestEndpoint(object):
             "id_token",
             "scope",
         }
+        AuthorizationResponse().from_jwt(
+            _resp["response_args"]["id_token"],
+            self.endpoint_context.keyjar,
+            sender="",
+        )
 
         _token_value = _resp["response_args"]["access_token"]
         _session_info = self.session_manager.get_session_info_by_token(_token_value)
@@ -560,6 +574,11 @@ class TestEndpoint(object):
             "id_token",
             "scope",
         }
+        AuthorizationResponse().from_jwt(
+            _resp["response_args"]["id_token"],
+            self.endpoint_context.keyjar,
+            sender="",
+        )
 
         _token_value = _resp["response_args"]["access_token"]
         _session_info = self.session_manager.get_session_info_by_token(_token_value)
@@ -647,6 +666,11 @@ class TestEndpoint(object):
             "id_token",
             "scope",
         }
+        AuthorizationResponse().from_jwt(
+            _resp["response_args"]["id_token"],
+            self.endpoint_context.keyjar,
+            sender="",
+        )
 
     def test_new_refresh_token(self, conf):
         self.endpoint_context.cdb["client_1"] = {
