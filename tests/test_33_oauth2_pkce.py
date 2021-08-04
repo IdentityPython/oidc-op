@@ -4,7 +4,6 @@ import os
 import secrets
 import string
 
-from oidcop.configure import ASConfiguration
 import pytest
 import yaml
 from oidcmsg.message import Message
@@ -15,6 +14,7 @@ from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import TokenErrorResponse
 
 import oidcop.oauth2.introspection
+from oidcop.configure import ASConfiguration
 from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
 from oidcop.endpoint import Endpoint
@@ -273,6 +273,41 @@ class TestEndpoint(object):
         authn_endpoint = server.server_get("endpoint", "authorization")
         token_endpoint = server.server_get("endpoint", "token")
         _authn_req = AUTH_REQ.copy()
+
+        _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
+        resp = authn_endpoint.process_request(_pr_resp)
+
+        assert isinstance(resp["response_args"], AuthorizationResponse)
+
+        _token_request = TOKEN_REQ.copy()
+        _token_request["code"] = resp["response_args"]["code"]
+        _req = token_endpoint.parse_request(_token_request)
+
+        assert isinstance(_req, Message)
+
+    def test_essential_per_client(self, conf):
+        conf["add_on"]["pkce"]["kwargs"]["essential"] = False
+        server = create_server(conf)
+        authn_endpoint = server.server_get("endpoint", "authorization")
+        token_endpoint = server.server_get("endpoint", "token")
+        _authn_req = AUTH_REQ.copy()
+        endpoint_context = server.server_get("endpoint_context")
+        endpoint_context.cdb[AUTH_REQ["client_id"]]["pkce_essential"] = True
+
+        _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
+
+        assert isinstance(_pr_resp, AuthorizationErrorResponse)
+        assert _pr_resp["error"] == "invalid_request"
+        assert _pr_resp["error_description"] == "Missing required code_challenge"
+
+    def test_not_essential_per_client(self, conf):
+        conf["add_on"]["pkce"]["kwargs"]["essential"] = True
+        server = create_server(conf)
+        authn_endpoint = server.server_get("endpoint", "authorization")
+        token_endpoint = server.server_get("endpoint", "token")
+        _authn_req = AUTH_REQ.copy()
+        endpoint_context = server.server_get("endpoint_context")
+        endpoint_context.cdb[AUTH_REQ["client_id"]]["pkce_essential"] = False
 
         _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
         resp = authn_endpoint.process_request(_pr_resp)

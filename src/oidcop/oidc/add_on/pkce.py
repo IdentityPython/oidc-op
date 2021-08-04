@@ -3,11 +3,9 @@ import logging
 from typing import Dict
 
 from cryptojwt.utils import b64e
-from oidcmsg.oauth2 import (
-    AuthorizationErrorResponse,
-    RefreshAccessTokenRequest,
-    TokenExchangeRequest,
-)
+from oidcmsg.oauth2 import AuthorizationErrorResponse
+from oidcmsg.oauth2 import RefreshAccessTokenRequest
+from oidcmsg.oauth2 import TokenExchangeRequest
 from oidcmsg.oidc import TokenErrorResponse
 
 from oidcop.endpoint import Endpoint
@@ -41,7 +39,12 @@ def post_authn_parse(request, client_id, endpoint_context, **kwargs):
     :param kwargs:
     :return:
     """
-    if endpoint_context.args["pkce"]["essential"] and "code_challenge" not in request:
+    client = endpoint_context.cdb[client_id]
+    if "pkce_essential" in client:
+        essential = client["pkce_essential"]
+    else:
+        essential = endpoint_context.args["pkce"]["essential"]
+    if essential and "code_challenge" not in request:
         return AuthorizationErrorResponse(
             error="invalid_request", error_description="Missing required code_challenge",
         )
