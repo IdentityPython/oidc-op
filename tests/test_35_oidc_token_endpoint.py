@@ -197,6 +197,7 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
         }
         endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
+        endpoint_context.userinfo = USERINFO
         self.session_manager = endpoint_context.session_manager
         self.token_endpoint = server.server_get("endpoint", "token")
         self.user_id = "diana"
@@ -590,6 +591,50 @@ class TestEndpoint(object):
         )
 
         assert at.scope == rt.scope == _request["scope"]
+
+    def test_refresh_less_scopes(self):
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["openid", "offline_access", "email"]
+
+        self.session_manager.token_handler.handler["id_token"].kwargs["add_claims_by_scope"] = True
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req)
+        idtoken = AuthorizationResponse().from_jwt(
+            _resp["response_args"]["id_token"],
+            self.endpoint_context.keyjar,
+            sender="",
+        )
+
+        assert "email" in idtoken
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+        _request["scope"] = ["openid", "offline_access"]
+
+        _token_value = _resp["response_args"]["refresh_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token.usage_rules["supports_minting"] = [
+            "access_token",
+            "refresh_token",
+            "id_token",
+        ]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        _resp = self.token_endpoint.process_request(request=_req)
+        idtoken = AuthorizationResponse().from_jwt(
+            _resp["response_args"]["id_token"],
+            self.endpoint_context.keyjar,
+            sender="",
+        )
+
+        assert "email" not in idtoken
 
     def test_refresh_no_openid_scope(self):
         areq = AUTH_REQ.copy()
