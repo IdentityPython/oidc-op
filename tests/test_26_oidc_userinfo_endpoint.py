@@ -381,6 +381,27 @@ class TestEndpoint(object):
         assert isinstance(args, ResponseMessage)
         assert args["error_description"] == "Invalid Token"
 
+    def test_expired_token(self, monkeypatch):
+        _auth_req = AUTH_REQ.copy()
+        _auth_req["scope"] = ["openid", "research_and_scholarship"]
+
+        session_id = self._create_session(_auth_req)
+        grant = self.session_manager[session_id]
+        access_token = self._mint_token("access_token", grant, session_id)
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+
+        def mock():
+            return time_sans_frac() + access_token.expires_at + 1
+
+        monkeypatch.setattr("oidcop.token.time_sans_frac", mock)
+
+        _req = self.endpoint.parse_request({}, http_info=http_info)
+
+        assert _req.to_dict() == {
+            "error": "invalid_token", "error_description": "Expired token"
+        }
+
     def test_userinfo_claims(self):
         _acr = "https://refeds.org/profile/mfa"
         _auth_req = AUTH_REQ.copy()
