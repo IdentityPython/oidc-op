@@ -816,6 +816,26 @@ class TestEndpoint(object):
         assert "access_token" in self.token_endpoint.helper
         assert "refresh_token" not in self.token_endpoint.helper
 
+    def test_access_token_lifetime(self):
+        lifetime = 100
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        grant.usage_rules["access_token"] = {"expires_in": lifetime}
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        access_token = AccessTokenRequest().from_jwt(
+            _resp["response_args"]["access_token"],
+            self.endpoint_context.keyjar,
+            sender="",
+        )
+
+        assert access_token["exp"] - access_token["iat"] == lifetime
+
 
 class TestOldTokens(object):
     @pytest.fixture(autouse=True)

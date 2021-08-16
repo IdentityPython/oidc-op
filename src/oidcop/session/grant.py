@@ -316,7 +316,9 @@ class Grant(Item):
                 scope=scope,
                 extra_payload=handler_args,
             )
-            item.value = token_handler(session_id=session_id, **token_payload)
+            item.value = token_handler(
+                session_id=session_id, usage_rules=usage_rules, **token_payload
+            )
 
         else:
             raise ValueError("Can not mint that kind of token")
