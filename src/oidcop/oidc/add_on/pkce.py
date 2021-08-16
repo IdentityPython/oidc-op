@@ -43,7 +43,9 @@ def post_authn_parse(request, client_id, endpoint_context, **kwargs):
     if "pkce_essential" in client:
         essential = client["pkce_essential"]
     else:
-        essential = endpoint_context.args["pkce"]["essential"]
+        essential = endpoint_context.args["pkce"].get(
+            "essential", False
+        )
     if essential and "code_challenge" not in request:
         return AuthorizationErrorResponse(
             error="invalid_request", error_description="Missing required code_challenge",
@@ -133,9 +135,6 @@ def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
 
     authn_endpoint.post_parse_request.append(post_authn_parse)
     token_endpoint.post_parse_request.append(post_token_parse)
-
-    if "essential" not in kwargs:
-        kwargs["essential"] = False
 
     code_challenge_methods = kwargs.get("code_challenge_methods", CC_METHOD.keys())
 
