@@ -12,9 +12,10 @@ from oidcop.exception import ToOld
 from oidcop.session.claims import claims_match
 from oidcop.token import is_expired
 from oidcop.token.exception import InvalidToken
+
+from ..util import get_logout_id
 from . import Token
 from . import UnknownToken
-from ..util import get_logout_id
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +132,13 @@ class IDToken(Token):
         self.provider_info = construct_endpoint_info(self.default_capabilities, **kwargs)
 
     def payload(
-            self, session_id, alg="RS256", code=None, access_token=None, extra_claims=None,
+        self,
+        session_id,
+        alg="RS256",
+        code=None,
+        access_token=None,
+        extra_claims=None,
+        user_info=None,
     ):
         """
         Collect payload for the ID Token.
@@ -155,16 +162,18 @@ class IDToken(Token):
                 if _val:
                     _args[attr] = _val
 
-        _claims_restriction = grant.claims.get("id_token")
-        if _claims_restriction == {}:
-            user_info = None
-        else:
-            user_info = _context.claims_interface.get_user_claims(
-                user_id=session_information["user_id"], claims_restriction=_claims_restriction,
-            )
-            if _claims_restriction and "acr" in _claims_restriction and "acr" in _args:
-                if claims_match(_args["acr"], _claims_restriction["acr"]) is False:
-                    raise ValueError("Could not match expected 'acr'")
+        if not user_info:
+            _claims_restriction = grant.claims.get("id_token")
+            if _claims_restriction == {}:
+                user_info = None
+            else:
+                user_info = _context.claims_interface.get_user_claims(
+                    user_id=session_information["user_id"],
+                    claims_restriction=_claims_restriction,
+                )
+                if _claims_restriction and "acr" in _claims_restriction and "acr" in _args:
+                    if claims_match(_args["acr"], _claims_restriction["acr"]) is False:
+                        raise ValueError("Could not match expected 'acr'")
 
         if user_info:
             try:
@@ -203,15 +212,16 @@ class IDToken(Token):
         return _args
 
     def sign_encrypt(
-            self,
-            session_id,
-            client_id,
-            code=None,
-            access_token=None,
-            sign=True,
-            encrypt=False,
-            lifetime=None,
-            extra_claims=None,
+        self,
+        session_id,
+        client_id,
+        code=None,
+        access_token=None,
+        sign=True,
+        encrypt=False,
+        lifetime=None,
+        extra_claims=None,
+        user_info=None,
     ) -> str:
         """
         Signed and or encrypt a IDToken
@@ -240,6 +250,7 @@ class IDToken(Token):
             code=code,
             access_token=access_token,
             extra_claims=extra_claims,
+            user_info=user_info,
         )
 
         if lifetime is None:
@@ -249,7 +260,15 @@ class IDToken(Token):
 
         return _jwt.pack(_payload, recv=client_id)
 
-    def __call__(self, session_id: Optional[str] = "", ttype: Optional[str] = "", **kwargs) -> str:
+    def __call__(
+        self,
+        session_id: Optional[str] = "",
+        ttype: Optional[str] = "",
+        encrypt=False,
+        code=None,
+        access_token=None,
+        **kwargs,
+    ) -> str:
         _context = self.server_get("endpoint_context")
 
         user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
@@ -265,11 +284,16 @@ class IDToken(Token):
 
         lifetime = self.lifetime
 
-        # Weed out stuff that doesn't belong here
-        kwargs = {k: v for k, v in kwargs.items() if k in ["encrypt", "code", "access_token"]}
-
         id_token = self.sign_encrypt(
-            session_id, client_id, sign=True, lifetime=lifetime, extra_claims=xargs, **kwargs
+            session_id,
+            client_id,
+            sign=True,
+            lifetime=lifetime,
+            extra_claims=xargs,
+            encrypt=encrypt,
+            code=code,
+            access_token=access_token,
+            user_info=kwargs,
         )
 
         return id_token
