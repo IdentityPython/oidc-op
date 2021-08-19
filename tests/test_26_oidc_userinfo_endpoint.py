@@ -11,6 +11,7 @@ from oidcop import user_info
 from oidcop.authn_event import create_authn_event
 from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
+from oidcop.exception import ImproperlyConfigured
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -439,3 +440,14 @@ class TestEndpoint(object):
         res = self.endpoint.do_response(request=_req, **args)
         _response = json.loads(res["response"])
         assert _response["acr"] == _acr
+
+    def test_process_request_absent_userinfo_conf(self):
+        # consider to have a configuration without userinfo defined in
+        ec = self.endpoint.server_get('endpoint_context')
+        ec.userinfo = None
+
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+
+        with pytest.raises(ImproperlyConfigured):
+            code = self._mint_code(grant, session_id)

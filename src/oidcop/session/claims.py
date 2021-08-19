@@ -128,13 +128,13 @@ class ClaimsInterface:
         :param claims_restriction: Specifies the upper limit of which claims can be returned
         :return:
         """
+        # Get all possible claims
+        meth = self.server_get("endpoint_context").userinfo
+        if not meth:
+            raise ImproperlyConfigured(
+                "userinfo MUST be defined in the configuration"
+            )
         if claims_restriction:
-            # Get all possible claims
-            meth = self.server_get("endpoint_context").userinfo
-            if not meth:
-                raise ImproperlyConfigured(
-                    "userinfo MUST be defined in the configuration"
-                )
             user_info = meth(user_id, client_id=None)
             # Filter out the claims that can be returned
             return {
