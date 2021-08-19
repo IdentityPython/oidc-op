@@ -2,6 +2,7 @@ import io
 import json
 import os
 
+from . import full_path
 from oidcop.configure import OPConfiguration
 import pytest
 import yaml
@@ -89,11 +90,11 @@ oidc_clients:
   client_1:
     client_secret: hemligtkodord,
     client_id: client_1,
-    "redirect_uris": 
+    "redirect_uris":
         - ['https://example.com/cb', '']
     "client_salt": "salted"
     'token_endpoint_auth_method': 'client_secret_post'
-    'response_types': 
+    'response_types':
         - 'code'
         - 'token'
         - 'code id_token'
@@ -158,6 +159,10 @@ class TestUserAuthn(object):
                 },
             },
             "template_dir": "template",
+            "userinfo": {
+                "class": "oidcop.user_info.UserInfo",
+                "kwargs": {"db_file": full_path("users.json")},
+            },
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 

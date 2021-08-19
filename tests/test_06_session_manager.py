@@ -2,6 +2,7 @@ from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac
 import pytest
 
+from . import full_path
 from oidcop.authn_event import AuthnEvent
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
@@ -74,6 +75,10 @@ class TestSessionManager:
             },
             "template_dir": "template",
             "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
+            "userinfo": {
+                "class": "oidcop.user_info.UserInfo",
+                "kwargs": {"db_file": full_path("users.json")},
+            },
         }
         server = Server(conf)
         self.server = server
