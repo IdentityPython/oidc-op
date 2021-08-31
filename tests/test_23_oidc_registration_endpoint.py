@@ -178,6 +178,8 @@ class TestEndpoint(object):
         _reg_resp = _resp["response_args"]
         assert isinstance(_reg_resp, RegistrationResponse)
         assert "client_id" in _reg_resp and "client_secret" in _reg_resp
+        assert "response_code" in _resp
+        assert _resp["response_code"] == 201
 
     def test_do_response(self):
         _req = self.endpoint.parse_request(CLI_REQ.to_json())
@@ -194,6 +196,7 @@ class TestEndpoint(object):
         assert isinstance(msg, dict)
         _msg = json.loads(msg["response"])
         assert _msg
+        assert "response_code" in msg
 
     def test_register_unsupported_algo(self):
         _msg = MSG.copy()

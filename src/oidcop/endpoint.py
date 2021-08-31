@@ -405,6 +405,11 @@ class Endpoint(object):
         except KeyError:
             pass
 
+        try:
+            _resp["response_code"] = kwargs["response_code"]
+        except KeyError:
+            pass
+
         return _resp
 
     def allowed_target_uris(self):
