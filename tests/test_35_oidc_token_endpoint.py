@@ -283,6 +283,7 @@ class TestEndpoint(object):
 
         assert _resp
         assert set(_resp.keys()) == {"cookie", "http_headers", "response_args"}
+        assert "expires_in" in _resp["response_args"]
 
     def test_process_request_using_code_twice(self):
         session_id = self._create_session(AUTH_REQ)

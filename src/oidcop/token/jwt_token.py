@@ -7,12 +7,10 @@ from cryptojwt.jws.exception import JWSException
 from oidcop.exception import ToOld
 from oidcop.token import Crypt
 from oidcop.token.exception import WrongTokenClass
-
 from . import Token
 from . import is_expired
 from .exception import UnknownToken
-
-# TYPE_MAP = {"A": "code", "T": "access_token", "R": "refresh_token"}
+from ..constant import DEFAULT_TOKEN_LIFETIME
 
 
 class JWTToken(Token):
@@ -23,7 +21,7 @@ class JWTToken(Token):
             issuer: str = None,
             aud: Optional[list] = None,
             alg: str = "ES256",
-            lifetime: int = 300,
+            lifetime: int = DEFAULT_TOKEN_LIFETIME,
             server_get: Callable = None,
             token_type: str = "Bearer",
             password: str = "",
