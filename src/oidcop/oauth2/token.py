@@ -12,6 +12,7 @@ from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import time_sans_frac
 
 from oidcop import sanitize
+from oidcop.constant import DEFAULT_TOKEN_LIFETIME
 from oidcop.endpoint import Endpoint
 from oidcop.exception import ProcessError
 from oidcop.session.grant import AuthorizationCode
@@ -61,7 +62,7 @@ class TokenEndpointHelper(object):
         if usage_rules:
             _exp_in = usage_rules.get("expires_in")
         else:
-            _exp_in = 0
+            _exp_in = DEFAULT_TOKEN_LIFETIME
 
         token_args = token_args or {}
         for meth in _context.token_args_methods:
