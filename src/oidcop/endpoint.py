@@ -330,10 +330,9 @@ class Endpoint(object):
         resp = None
         if error:
             _response = ResponseMessage(error=error)
-            try:
-                _response["error_description"] = kwargs["error_description"]
-            except KeyError:
-                pass
+            for attr in ["error_description", "error_uri", "state"]:
+                if attr in kwargs:
+                    _response[attr] = kwargs[attr]
         elif "response_msg" in kwargs:
             resp = kwargs["response_msg"]
             _response_placement = kwargs.get("response_placement")
