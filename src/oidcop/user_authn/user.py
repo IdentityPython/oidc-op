@@ -104,6 +104,8 @@ class UserAuthnMethod(object):
                 logger.warning(err)
                 vals = None
 
+        logger.debug("Value cookies: {}".format(vals))
+
         if vals is None:
             pass
         else:
