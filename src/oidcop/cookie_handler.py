@@ -253,7 +253,7 @@ class CookieHandler:
         res = []
         for _cookie in cookies:
             LOGGER.debug('Cookie: {}'.format(_cookie))
-            if _cookie["name"] == name:
+            if "name" in _cookie and _cookie["name"] == name:
                 _content = self._ver_dec_content(_cookie["value"].split("|"))
                 if _content:
                     payload, timestamp = self._ver_dec_content(_cookie["value"].split("|"))
