@@ -113,10 +113,12 @@ class UserAuthnMethod(object):
                 _info = json.loads(val["value"])
                 session_id = _context.session_manager.decrypt_session_id(_info["sid"])
                 logger.debug("session id: {}".format(session_id))
-                _, cid, _ = _context.session_manager.decrypt_session_id(_info["sid"])
-                if cid != client_id:
+                # _, cid, _ = _context.session_manager.decrypt_session_id(_info["sid"])
+                if session_id[1] != client_id:
                     continue
                 else:
+                    _info["uid"] = session_id[0]
+                    _info["grant_id"] = session_id[2]
                     return _info
         return {}
 
