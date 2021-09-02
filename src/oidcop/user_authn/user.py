@@ -123,7 +123,7 @@ class UserAuthnMethod(object):
                 _info = json.loads(val["value"])
                 _info["timestamp"] = int(val["timestamp"])
                 session_id = _context.session_manager.decrypt_session_id(_info["sid"])
-                logger.debug("cookie_info: session id={}".format(session_id))
+                logger.debug(f"cookie_info: session id={session_id}")
                 # _, cid, _ = _context.session_manager.decrypt_session_id(_info["sid"])
                 if session_id[1] != client_id:
                     continue
