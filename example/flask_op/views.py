@@ -168,10 +168,14 @@ def registration():
         current_app.server.server_get("endpoint", 'registration'))
 
 
-@oidc_op_views.route('/registration_api', methods=['GET'])
+@oidc_op_views.route('/registration_api', methods=['GET', 'DELETE'])
 def registration_api():
-    return service_endpoint(
-        current_app.server.server_get("endpoint", 'registration_read'))
+    if request.method == "DELETE":
+        return service_endpoint(
+            current_app.server.server_get("endpoint", 'registration_delete'))
+    else:
+        return service_endpoint(
+            current_app.server.server_get("endpoint", 'registration_read'))
 
 
 @oidc_op_views.route('/authorization')

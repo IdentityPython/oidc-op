@@ -125,7 +125,7 @@ class TestEndpoint(object):
                     "class": userinfo.UserInfo,
                     "kwargs": {
                         "claim_types_supported": ["normal", "aggregated", "distributed", ],
-                        "client_authn_method": ["bearer_header"],
+                        "client_authn_method": ["bearer_header", "bearer_body"],
                     },
                 },
             },
@@ -435,6 +435,23 @@ class TestEndpoint(object):
         http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
         _req = self.endpoint.parse_request({}, http_info=http_info)
 
+        args = self.endpoint.process_request(_req)
+        assert args
+        res = self.endpoint.do_response(request=_req, **args)
+        _response = json.loads(res["response"])
+        assert _response["acr"] == _acr
+
+    def test_userinfo_claims_post(self):
+        _acr = "https://refeds.org/profile/mfa"
+        _auth_req = AUTH_REQ.copy()
+        _auth_req["claims"] = {"userinfo": {"acr": {"value": _acr}}}
+
+        session_id = self._create_session(_auth_req, authn_info=_acr)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, session_id)
+        access_token = self._mint_token("access_token", grant, session_id, code)
+
+        _req = self.endpoint.parse_request({"access_token": access_token.value})
         args = self.endpoint.process_request(_req)
         assert args
         res = self.endpoint.do_response(request=_req, **args)
