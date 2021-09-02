@@ -250,6 +250,7 @@ class CookieHandler:
         if not cookies:
             return None
 
+        LOGGER.debug("Looking for '{}' cookies".format(name))
         res = []
         for _cookie in cookies:
             LOGGER.debug('Cookie: {}'.format(_cookie))
