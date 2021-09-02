@@ -84,6 +84,27 @@ An example::
         }
       }
 
+The provided add-ons can be seen in the following sections.
+
+pkce
+####
+
+The pkce add on is activated using the ``oidcop.oidc.add_on.pkce.add_pkce_support``
+function. The possible configuration options can be found below.
+
+essential
+---------
+
+Whether pkce is mandatory, authentication requests without a ``code_challenge``
+will fail if this is True. This option can be overridden per client by defining
+``pkce_essential`` in the client metadata.
+
+code_challenge_method
+---------------------
+
+The allowed code_challenge methods. The supported code challenge methods are:
+``plain, S256, S384, S512``
+
 --------------
 authentication
 --------------
