@@ -129,6 +129,9 @@ class Endpoint(object):
         self.allowed_targets = [self.name]
         self.client_verification_method = []
 
+    # def parse_cookies(self, cookies: List[dict], context: EndpointContext, name: str):
+    #     res = context.cookie_handler.parse_cookie(name, cookies)
+    #     return res
     def process_verify_error(self, exception):
         _error = "invalid_request"
         return self.error_cls(error=_error, error_description="%s" % exception)
