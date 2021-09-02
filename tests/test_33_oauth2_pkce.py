@@ -4,6 +4,9 @@ import os
 import secrets
 import string
 
+from . import full_path
+from oidcop.configure import ASConfiguration
+
 import pytest
 import yaml
 from oidcmsg.message import Message
@@ -160,6 +163,10 @@ def conf():
                     "session_management": "oidc_op_sman",
                 },
             },
+        },
+        "userinfo": {
+            "class": "oidcop.user_info.UserInfo",
+            "kwargs": {"db_file": full_path("users.json")},
         },
     }
 

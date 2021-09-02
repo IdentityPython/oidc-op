@@ -11,6 +11,7 @@ from oidcop import user_info
 from oidcop.authn_event import create_authn_event
 from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
+from oidcop.exception import ImproperlyConfigured
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -381,6 +382,27 @@ class TestEndpoint(object):
         assert isinstance(args, ResponseMessage)
         assert args["error_description"] == "Invalid Token"
 
+    def test_expired_token(self, monkeypatch):
+        _auth_req = AUTH_REQ.copy()
+        _auth_req["scope"] = ["openid", "research_and_scholarship"]
+
+        session_id = self._create_session(_auth_req)
+        grant = self.session_manager[session_id]
+        access_token = self._mint_token("access_token", grant, session_id)
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+
+        def mock():
+            return time_sans_frac() + access_token.expires_at + 1
+
+        monkeypatch.setattr("oidcop.token.time_sans_frac", mock)
+
+        _req = self.endpoint.parse_request({}, http_info=http_info)
+
+        assert _req.to_dict() == {
+            "error": "invalid_token", "error_description": "Expired token"
+        }
+
     def test_userinfo_claims(self):
         _acr = "https://refeds.org/profile/mfa"
         _auth_req = AUTH_REQ.copy()
@@ -418,3 +440,14 @@ class TestEndpoint(object):
         res = self.endpoint.do_response(request=_req, **args)
         _response = json.loads(res["response"])
         assert _response["acr"] == _acr
+
+    def test_process_request_absent_userinfo_conf(self):
+        # consider to have a configuration without userinfo defined in
+        ec = self.endpoint.server_get('endpoint_context')
+        ec.userinfo = None
+
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+
+        with pytest.raises(ImproperlyConfigured):
+            code = self._mint_code(grant, session_id)

@@ -1,7 +1,7 @@
 Usage
 -----
 
-Some examples, how to run flask_op and django_op, but also some typical configuration in relation to common use cases.
+Some examples, how to run [flask_op](https://github.com/IdentityPython/oidc-op/tree/master/example/flask_op) and [django_op](https://github.com/peppelinux/django-oidc-op) but also some typical configuration in relation to common use cases.
 
 
 
@@ -34,7 +34,7 @@ Get to the RP landing page to choose your authentication endpoint. The first opt
 
 ![OP Auth](../_images/2.png)
 
-AS/OP accepted our authentication request and prompt to us the login form. Read passwd.json file to get credentials.
+The AS/OP supports dynamic client registration, it accepts the authentication request and prompt to us the login form. Read [passwd.json](https://github.com/IdentityPython/oidc-op/blob/master/example/flask_op/passwd.json) file to get credentials.
 
 ----------------------------------
 
@@ -75,12 +75,12 @@ It is important to consider that only scope=offline_access will get a usable ref
 
 oidc-op will return a json response like this::
 
-{
- 'access_token': 'eyJhbGc ... CIOH_09tT_YVa_gyTqg',
- 'token_type': 'Bearer',
- 'scope': 'openid profile email address phone offline_access',
- 'refresh_token': 'Z0FBQ ... 1TE16cm1Tdg=='
-}
+    {
+     'access_token': 'eyJhbGc ... CIOH_09tT_YVa_gyTqg',
+     'token_type': 'Bearer',
+     'scope': 'openid profile email address phone offline_access',
+     'refresh_token': 'Z0FBQ ... 1TE16cm1Tdg=='
+    }
 
 
 

@@ -8,6 +8,7 @@ from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.time_util import time_sans_frac
 
+from . import full_path
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
 from oidcop.client_authn import verify_client
@@ -50,6 +51,10 @@ class TestSession:
                 "token_endpoint": {"path": "{}/token", "class": Token, "kwargs": {}},
             },
             "template_dir": "template",
+            "userinfo": {
+                "class": "oidcop.user_info.UserInfo",
+                "kwargs": {"db_file": full_path("users.json")},
+            },
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 

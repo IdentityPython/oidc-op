@@ -170,6 +170,10 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "add_claims": {
+                "always": {},
+                "by_scope": {},
+            },
         }
         self.endpoint_context.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
         self.session_manager = self.endpoint_context.session_manager
@@ -235,6 +239,11 @@ class TestEndpoint(object):
             "nonce",
             "iat",
             "exp",
+            "email",
+            "email_verified",
+            "jti",
+            "scope",
+            "client_id",
             "iss",
         }
 
@@ -252,6 +261,11 @@ class TestEndpoint(object):
             "auth_time",
             "aud",
             "exp",
+            "email",
+            "email_verified",
+            "jti",
+            "scope",
+            "client_id",
             "c_hash",
             "iss",
             "iat",
@@ -277,6 +291,11 @@ class TestEndpoint(object):
             "auth_time",
             "aud",
             "exp",
+            "email",
+            "email_verified",
+            "jti",
+            "scope",
+            "client_id",
             "iss",
             "iat",
             "nonce",
@@ -300,6 +319,11 @@ class TestEndpoint(object):
             "auth_time",
             "aud",
             "exp",
+            "email",
+            "email_verified",
+            "jti",
+            "scope",
+            "client_id",
             "iss",
             "iat",
             "nonce",
@@ -308,9 +332,10 @@ class TestEndpoint(object):
         }
 
     def test_id_token_payload_with_userinfo(self):
-        session_id = self._create_session(AREQ)
+        req = dict(AREQ)
+        req["claims"] = {"id_token": {"given_name": None}}
+        session_id = self._create_session(req)
         grant = self.session_manager[session_id]
-        grant.claims = {"id_token": {"given_name": None}}
 
         id_token = self._mint_id_token(grant, session_id)
 
@@ -320,6 +345,11 @@ class TestEndpoint(object):
             "nonce",
             "iat",
             "iss",
+            "email",
+            "email_verified",
+            "jti",
+            "scope",
+            "client_id",
             "given_name",
             "aud",
             "exp",
@@ -328,9 +358,10 @@ class TestEndpoint(object):
         }
 
     def test_id_token_payload_many_0(self):
-        session_id = self._create_session(AREQ)
+        req = dict(AREQ)
+        req["claims"] = {"id_token": {"given_name": None}}
+        session_id = self._create_session(req)
         grant = self.session_manager[session_id]
-        grant.claims = {"id_token": {"given_name": None}}
         code = self._mint_code(grant, session_id)
         access_token = self._mint_access_token(grant, session_id, code)
 
@@ -344,6 +375,11 @@ class TestEndpoint(object):
             "nonce",
             "c_hash",
             "at_hash",
+            "email",
+            "email_verified",
+            "jti",
+            "scope",
+            "client_id",
             "sub",
             "auth_time",
             "given_name",
@@ -391,9 +427,10 @@ class TestEndpoint(object):
         }
 
     def test_available_claims(self):
-        session_id = self._create_session(AREQ)
+        req = dict(AREQ)
+        req["claims"] = {"id_token": {"nickname": {"essential": True}}}
+        session_id = self._create_session(req)
         grant = self.session_manager[session_id]
-        grant.claims = {"id_token": {"nickname": {"essential": True}}}
 
         id_token = self._mint_id_token(grant, session_id)
 
@@ -454,7 +491,7 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
 
         self.session_manager.token_handler["id_token"].kwargs["enable_claims_per_client"] = True
-        self.endpoint_context.cdb["client_1"]["id_token_claims"] = {"address": None}
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = {"address": None}
 
         _claims = self.endpoint_context.claims_interface.get_claims(
             session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
@@ -497,6 +534,24 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
 
         self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
+        grant.scope = AREQS["scope"]
+
+        id_token = self._mint_id_token(grant, session_id)
+
+        client_keyjar = KeyJar()
+        _jwks = self.endpoint_context.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwt = JWT(key_jar=client_keyjar, iss="client_1")
+        res = _jwt.unpack(id_token.value)
+        assert "address" in res
+        assert "email" in res
+        assert "nickname" not in res
+
+    def test_client_claims_scopes_per_client(self):
+        session_id = self._create_session(AREQS)
+        grant = self.session_manager[session_id]
+        self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
+        self.endpoint_context.cdb[AREQS["client_id"]]["add_claims"]["by_scope"]["id_token"] = False
 
         _claims = self.endpoint_context.claims_interface.get_claims(
             session_id=session_id, scopes=AREQS["scope"], claims_release_point="id_token"
@@ -510,7 +565,7 @@ class TestEndpoint(object):
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
-        assert "address" in res
+        assert "address" not in res
         assert "email" in res
         assert "nickname" not in res
 
@@ -519,11 +574,7 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
 
         self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
-
-        _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=AREQRC["scope"], claims_release_point="id_token"
-        )
-        grant.claims = {"id_token": _claims}
+        grant.scope = AREQRC["scope"]
 
         id_token = self._mint_id_token(grant, session_id)
 
@@ -546,11 +597,7 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
 
         self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
-
-        _claims = self.endpoint_context.claims_interface.get_claims(
-            session_id=session_id, scopes=_req["scope"], claims_release_point="id_token"
-        )
-        grant.claims = {"id_token": _claims}
+        grant.scope = _req["scope"]
 
         id_token = self._mint_id_token(grant, session_id)
 

@@ -643,3 +643,72 @@ the following::
             }
         }
     }
+
+
+=======
+Clients
+=======
+
+In this section there are some client configuration examples.
+
+A common configuration::
+
+    endpoint_context.cdb['jbxedfmfyc'] = {
+        client_id: 'jbxedfmfyc',
+        client_salt: '6flfsj0Z',
+        registration_access_token: 'z3PCMmC1HZ1QmXeXGOQMJpWQNQynM4xY',
+        registration_client_uri: 'https://127.0.0.1:8000/registration_api?client_id=jbxedfmfyc',
+        client_id_issued_at: 1630256902,
+        client_secret: '19cc69b70d0108f630e52f72f7a3bd37ba4e11678ad1a7434e9818e1',
+        client_secret_expires_at: 1929727754,
+        application_type: 'web',
+        contacts: [
+            'rp@example.com'
+        ],
+        token_endpoint_auth_method: 'client_secret_basic',
+        redirect_uris: [
+            [
+                'https://127.0.0.1:8090/authz_cb/satosa',
+                {}
+            ]
+        ],
+        post_logout_redirect_uris: [
+            [
+                'https://127.0.0.1:8090/session_logout/satosa',
+                null
+            ]
+        ],
+        response_types: [
+            'code'
+        ],
+        grant_types: [
+            'authorization_code'
+        ],
+        allowed_scopes: [
+            'openid',
+            'profile',
+            'email',
+            'offline_access'
+        ]
+    }
+
+
+How to configure the release of the user claims per clients::
+
+    endpoint_context.cdb["client_1"] = {
+        "client_secret": "hemligt",
+        "redirect_uris": [("https://example.com/cb", None)],
+        "client_salt": "salted",
+        "token_endpoint_auth_method": "client_secret_post",
+        "response_types": ["code", "token", "code id_token", "id_token"],
+        "add_claims": {
+            "always": {
+                "introspection": ["nickname", "eduperson_scoped_affiliation"],
+                "userinfo": ["picture", "phone_number"],
+            },
+            # this overload the general endpoint configuration for this client
+            # self.server.server_get("endpoint", "id_token").kwargs = {"add_claims_by_scope": True}
+            "by_scope": {
+                "id_token": False,
+            },
+        },
