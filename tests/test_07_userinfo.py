@@ -255,7 +255,12 @@ class TestCollectUserInfo:
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.endpoint_context = server.endpoint_context
         # Just has to be there
-        self.endpoint_context.cdb["client1"] = {}
+        self.endpoint_context.cdb["client1"] = {
+            "add_claims": {
+                "always": {},
+                "by_scope": {},
+            },
+        }
         self.session_manager = self.endpoint_context.session_manager
         self.claims_interface = ClaimsInterface(server.server_get)
         self.user_id = "diana"
@@ -371,7 +376,7 @@ class TestCollectUserInfo:
         _userinfo_endpoint.kwargs["enable_claims_per_client"] = True
         del _userinfo_endpoint.kwargs["base_claims"]
 
-        self.endpoint_context.cdb[_req["client_id"]]["userinfo_claims"] = {"phone_number": None}
+        self.endpoint_context.cdb[_req["client_id"]]["add_claims"]["always"]["userinfo"] = {"phone_number": None}
 
         _userinfo_restriction = self.claims_interface.get_claims(
             session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"

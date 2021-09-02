@@ -170,6 +170,10 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "add_claims": {
+                "always": {},
+                "by_scope": {},
+            },
         }
         self.endpoint_context.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
         self.session_manager = self.endpoint_context.session_manager
@@ -487,7 +491,7 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
 
         self.session_manager.token_handler["id_token"].kwargs["enable_claims_per_client"] = True
-        self.endpoint_context.cdb["client_1"]["id_token_claims"] = {"address": None}
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = {"address": None}
 
         _claims = self.endpoint_context.claims_interface.get_claims(
             session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
@@ -540,6 +544,28 @@ class TestEndpoint(object):
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "address" in res
+        assert "email" in res
+        assert "nickname" not in res
+
+    def test_client_claims_scopes_per_client(self):
+        session_id = self._create_session(AREQS)
+        grant = self.session_manager[session_id]
+        self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
+        self.endpoint_context.cdb[AREQS["client_id"]]["add_claims"]["by_scope"]["id_token"] = False
+
+        _claims = self.endpoint_context.claims_interface.get_claims(
+            session_id=session_id, scopes=AREQS["scope"], claims_release_point="id_token"
+        )
+        grant.claims = {"id_token": _claims}
+
+        id_token = self._mint_id_token(grant, session_id)
+
+        client_keyjar = KeyJar()
+        _jwks = self.endpoint_context.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwt = JWT(key_jar=client_keyjar, iss="client_1")
+        res = _jwt.unpack(id_token.value)
+        assert "address" not in res
         assert "email" in res
         assert "nickname" not in res
 

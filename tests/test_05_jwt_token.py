@@ -186,6 +186,10 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "add_claims": {
+                "always": {},
+                "by_scope": {},
+            },
         }
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"
@@ -247,7 +251,7 @@ class TestEndpoint(object):
     @pytest.mark.parametrize("enable_claims_per_client", [True, False])
     def test_enable_claims_per_client(self, enable_claims_per_client):
         # Set up configuration
-        self.endpoint_context.cdb["client_1"]["access_token_claims"] = {"address": None}
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["access_token"] = {"address": None}
         self.endpoint_context.session_manager.token_handler.handler["access_token"].kwargs[
             "enable_claims_per_client"
         ] = enable_claims_per_client
