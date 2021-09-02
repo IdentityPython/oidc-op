@@ -5,6 +5,7 @@ from typing import Union
 from oidcmsg.oidc import OpenIDSchema
 
 from oidcop.exception import ServiceError
+from oidcop.exception import ImproperlyConfigured
 from oidcop.scopes import convert_scopes2claims
 
 logger = logging.getLogger(__name__)
@@ -127,9 +128,14 @@ class ClaimsInterface:
         :param claims_restriction: Specifies the upper limit of which claims can be returned
         :return:
         """
+        meth = self.server_get("endpoint_context").userinfo
+        if not meth:
+            raise ImproperlyConfigured(
+                "userinfo MUST be defined in the configuration"
+            )
         if claims_restriction:
             # Get all possible claims
-            user_info = self.server_get("endpoint_context").userinfo(user_id, client_id=None)
+            user_info = meth(user_id, client_id=None)
             # Filter out the claims that can be returned
             return {
                 k: user_info.get(k)
