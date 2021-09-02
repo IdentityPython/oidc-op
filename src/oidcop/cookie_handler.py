@@ -167,6 +167,7 @@ class CookieHandler:
             try:
                 msg = decrypter.decrypt(ciphertext, iv, tag=tag)
             except InvalidTag:
+                LOGGER.debug("Decryption failed")
                 return None
 
             p = lv_unpack(msg.decode("utf-8"))
@@ -180,6 +181,8 @@ class CookieHandler:
                     self.sign_key.key,
                 ):
                     return payload, timestamp
+                else:
+                    LOGGER.debug("Could not verify signature")
             else:
                 return payload, timestamp
         return None
@@ -250,9 +253,13 @@ class CookieHandler:
         res = []
         for _cookie in cookies:
             if _cookie["name"] == name:
-                payload, timestamp = self._ver_dec_content(_cookie["value"].split("|"))
-                value, typ = payload.split("::")
-                res.append({"value": value, "type": typ, "timestamp": timestamp})
+                _content = self._ver_dec_content(_cookie["value"].split("|"))
+                if _content:
+                    payload, timestamp = self._ver_dec_content(_cookie["value"].split("|"))
+                    value, typ = payload.split("::")
+                    res.append({"value": value, "type": typ, "timestamp": timestamp})
+                else:
+                    LOGGER.debug(f"Could not verify {name} cookie")
         return res
 
 
