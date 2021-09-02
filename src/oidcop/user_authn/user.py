@@ -113,6 +113,8 @@ class UserAuthnMethod(object):
 
         logger.debug("Value cookies: {}".format(vals))
 
+        logger.debug("Value cookies: {}".format(vals))
+
         if vals is None:
             pass
         else:
