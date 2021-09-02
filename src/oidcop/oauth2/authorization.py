@@ -488,6 +488,7 @@ class Authorization(Endpoint):
         _state = request.get("state")
         if _state:
             _res["state"] = _state
+        logger.debug("Login required error: {}".format(_res))
         return _res
 
     def setup_auth(
