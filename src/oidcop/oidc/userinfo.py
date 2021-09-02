@@ -32,7 +32,7 @@ class UserInfo(Endpoint):
         "userinfo_signing_alg_values_supported": None,
         "userinfo_encryption_alg_values_supported": None,
         "userinfo_encryption_enc_values_supported": None,
-        "client_authn_method": ["bearer_header"],
+        "client_authn_method": ["bearer_header", "bearer_body"],
     }
 
     def __init__(self, server_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs):
