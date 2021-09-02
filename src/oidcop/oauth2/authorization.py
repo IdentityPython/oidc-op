@@ -102,8 +102,6 @@ def verify_uri(
     if not _cid:
         logger.error("No client id found")
         raise UnknownClient("No client_id provided")
-    else:
-        logger.debug("Client ID: {}".format(_cid))
 
     _uri = request.get(uri_type)
     if _uri is None:
@@ -124,7 +122,6 @@ def verify_uri(
     if client_info is None:
         raise KeyError("No such client")
 
-    logger.debug("Client info: {}".format(client_info))
     redirect_uris = client_info.get("{}s".format(uri_type))
     if redirect_uris is None:
         raise ValueError(f"No registered {uri_type} for {_cid}")
@@ -902,7 +899,7 @@ class Authorization(Endpoint):
         _cid = request["client_id"]
         _context = self.server_get("endpoint_context")
         cinfo = _context.cdb[_cid]
-        logger.debug("client {}: {}".format(_cid, cinfo))
+        # logger.debug("client {}: {}".format(_cid, cinfo))
 
         # this apply the default optionally deny_unknown_scopes policy
         if cinfo:
@@ -913,7 +910,8 @@ class Authorization(Endpoint):
 
         _cookies = http_info.get("cookie")
         if _cookies:
-            _cookies = _context.cookie_handler.parse_cookie("oidcop", _cookies)
+            _session_cookie_name = _context.cookie_handler.name["session"]
+            _cookies = _context.cookie_handler.parse_cookie(_session_cookie_name, _cookies)
 
         kwargs = self.do_request_user(request_info=request, **kwargs)
 
