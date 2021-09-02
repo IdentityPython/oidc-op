@@ -240,6 +240,7 @@ class Session(Endpoint):
         _session_info = None
 
         if _cookies:
+            logger.debug("parse_cookie@session")
             _cookie_name = _context.cookie_handler.name["session"]
             try:
                 _cookie_infos = _context.cookie_handler.parse_cookie(

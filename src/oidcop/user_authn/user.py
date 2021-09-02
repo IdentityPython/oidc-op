@@ -93,6 +93,7 @@ class UserAuthnMethod(object):
     def cookie_info(self, cookie: List[dict], client_id: str) -> dict:
         _context = self.server_get("endpoint_context")
         try:
+            logger.debug("parse_cookie@UserAuthnMethod")
             vals = _context.cookie_handler.parse_cookie(
                 cookies=cookie, name=_context.cookie_handler.name["session"]
             )
