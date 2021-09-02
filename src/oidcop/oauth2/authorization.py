@@ -910,12 +910,15 @@ class Authorization(Endpoint):
 
         _cookies = http_info.get("cookie")
         if _cookies:
+            logger.debug("parse_cookie@process_request")
             _session_cookie_name = _context.cookie_handler.name["session"]
-            _cookies = _context.cookie_handler.parse_cookie(_session_cookie_name, _cookies)
+            _my_cookies = _context.cookie_handler.parse_cookie(_session_cookie_name, _cookies)
+        else:
+            _my_cookies = {}
 
         kwargs = self.do_request_user(request_info=request, **kwargs)
 
-        info = self.setup_auth(request, request["redirect_uri"], cinfo, _cookies, **kwargs)
+        info = self.setup_auth(request, request["redirect_uri"], cinfo, _my_cookies, **kwargs)
 
         if "error" in info:
             return info
@@ -924,7 +927,7 @@ class Authorization(Endpoint):
         if not _function:
             logger.debug("- authenticated -")
             logger.debug("AREQ keys: %s" % request.keys())
-            return self.authz_part2(request=request, cookie=_cookies, **info)
+            return self.authz_part2(request=request, cookie=_my_cookies, **info)
 
         try:
             # Run the authentication function
