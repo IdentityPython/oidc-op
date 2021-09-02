@@ -894,7 +894,7 @@ class TestEndpoint(object):
 
     def test_post_parse_request(self):
         endpoint_context = self.endpoint.server_get("endpoint_context")
-        msg = self.endpoint._post_parse_request(None, "client_1", endpoint_context)
+        msg = self.endpoint._post_parse_request({}, "client_1", endpoint_context)
         assert "error" in msg
 
         request = AuthorizationRequest(

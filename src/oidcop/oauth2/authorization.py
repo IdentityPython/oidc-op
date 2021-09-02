@@ -45,9 +45,11 @@ logger = logging.getLogger(__name__)
 
 # For the time being. This is JAR specific and should probably be configurable.
 ALG_PARAMS = {
-    "sign": ["request_object_signing_alg", "request_object_signing_alg_values_supported",],
-    "enc_alg": ["request_object_encryption_alg", "request_object_encryption_alg_values_supported",],
-    "enc_enc": ["request_object_encryption_enc", "request_object_encryption_enc_values_supported",],
+    "sign": ["request_object_signing_alg", "request_object_signing_alg_values_supported", ],
+    "enc_alg": ["request_object_encryption_alg",
+                "request_object_encryption_alg_values_supported", ],
+    "enc_enc": ["request_object_encryption_enc",
+                "request_object_encryption_enc_values_supported", ],
 }
 
 FORM_POST = """<html>
@@ -79,10 +81,10 @@ def max_age(request):
 
 
 def verify_uri(
-    endpoint_context: EndpointContext,
-    request: Union[dict, Message],
-    uri_type: str,
-    client_id: Optional[str] = None,
+        endpoint_context: EndpointContext,
+        request: Union[dict, Message],
+        uri_type: str,
+        client_id: Optional[str] = None,
 ):
     """
     A redirect URI
@@ -207,7 +209,7 @@ def get_uri(endpoint_context, request, uri_type):
 
 
 def authn_args_gather(
-    request: Union[AuthorizationRequest, dict], authn_class_ref: str, cinfo: dict, **kwargs,
+        request: Union[AuthorizationRequest, dict], authn_class_ref: str, cinfo: dict, **kwargs,
 ):
     """
     Gather information to be used by the authentication method
@@ -290,6 +292,13 @@ class Authorization(Endpoint):
 
     def extra_response_args(self, aresp):
         return aresp
+
+    def authentication_error_response(self, request, error, error_description, **kwargs):
+        _error_msg = self.error_cls(error=error, error_description=error_description)
+        _state = request.get("state")
+        if _state:
+            _error_msg["state"] = _state
+        return _error_msg
 
     def verify_response_type(self, request: Union[Message, dict], cinfo: dict) -> bool:
         # Checking response types
@@ -392,20 +401,23 @@ class Authorization(Endpoint):
         """
         if not request:
             logger.debug("No AuthzRequest")
-            return self.error_cls(
-                error="invalid_request", error_description="Can not parse AuthzRequest"
-            )
+            return self.authentication_error_response(request,
+                                                      error="invalid_request",
+                                                      error_description="Can not parse AuthzRequest"
+                                                      )
 
         request = self.filter_request(endpoint_context, request)
 
         _cinfo = endpoint_context.cdb.get(client_id)
         if not _cinfo:
             logger.error("Client ID ({}) not in client database".format(request["client_id"]))
-            return self.error_cls(error="unauthorized_client", error_description="unknown client")
+            return self.authentication_error_response(request, error="unauthorized_client",
+                                                      error_description="unknown client")
 
         # Is the asked for response_type among those that are permitted
         if not self.verify_response_type(request, _cinfo):
-            return self.error_cls(
+            return self.authentication_error_response(
+                request,
                 error="invalid_request",
                 error_description="Trying to use unregistered response_type",
             )
@@ -414,7 +426,8 @@ class Authorization(Endpoint):
         try:
             redirect_uri = get_uri(endpoint_context, request, "redirect_uri")
         except (RedirectURIError, ParameterError) as err:
-            return self.error_cls(
+            return self.authentication_error_response(
+                request,
                 error="invalid_request",
                 error_description="{}:{}".format(err.__class__.__name__, err),
             )
@@ -452,7 +465,7 @@ class Authorization(Endpoint):
     def create_session(self, request, user_id, acr, time_stamp, authn_method):
         _context = self.server_get("endpoint_context")
         _mngr = _context.session_manager
-        authn_event = create_authn_event(user_id, authn_info=acr, time_stamp=time_stamp,)
+        authn_event = create_authn_event(user_id, authn_info=acr, time_stamp=time_stamp, )
         _exp_in = authn_method.kwargs.get("expires_in")
         if _exp_in and "valid_until" in authn_event:
             authn_event["valid_until"] = utc_time_sans_frac() + _exp_in
@@ -466,14 +479,25 @@ class Authorization(Endpoint):
             token_usage_rules=_token_usage_rules,
         )
 
+    def _login_required_error(self, redirect_uri, request):
+        _res = {
+            "error": "login_required",
+            "return_uri": redirect_uri,
+            "return_type": request["response_type"],
+        }
+        _state = request.get("state")
+        if _state:
+            _res["state"] = _state
+        return _res
+
     def setup_auth(
-        self,
-        request: Optional[Union[Message, dict]],
-        redirect_uri: str,
-        cinfo: dict,
-        cookie: List[dict] = None,
-        acr: str = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]],
+            redirect_uri: str,
+            cinfo: dict,
+            cookie: List[dict] = None,
+            acr: str = None,
+            **kwargs,
     ):
         """
 
@@ -541,11 +565,7 @@ class Authorization(Endpoint):
 
             if "prompt" in request and "none" in request["prompt"]:
                 # Need to authenticate but not allowed
-                return {
-                    "error": "login_required",
-                    "return_uri": redirect_uri,
-                    "return_type": request["response_type"],
-                }
+                return self._login_required_error(redirect_uri, request)
             else:
                 return {"function": authn, "args": authn_args}
         else:
@@ -560,11 +580,7 @@ class Authorization(Endpoint):
                     if user != kwargs["req_user"]:
                         logger.debug("Wanted to be someone else!")
                         if "prompt" in request and "none" in request["prompt"]:
-                            # Need to authenticate but not allowed
-                            return {
-                                "error": "login_required",
-                                "return_uri": redirect_uri,
-                            }
+                            return self._login_required_error(redirect_uri, request)
                         else:
                             return {"function": authn, "args": authn_args}
 
@@ -605,12 +621,12 @@ class Authorization(Endpoint):
         return ""
 
     def response_mode(
-        self,
-        request: Union[dict, AuthorizationRequest],
-        response_args: Optional[AuthorizationResponse] = None,
-        return_uri: Optional[str] = "",
-        fragment_enc: Optional[bool] = None,
-        **kwargs,
+            self,
+            request: Union[dict, AuthorizationRequest],
+            response_args: Optional[AuthorizationResponse] = None,
+            return_uri: Optional[str] = "",
+            fragment_enc: Optional[bool] = None,
+            **kwargs,
     ) -> dict:
         resp_mode = request["response_mode"]
         if resp_mode == "form_post":
@@ -618,9 +634,9 @@ class Authorization(Endpoint):
                 _args = response_args.to_dict()
             else:
                 _args = response_args
-            msg = FORM_POST.format(inputs=inputs(_args), action=return_uri,)
+            msg = FORM_POST.format(inputs=inputs(_args), action=return_uri, )
             kwargs.update(
-                {"response_msg": msg, "content_type": "text/html", "response_placement": "body",}
+                {"response_msg": msg, "content_type": "text/html", "response_placement": "body", }
             )
         elif resp_mode == "fragment":
             if fragment_enc is False:
@@ -640,8 +656,10 @@ class Authorization(Endpoint):
 
         return kwargs
 
-    def error_response(self, response_info, error, error_description):
-        resp = self.error_cls(error=error, error_description=str(error_description))
+    def error_response(self, response_info, request, error, error_description):
+        resp = self.authentication_error_response(request,
+                                                  error=error,
+                                                  error_description=str(error_description))
         response_info["response_args"] = resp
         return response_info
 
@@ -715,7 +733,8 @@ class Authorization(Endpoint):
                     # id_token = _context.idtoken.make(sid, **kwargs)
                 except (JWEException, NoSuitableSigningKeys) as err:
                     logger.warning(str(err))
-                    resp = self.error_cls(
+                    resp = self.authentication_error_response(
+                        request,
                         error="invalid_request",
                         error_description="Could not sign/encrypt id_token",
                     )
@@ -726,7 +745,8 @@ class Authorization(Endpoint):
 
             not_handled = rtype.difference(handled_response_type)
             if not_handled:
-                resp = self.error_cls(
+                resp = self.authentication_error_response(
+                    request,
                     error="invalid_request", error_description="unsupported_response_type",
                 )
                 return {"response_args": resp, "fragment_enc": fragment_enc}
@@ -753,13 +773,14 @@ class Authorization(Endpoint):
 
         grant = _context.authz(session_id, request=request)
         if grant.is_active() is False:
-            return self.error_response(response_info, "server_error", "Grant not usable")
+            return self.error_response(response_info, request, "server_error", "Grant not usable")
 
         user_id, client_id, grant_id = _mngr.decrypt_session_id(session_id)
         try:
             _mngr.set([user_id, client_id, grant_id], grant)
         except Exception as err:
-            return self.error_response(response_info, "server_error", "{}".format(err.args))
+            return self.error_response(response_info, request, "server_error",
+                                       "{}".format(err.args))
 
         logger.debug("response type: %s" % request["response_type"])
 
@@ -771,7 +792,8 @@ class Authorization(Endpoint):
         try:
             redirect_uri = get_uri(_context, request, "redirect_uri")
         except (RedirectURIError, ParameterError) as err:
-            return self.error_response(response_info, "invalid_request", "{}".format(err.args))
+            return self.error_response(response_info, request, "invalid_request",
+                                       "{}".format(err.args))
         else:
             response_info["return_uri"] = redirect_uri
 
@@ -783,7 +805,8 @@ class Authorization(Endpoint):
             try:
                 response_info = self.response_mode(request, **response_info)
             except InvalidRequest as err:
-                return self.error_response(response_info, "invalid_request", "{}".format(err.args))
+                return self.error_response(response_info, request, "invalid_request",
+                                           "{}".format(err.args))
 
         _cookie_info = _context.new_cookie(
             name=_context.cookie_handler.name["session"],
@@ -807,7 +830,7 @@ class Authorization(Endpoint):
         try:
             resp_info = self.post_authentication(request, session_id, **kwargs)
         except Exception as err:
-            return self.error_response({}, "server_error", err)
+            return self.error_response({}, request, "server_error", err)
 
         _context = self.server_get("endpoint_context")
 
@@ -816,10 +839,11 @@ class Authorization(Endpoint):
             try:
                 authn_event = _context.session_manager.get_authentication_event(session_id)
             except KeyError:
-                return self.error_response({}, "server_error", "No such session")
+                return self.error_response({}, request, "server_error", "No such session")
             else:
                 if authn_event.is_valid() is False:
-                    return self.error_response({}, "server_error", "Authentication has timed out")
+                    return self.error_response({}, request, "server_error",
+                                               "Authentication has timed out")
 
             _state = b64e(as_bytes(json.dumps({"authn_time": authn_event["authn_time"]})))
 
@@ -859,10 +883,10 @@ class Authorization(Endpoint):
         return kwargs
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ):
         """ The AuthorizationRequest endpoint
 
