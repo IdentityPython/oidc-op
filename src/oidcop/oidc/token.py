@@ -168,7 +168,7 @@ class AccessTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_request", error_description="Wrong token type")
 
         if code.is_active() is False:
-            return self.error_cls(error="invalid_request", error_description="Code inactive")
+            return self.error_cls(error="invalid_grant", error_description="Code inactive")
 
         _auth_req = grant.authorization_request
 
