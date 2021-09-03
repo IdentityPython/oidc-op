@@ -226,6 +226,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token_value = req["refresh_token"]
         _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+        logger.debug("Session info: {}".format(_session_info))
 
         if _session_info["client_id"] != req["client_id"]:
             logger.debug("{} owner of token".format(_session_info["client_id"]))
