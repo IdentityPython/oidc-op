@@ -5,6 +5,7 @@ from typing import Union
 from oidcmsg.oidc import OpenIDSchema
 
 from oidcop.exception import ServiceError
+from oidcop.exception import ImproperlyConfigured
 from oidcop.scopes import convert_scopes2claims
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,11 @@ class ClaimsInterface:
 
     def _get_client_claims(self, client_id, usage):
         client_info = self.server_get("endpoint_context").cdb.get(client_id, {})
-        client_claims = client_info.get("{}_claims".format(usage), {})
+        client_claims = (
+            client_info.get("add_claims", {})
+            .get("always", {})
+            .get(usage, {})
+        )
         if isinstance(client_claims, list):
             client_claims = {k: None for k in client_claims}
         return client_claims
@@ -94,8 +99,19 @@ class ClaimsInterface:
 
         claims.update(base_claims)
 
-        # Scopes can in some cases equate to set of claims, is that used here ?
-        if module.kwargs.get("add_claims_by_scope"):
+        # If specific client configuration exists overwrite add_claims_by_scope
+        if client_id in _context.cdb:
+            add_claims_by_scope = (
+                _context.cdb[client_id].get("add_claims", {})
+                .get("by_scope", {})
+                .get(claims_release_point, {})
+            )
+            if isinstance(add_claims_by_scope, dict) and not add_claims_by_scope:
+                add_claims_by_scope = module.kwargs.get("add_claims_by_scope")
+        else:
+            add_claims_by_scope = module.kwargs.get("add_claims_by_scope")
+
+        if add_claims_by_scope:
             if scopes:
                 _scopes = _context.scopes_handler.filter_scopes(client_id, _context, scopes)
 
@@ -127,9 +143,14 @@ class ClaimsInterface:
         :param claims_restriction: Specifies the upper limit of which claims can be returned
         :return:
         """
+        meth = self.server_get("endpoint_context").userinfo
+        if not meth:
+            raise ImproperlyConfigured(
+                "userinfo MUST be defined in the configuration"
+            )
         if claims_restriction:
             # Get all possible claims
-            user_info = self.server_get("endpoint_context").userinfo(user_id, client_id=None)
+            user_info = meth(user_id, client_id=None)
             # Filter out the claims that can be returned
             return {
                 k: user_info.get(k)

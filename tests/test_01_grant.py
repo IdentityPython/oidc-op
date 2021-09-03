@@ -2,6 +2,7 @@ import pytest
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oidc import AuthorizationRequest
 
+from . import full_path
 from oidcop.authn_event import create_authn_event
 from oidcop.server import Server
 from oidcop.session.grant import TOKEN_MAP
@@ -19,6 +20,7 @@ KEYDEFS = [
 ]
 
 KEYJAR = build_keyjar(KEYDEFS)
+
 
 conf = {
     "issuer": "https://example.com/",
@@ -40,6 +42,10 @@ conf = {
         }
     },
     "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
+    "userinfo": {
+        "class": "oidcop.user_info.UserInfo",
+        "kwargs": {"db_file": full_path("users.json")},
+    },
 }
 
 USER_ID = "diana"

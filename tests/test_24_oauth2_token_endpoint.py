@@ -458,7 +458,7 @@ class TestEndpoint(object):
             _session_info["session_id"], _resp["response_args"]["refresh_token"]
         )
 
-        assert at.scope == rt.scope == _request["scope"]
+        assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
 
     def test_refresh_more_scopes(self):
         areq = AUTH_REQ.copy()
@@ -475,7 +475,7 @@ class TestEndpoint(object):
 
         _request = REFRESH_TOKEN_REQ.copy()
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
-        _request["scope"] = ["email", "profile"]
+        _request["scope"] = ["ema"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
         assert isinstance(_req, TokenErrorResponse)
@@ -534,7 +534,7 @@ class TestEndpoint(object):
             _session_info["session_id"], _resp["response_args"]["refresh_token"]
         )
 
-        assert at.scope == rt.scope == _request["scope"]
+        assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
 
     def test_do_refresh_access_token_not_allowed(self):
         areq = AUTH_REQ.copy()

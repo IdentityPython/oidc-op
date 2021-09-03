@@ -192,7 +192,12 @@ class TestEndpoint:
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "introspection_claims": {"nickname": None, "eduperson_scoped_affiliation": None,},
+            "add_claims": {
+                "always": {
+                    "introspection": ["nickname", "eduperson_scoped_affiliation"],
+                },
+                "by_scope": {},
+            },
         }
         endpoint_context.keyjar.import_jwks_as_json(
             endpoint_context.keyjar.export_jwks_as_json(private=True), endpoint_context.issuer,

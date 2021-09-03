@@ -22,6 +22,7 @@ from oidcop.endpoint_context import EndpointContext
 from oidcop.exception import InvalidClient
 from oidcop.exception import MultipleUsage
 from oidcop.exception import NotForMe
+from oidcop.exception import ToOld
 from oidcop.exception import UnknownClient
 from oidcop.util import importer
 
@@ -409,6 +410,8 @@ def verify_client(
         try:
             # get_client_id_from_token is a callback... Do not abuse for code readability.
             auth_info["client_id"] = get_client_id_from_token(endpoint_context, _token, request)
+        except ToOld:
+            raise ValueError("Expired token")
         except KeyError:
             raise ValueError("Unknown token")
 
