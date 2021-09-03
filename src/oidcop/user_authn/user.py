@@ -67,13 +67,14 @@ class UserAuthnMethod(object):
         else:
             _info = self.cookie_info(cookie, client_id)
             logger.debug(f"Cookie info: {_info}")
-            if 'max_age' in kwargs:
-                _max_age = kwargs["max_age"]
-                _now = utc_time_sans_frac()
-                if _now > _info["timestamp"] + _max_age:
-                    logger.debug(
-                        "Too old by {} seconds".format(_now - (_info["timestamp"] + _max_age)))
-                    return None, 0
+            if _info:
+                if 'max_age' in kwargs:
+                    _max_age = kwargs["max_age"]
+                    _now = utc_time_sans_frac()
+                    if _now > _info["timestamp"] + _max_age:
+                        logger.debug(
+                            "Too old by {} seconds".format(_now - (_info["timestamp"] + _max_age)))
+                        return None, 0
             return _info, time.time()
 
     def verify(self, *args, **kwargs):
