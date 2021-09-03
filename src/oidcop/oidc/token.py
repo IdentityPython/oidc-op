@@ -32,7 +32,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         _context = self.endpoint.server_get("endpoint_context")
 
         _mngr = _context.session_manager
-        _log_debug = logger.debug
+        logger.debug("OIDC Access Token")
 
         if req["grant_type"] != "authorization_code":
             return self.error_cls(error="invalid_request", error_description="Unknown grant_type")
@@ -43,6 +43,13 @@ class AccessTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_request", error_description="Missing code")
 
         _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
+        logger.debug(f"Session info: {_session_info}")
+
+        if _session_info["client_id"] != req["client_id"]:
+            logger.debug("{} owner of token".format(_session_info["client_id"]))
+            logger.warning("{} using token it was not given".format(req["client_id"]))
+            return self.error_cls(error="invalid_grant", error_description="Wrong client")
+
         grant = _session_info["grant"]
 
         token_type = "Bearer"
@@ -72,7 +79,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                     error="invalid_request", error_description="redirect_uri mismatch"
                 )
 
-        _log_debug("All checks OK")
+        logger.debug("All checks OK")
 
         issue_refresh = False
         if "issue_refresh" in kwargs:
@@ -195,6 +202,11 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token_value = req["refresh_token"]
         _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+        if _session_info["client_id"] != req["client_id"]:
+            logger.debug("{} owner of token".format(_session_info["client_id"]))
+            logger.warning("{} using token it was not given".format(req["client_id"]))
+            return self.error_cls(error="invalid_grant", error_description="Wrong client")
+
         _grant = _session_info["grant"]
 
         token_type = "Bearer"
