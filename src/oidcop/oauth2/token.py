@@ -225,6 +225,12 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token_value = req["refresh_token"]
         _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+
+        if _session_info["client_id"] != req["client_id"]:
+            logger.debug("{} owner of token".format(_session_info["client_id"]))
+            logger.warning("Client using token it was not given")
+            return self.error_cls(error="invalid_grant", error_description="Wrong client")
+
         _grant = _session_info["grant"]
 
         token_type = "Bearer"
