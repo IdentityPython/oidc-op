@@ -121,6 +121,7 @@ class UserAuthnMethod(object):
         else:
             for val in vals:
                 _info = json.loads(val["value"])
+                _info["timestamp"] = val["timestamp"]
                 session_id = _context.session_manager.decrypt_session_id(_info["sid"])
                 logger.debug("session id: {}".format(session_id))
                 # _, cid, _ = _context.session_manager.decrypt_session_id(_info["sid"])
