@@ -5,12 +5,13 @@ import json
 import logging
 import sys
 import time
-import warnings
 from typing import List
 from urllib.parse import unquote
+import warnings
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptojwt.jwt import JWT
+from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop.exception import FailedAuthentication
 from oidcop.exception import ImproperlyConfigured
@@ -65,6 +66,13 @@ class UserAuthnMethod(object):
             return None, 0
         else:
             _info = self.cookie_info(cookie, client_id)
+            if 'max_age' in kwargs:
+                _max_age = kwargs["max_age"]
+                _now = utc_time_sans_frac()
+                if _now > _info["timestamp"] + _max_age:
+                    logger.debug(
+                        "Too old by {} seconds".format(_now - (_info["timestamp"] + _max_age)))
+                    return None, 0
             return _info, time.time()
 
     def verify(self, *args, **kwargs):
@@ -140,13 +148,13 @@ class UserPassJinja2(UserAuthnMethod):
     url_endpoint = "/verify/user_pass_jinja"
 
     def __init__(
-        self,
-        db,
-        template_handler,
-        template="user_pass.jinja2",
-        server_get=None,
-        verify_endpoint="",
-        **kwargs,
+            self,
+            db,
+            template_handler,
+            template="user_pass.jinja2",
+            server_get=None,
+            verify_endpoint="",
+            **kwargs,
     ):
 
         super(UserPassJinja2, self).__init__(server_get=server_get)
