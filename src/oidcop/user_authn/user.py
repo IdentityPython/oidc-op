@@ -66,6 +66,7 @@ class UserAuthnMethod(object):
             return None, 0
         else:
             _info = self.cookie_info(cookie, client_id)
+            logger.debug('Cookie info: {}'.format(_info))
             if 'max_age' in kwargs:
                 _max_age = kwargs["max_age"]
                 _now = utc_time_sans_frac()
