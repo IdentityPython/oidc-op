@@ -66,18 +66,7 @@ class UserAuthnMethod(object):
             return None, 0
         else:
             _info = self.cookie_info(cookie, client_id)
-<<<<<<< HEAD
-            logger.debug('authenticated_as: cookie info={}'.format(_info))
-            if _info:
-                if 'max_age' in kwargs and kwargs["max_age"] != 0:
-                    _max_age = kwargs["max_age"]
-                    _now = utc_time_sans_frac()
-                    if _now > _info["timestamp"] + _max_age:
-                        logger.debug(
-                            "Too old by {} seconds".format(_now - (_info["timestamp"] + _max_age)))
-                        return None, 0
-            return _info, utc_time_sans_frac()
-=======
+            logger.debug(f"Cookie info: {_info}")
             if 'max_age' in kwargs:
                 _max_age = kwargs["max_age"]
                 _now = utc_time_sans_frac()
@@ -86,7 +75,6 @@ class UserAuthnMethod(object):
                         "Too old by {} seconds".format(_now - (_info["timestamp"] + _max_age)))
                     return None, 0
             return _info, time.time()
->>>>>>> 5e86707 (Too old authentication)
 
     def verify(self, *args, **kwargs):
         """
@@ -130,7 +118,7 @@ class UserAuthnMethod(object):
         if vals is None:
             pass
         else:
-            for val in cookie:
+            for val in vals:
                 _info = json.loads(val["value"])
                 _info["timestamp"] = int(val["timestamp"])
                 session_id = _context.session_manager.decrypt_session_id(_info["sid"])
