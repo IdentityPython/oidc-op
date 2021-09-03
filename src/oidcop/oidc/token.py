@@ -145,7 +145,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to get their access tokens
@@ -166,6 +166,11 @@ class AccessTokenHelper(TokenEndpointHelper):
         code = grant.get_token(request["code"])
         if not isinstance(code, AuthorizationCode):
             return self.error_cls(error="invalid_request", error_description="Wrong token type")
+
+        if code.used:  # Has been used already
+            # invalidate all tokens that has been minted using this code
+            grant.revoke_token(based_on=request["code"], recursive=True)
+            return self.error_cls(error="invalid_grant", error_description="Code inactive")
 
         if code.is_active() is False:
             return self.error_cls(error="invalid_grant", error_description="Code inactive")
@@ -267,7 +272,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to refresh their access tokens

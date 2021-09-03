@@ -251,10 +251,14 @@ def service_endpoint(endpoint):
             err_msg = ResponseMessage(error='invalid_request', error_description=str(err))
             return make_response(err_msg.to_json(), 400)
 
-    _log.info('request: {}'.format(req_args))
     if isinstance(req_args, ResponseMessage) and 'error' in req_args:
-        return make_response(req_args.to_json(), 400)
+        _log.info('Error response: {}'.format(req_args))
+        _resp = make_response(req_args.to_json(), 400)
+        if request.method == "POST":
+            _resp.headers["Content-type"] = "application/json"
+        return _resp
     try:
+        _log.info('request: {}'.format(req_args))
         if isinstance(endpoint, Token):
             args = endpoint.process_request(AccessTokenRequest(**req_args), http_info=http_info)
         else:
