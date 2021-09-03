@@ -521,6 +521,7 @@ class Authorization(Endpoint):
                 _max_age = 0
             else:
                 _max_age = max_age(request)
+            logger.debug(f'Max age: {max_age}')
             identity, _ts = authn.authenticated_as(
                 client_id, cookie, authorization=_auth_info, max_age=_max_age
             )
