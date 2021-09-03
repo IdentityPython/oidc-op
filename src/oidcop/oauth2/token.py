@@ -106,9 +106,8 @@ class AccessTokenHelper(TokenEndpointHelper):
         :return:
         """
         _context = self.endpoint.server_get("endpoint_context")
-
         _mngr = _context.session_manager
-        _log_debug = logger.debug
+        logger.debug("Access Token")
 
         if req["grant_type"] != "authorization_code":
             return self.error_cls(error="invalid_request", error_description="Unknown grant_type")
@@ -134,7 +133,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                     error="invalid_request", error_description="redirect_uri mismatch"
                 )
 
-        _log_debug("All checks OK")
+        logger.debug("All checks OK")
 
         issue_refresh = kwargs.get("issue_refresh", False)
         _response = {
@@ -219,6 +218,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
     def process_request(self, req: Union[Message, dict], **kwargs):
         _context = self.endpoint.server_get("endpoint_context")
         _mngr = _context.session_manager
+        logger.debug("Refresh Token")
 
         if req["grant_type"] != "refresh_token":
             return self.error_cls(error="invalid_request", error_description="Wrong grant_type")
