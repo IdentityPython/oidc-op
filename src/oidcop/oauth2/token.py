@@ -119,6 +119,11 @@ class AccessTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_request", error_description="Missing code")
 
         _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
+        if _session_info["client_id"] != req["client_id"]:
+            logger.debug("{} owner of token".format(_session_info["client_id"]))
+            logger.warning("Client using token it was not given")
+            return self.error_cls(error="invalid_grant", error_description="Wrong client")
+
         grant = _session_info["grant"]
 
         _based_on = grant.get_token(_access_code)
