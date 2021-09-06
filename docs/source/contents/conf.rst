@@ -712,3 +712,11 @@ How to configure the release of the user claims per clients::
                 "id_token": False,
             },
         },
+
+Some of the allowed client configurations are (this is an ongoing work):
+
+---------------------
+grant_types_supported
+---------------------
+
+Configure the allowed grant types on the token endpoint.
