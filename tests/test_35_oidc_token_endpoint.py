@@ -29,6 +29,7 @@ from oidcop.session import MintingNotAllowed
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_info import UserInfo
 from oidcop.util import lv_pack
+from tests.test_24_oauth2_token_endpoint import TestEndpoint as _TestEndpoint
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -183,7 +184,7 @@ def conf():
     }
 
 
-class TestEndpoint(object):
+class TestEndpoint(_TestEndpoint):
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)

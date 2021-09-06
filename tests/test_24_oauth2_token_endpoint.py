@@ -234,6 +234,28 @@ class TestEndpoint(object):
 
         assert set(_req.keys()) == set(_token_request.keys())
 
+    def test_auth_code_grant_disallowed_per_client(self):
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["email"]
+        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = []
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _cntx = self.endpoint_context
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+
+        assert isinstance(_req, TokenErrorResponse)
+        assert _req.to_dict() == {
+            "error": "invalid_request",
+            "error_description": "Unsupported grant_type: authorization_code",
+        }
+
     def test_process_request(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
@@ -335,6 +357,40 @@ class TestEndpoint(object):
         }
         msg = self.token_endpoint.do_response(request=_req, **_resp)
         assert isinstance(msg, dict)
+
+    def test_refresh_grant_disallowed_per_client(self):
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["email"]
+        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = [
+            "authorization_code"
+        ]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _cntx = self.endpoint_context
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+
+        _token_value = _resp["response_args"]["refresh_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+
+        assert isinstance(_req, TokenErrorResponse)
+        assert _req.to_dict() == {
+            "error": "invalid_request",
+            "error_description": "Unsupported grant_type: refresh_token",
+        }
 
     def test_do_2nd_refresh_access_token(self):
         areq = AUTH_REQ.copy()
