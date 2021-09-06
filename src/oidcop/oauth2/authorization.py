@@ -972,7 +972,7 @@ def re_authenticate(request, authn) -> bool:
 
     _prompt = request.get("prompt")
     logger.debug(f"Prompt={_prompt}")
-    if _prompt == "login":
+    if "login" in _prompt:
         logger.debug("Reauthenticate due to prompt=login")
         return True
 
