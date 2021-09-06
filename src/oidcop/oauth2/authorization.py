@@ -968,4 +968,7 @@ def re_authenticate(request, authn) -> bool:
     :param authn:
     :return:
     """
+    if "prompt" in request and request["prompt"] == "login":
+        return True
+
     return False
