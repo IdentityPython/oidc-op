@@ -198,6 +198,11 @@ class AccessTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_grant", error_description="Unknown code")
 
         grant = _session_info["grant"]
+        if grant.authorization_request["client_id"] != client_id:
+            return self.error_cls(
+                error="invalid_client", error_description="Invalid client"
+            )
+
         code = grant.get_token(request["code"])
         if not isinstance(code, AuthorizationCode):
             return self.error_cls(error="invalid_request", error_description="Wrong token type")
@@ -305,6 +310,11 @@ class RefreshTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_grant")
 
         grant = _session_info["grant"]
+        if grant.authorization_request["client_id"] != client_id:
+            return self.error_cls(
+                error="invalid_client", error_description="Invalid client"
+            )
+
         token = grant.get_token(request["refresh_token"])
 
         if not isinstance(token, RefreshToken):
