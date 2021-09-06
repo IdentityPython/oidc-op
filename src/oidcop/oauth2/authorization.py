@@ -961,13 +961,15 @@ class AllowedAlgorithms:
 
 def re_authenticate(request, authn) -> bool:
     """
-    This is where you can demand reauthentication even though the authentication in use
+    This is where you can demand re-authentication even though the authentication in use
     is still valid.
 
     :param request:
     :param authn:
     :return:
     """
+    logger.debug("Re-authenticate ??")
+
     if "prompt" in request and request["prompt"] == "login":
         logger.debug("Reauthenticate due to prompt=login")
         return True
