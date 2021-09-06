@@ -969,6 +969,7 @@ def re_authenticate(request, authn) -> bool:
     :return:
     """
     if "prompt" in request and request["prompt"] == "login":
+        logger.debug("Reauthenticate due to prompt=login")
         return True
 
     return False
