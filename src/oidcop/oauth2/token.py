@@ -4,7 +4,6 @@ from typing import Union
 
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jwt import utc_time_sans_frac
-
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AccessTokenResponse
 from oidcmsg.oauth2 import ResponseMessage
@@ -403,13 +402,20 @@ class Token(Endpoint):
     def _post_parse_request(
         self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
-        _helper = self.helper.get(request["grant_type"])
+        grant_type = request["grant_type"]
+        _helper = self.helper.get(grant_type)
+        client = kwargs["endpoint_context"].cdb[client_id]
+        if "grant_types_supported" in client and grant_type not in client["grant_types_supported"]:
+            return self.error_cls(
+                error="invalid_request",
+                error_description=f"Unsupported grant_type: {grant_type}",
+            )
         if _helper:
             return _helper.post_parse_request(request, client_id, **kwargs)
         else:
             return self.error_cls(
                 error="invalid_request",
-                error_description=f"Unsupported grant_type: {request['grant_type']}",
+                error_description=f"Unsupported grant_type: {grant_type}",
             )
 
     def process_request(self, request: Optional[Union[Message, dict]] = None, **kwargs):

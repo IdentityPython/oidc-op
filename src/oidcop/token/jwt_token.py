@@ -46,8 +46,13 @@ class JWTToken(Token):
         # inherit me and do your things here
         return payload
 
-    def __call__(self, session_id: Optional[str] = "", token_class: Optional[str] = "",
-                 **payload) -> str:
+    def __call__(
+        self,
+        session_id: Optional[str] = "",
+        token_class: Optional[str] = "",
+        usage_rules: Optional[dict] = None,
+        **payload
+    ) -> str:
 
         """
         Return a token.
@@ -68,8 +73,15 @@ class JWTToken(Token):
 
         # payload.update(kwargs)
         _context = self.server_get("endpoint_context")
+        if usage_rules and "expires_in" in usage_rules:
+            lifetime = usage_rules.get("expires_in")
+        else:
+            lifetime = self.lifetime
         signer = JWT(
-            key_jar=_context.keyjar, iss=self.issuer, lifetime=self.lifetime, sign_alg=self.alg,
+            key_jar=_context.keyjar,
+            iss=self.issuer,
+            lifetime=lifetime,
+            sign_alg=self.alg,
         )
 
         return signer.pack(payload)

@@ -114,6 +114,9 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "add_claims": {
+                "always": {},
+            },
         }
         server.endpoint_context.keyjar.add_symmetric(
             "client_1", "hemligtochintekort", ["sig", "enc"]
@@ -173,17 +176,17 @@ class TestEndpoint(object):
         assert claims == {}
 
     def test_get_client_claims_id_token_1(self):
-        self.endpoint_context.cdb["client_1"]["id_token_claims"] = ["name", "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = ["name", "email"]
         claims = self.claims_interface._get_client_claims("client_1", "id_token")
         assert set(claims.keys()) == {"name", "email"}
 
     def test_get_client_claims_userinfo_1(self):
-        self.endpoint_context.cdb["client_1"]["userinfo_claims"] = ["email", "address"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = ["email", "address"]
         claims = self.claims_interface._get_client_claims("client_1", "userinfo")
         assert set(claims.keys()) == {"address", "email"}
 
     def test_get_client_claims_introspection_1(self):
-        self.endpoint_context.cdb["client_1"]["introspection_claims"] = ["email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["introspection"] = ["email"]
         claims = self.claims_interface._get_client_claims("client_1", "introspection")
         assert set(claims.keys()) == {"email"}
 
@@ -207,7 +210,7 @@ class TestEndpoint(object):
             "base_claims": {"email": None, "email_verified": None},
             "enable_claims_per_client": True,
         }
-        self.endpoint_context.cdb["client_1"]["id_token_claims"] = ["name", "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = ["name", "email"]
 
         claims = self.claims_interface.get_claims(session_id, [], "id_token")
         assert set(claims.keys()) == {"name", "email", "email_verified"}
@@ -219,7 +222,7 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.endpoint_context.cdb["client_1"]["id_token_claims"] = ["name", "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = ["name", "email"]
 
         claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "id_token")
         assert set(claims.keys()) == {
@@ -238,7 +241,7 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.endpoint_context.cdb["client_1"]["userinfo_claims"] = ["name", "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = ["name", "email"]
 
         claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "userinfo")
         assert set(claims.keys()) == {
@@ -256,7 +259,7 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.endpoint_context.cdb["client_1"]["introspection_claims"] = [
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["introspection"] = [
             "name",
             "email",
         ]
@@ -280,7 +283,7 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.endpoint_context.cdb["client_1"]["access_token_claims"] = ["name", "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["access_token"] = ["name", "email"]
 
         session_id = self._create_session(AREQ)
         claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "access_token")
@@ -320,7 +323,7 @@ class TestEndpoint(object):
         self.server.server_get("endpoint", "userinfo").kwargs = {
             "enable_claims_per_client": True,
         }
-        self.endpoint_context.cdb["client_1"]["userinfo_claims"] = ["name", "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = ["name", "email"]
 
         self.server.server_get("endpoint", "introspection").kwargs = {"add_claims_by_scope": True}
 
@@ -349,7 +352,7 @@ class TestEndpoint(object):
         self.server.server_get("endpoint", "userinfo").kwargs = {
             "enable_claims_per_client": True,
         }
-        self.endpoint_context.cdb["client_1"]["userinfo_claims"] = ["name", "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = ["name", "email"]
 
         self.server.server_get("endpoint", "introspection").kwargs = {"add_claims_by_scope": True}
 

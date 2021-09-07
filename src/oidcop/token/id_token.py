@@ -267,6 +267,7 @@ class IDToken(Token):
         encrypt=False,
         code=None,
         access_token=None,
+        usage_rules: Optional[dict] = None,
         **kwargs,
     ) -> str:
         _context = self.server_get("endpoint_context")
