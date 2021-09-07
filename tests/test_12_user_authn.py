@@ -100,7 +100,8 @@ class TestUserAuthn(object):
         )
 
         _info, _time_stamp = method.authenticated_as("client 12345", [_cookie])
-        assert set(_info.keys()) == {"sub", "sid", "state", "client_id"}
+        assert set(_info.keys()) == {'sub', 'uid', 'state', 'grant_id', 'timestamp', 'sid',
+                                     'client_id'}
         assert _info["sub"] == "diana"
 
     def test_userpassjinja2(self):

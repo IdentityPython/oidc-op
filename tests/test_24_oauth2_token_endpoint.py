@@ -648,3 +648,53 @@ class TestEndpoint(object):
         assert len(self.token_endpoint.helper) == 1
         assert "access_token" in self.token_endpoint.helper
         assert "refresh_token" not in self.token_endpoint.helper
+
+    def test_token_request_other_client(self):
+        _context = self.endpoint_context
+        _context.cdb["client_2"] = _context.cdb["client_1"]
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["client_id"] = "client_2"
+        _token_request["code"] = code.value
+
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        assert isinstance(_resp, TokenErrorResponse)
+        assert _resp.to_dict() == {
+            "error": "invalid_grant", "error_description": "Wrong client"
+        }
+
+    def test_refresh_token_request_other_client(self):
+        _context = self.endpoint_context
+        _context.cdb["client_2"] = _context.cdb["client_1"]
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(
+            request=_req, issue_refresh=True
+        )
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["client_id"] = "client_2"
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+
+        _token_value = _resp["response_args"]["refresh_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        _resp = self.token_endpoint.process_request(request=_req, )
+        assert isinstance(_resp, TokenErrorResponse)
+        assert _resp.to_dict() == {
+            "error": "invalid_grant", "error_description": "Wrong client"
+        }
