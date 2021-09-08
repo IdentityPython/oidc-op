@@ -1,3 +1,4 @@
+import logging
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -18,6 +19,8 @@ from oidcop.session.token import RefreshToken
 from oidcop.session.token import SessionToken
 from oidcop.token import Token as TokenHandler
 from oidcop.util import importer
+
+logger = logging.getLogger(__name__)
 
 
 class GrantMessage(ImpExp):
@@ -320,6 +323,10 @@ class Grant(Item):
                 scope=scope,
                 extra_payload=handler_args,
             )
+
+            logger.debug(
+                f"claims_release_point: {claims_release_point}, token_payload: {token_payload}")
+
             item.value = token_handler(
                 session_id=session_id, usage_rules=usage_rules, **token_payload
             )
