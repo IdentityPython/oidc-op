@@ -215,7 +215,8 @@ class TestEndpoint(object):
                     "class": userinfo.UserInfo,
                     "kwargs": {
                         "db_file": "users.json",
-                        "claim_types_supported": ["normal", "aggregated", "distributed",],
+                        "claim_types_supported": ["normal", "aggregated", "distributed"],
+                        "add_claims_by_scope": True
                     },
                 },
             },
@@ -562,14 +563,14 @@ class TestEndpoint(object):
         with pytest.raises(ParameterError):
             get_uri(_ec, request, "redirect_uri")
 
-    def test_create_authn_response(self):
+    def test_create_authn_response_id_token(self):
         request = AuthorizationRequest(
             client_id="client_id",
             redirect_uri="https://rp.example.com/cb",
             response_type=["id_token"],
             state="state",
             nonce="nonce",
-            scope="openid",
+            scope=["openid", "profile"],
         )
 
         _ec = self.endpoint.server_get("endpoint_context")
@@ -583,6 +584,10 @@ class TestEndpoint(object):
 
         resp = self.endpoint.create_authn_response(request, session_id)
         assert isinstance(resp["response_args"], AuthorizationResponse)
+
+        _jws = factory(resp["response_args"]["id_token"])
+        _payload = _jws.jwt.payload()
+        assert "given_name" in _payload
 
     def test_setup_auth(self):
         request = AuthorizationRequest(
