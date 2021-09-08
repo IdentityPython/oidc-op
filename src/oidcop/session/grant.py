@@ -315,7 +315,10 @@ class Grant(Item):
 
             # Only access_token and id_token can give rise to claims release
             if token_class in ["access_token", "id_token"]:
-                claims_release_point = token_class
+                if token_class == "id_token" and "as_if" in kwargs:
+                    claims_release_point = kwargs["as_if"]
+                else:
+                    claims_release_point = token_class
             else:
                 claims_release_point = ""
 
