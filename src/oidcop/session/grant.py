@@ -277,7 +277,8 @@ class Grant(Item):
 
         _class = self.token_map.get(token_class)
         if token_class == "id_token":
-            class_args = {k: v for k, v in kwargs.items() if k not in ["code", "access_token"]}
+            class_args = {k: v for k, v in kwargs.items() if
+                          k not in ["code", "access_token", "as_if"]}
             handler_args = {k: v for k, v in kwargs.items() if k in ["code", "access_token"]}
         else:
             class_args = kwargs
@@ -305,7 +306,10 @@ class Grant(Item):
 
             # Only access_token and id_token can give rise to claims release
             if token_class in ["access_token", "id_token"]:
-                claims_release_point = token_class
+                if token_class == "id_token" and "as_if" in kwargs:
+                    claims_release_point = kwargs["as_if"]
+                else:
+                    claims_release_point = token_class
             else:
                 claims_release_point = ""
 
@@ -338,7 +342,7 @@ class Grant(Item):
             value: Optional[str] = "",
             based_on: Optional[str] = "",
             recursive: bool = True
-        ):
+    ):
         for t in self.issued_token:
             if not value and not based_on:
                 t.revoked = True
