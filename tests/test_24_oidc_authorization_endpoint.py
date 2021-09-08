@@ -596,7 +596,7 @@ class TestEndpoint(object):
             claims={"id_token": {"name": {"essential": True}}},
             state="state",
             nonce="nonce",
-            scope=["openid"],
+            scope=["openid", "profile"],
         )
 
         _ec = self.endpoint.server_get("endpoint_context")
@@ -613,7 +613,7 @@ class TestEndpoint(object):
 
         _jws = factory(resp["response_args"]["id_token"])
         _payload = _jws.jwt.payload()
-        assert "name" in _payload
+        assert "given_name" in _payload
 
     def test_setup_auth(self):
         request = AuthorizationRequest(
