@@ -730,11 +730,15 @@ class Authorization(Endpoint):
                 elif {"id_token", "token"}.issubset(rtype):
                     kwargs = {"access_token": _access_token.value}
 
+                if request["response_type"] == ["id_token"]:
+                    kwargs["as_if"] = "userinfo"
+
                 try:
                     id_token = self.mint_token(
                         token_class="id_token",
                         grant=grant,
                         session_id=_sinfo["session_id"],
+                        scope=request["scope"],
                         **kwargs,
                     )
                     # id_token = _context.idtoken.make(sid, **kwargs)
