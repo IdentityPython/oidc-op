@@ -172,7 +172,7 @@ class TestUserAuthn(object):
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
         self.endpoint = server.server_get("endpoint", "authorization")
-
+        self.endpoint_context = endpoint_context
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
         endpoint_context.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
@@ -216,10 +216,16 @@ class TestUserAuthn(object):
         cookies_3 = res["cookie"]
 
         # fourth login - from 1st client
+
         request = self.endpoint.parse_request(AUTH_REQ_4.to_dict())
         redirect_uri = request["redirect_uri"]
         cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
-        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=cookies_1)
+
+        # Parse cookies once before setup_auth
+        kakor = self.endpoint_context.cookie_handler.parse_cookie(
+            cookies=cookies_1, name=self.endpoint_context.cookie_handler.name["session"])
+
+        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=kakor)
 
         assert set(info.keys()) == {"session_id", "identity", "user"}
         assert info["user"] == "diana"
@@ -230,7 +236,7 @@ class TestUserAuthn(object):
         request = self.endpoint.parse_request(AUTH_REQ_2.to_dict())
         redirect_uri = request["redirect_uri"]
         cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
-        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=cookies_1)
+        info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=kakor)
         # No valid login cookie so new session
         assert info["session_id"] != sid2
 
