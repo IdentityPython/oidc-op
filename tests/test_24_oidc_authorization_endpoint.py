@@ -4,14 +4,9 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
-from cryptojwt.jws.jws import factory
-
-from oidcop.configure import OPConfiguration
-import pytest
-import responses
-import yaml
 from cryptojwt import JWT
 from cryptojwt import KeyJar
+from cryptojwt.jws.jws import factory
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 from oidcmsg.exception import ParameterError
@@ -22,9 +17,13 @@ from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import verified_claim_name
 from oidcmsg.oidc import verify_id_token
+import pytest
+import responses
+import yaml
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
+from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
 from oidcop.endpoint_context import init_service
 from oidcop.endpoint_context import init_user_info
@@ -166,7 +165,7 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "oidcop.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
                     "class": "oidcop.token.id_token.IDToken",
@@ -186,7 +185,7 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {},},
+                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {}, },
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
@@ -235,7 +234,7 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token",],
+                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -272,6 +271,7 @@ class TestEndpoint(object):
         endpoint_context.keyjar.import_jwks(
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
+        self.endpoint_context = endpoint_context
         self.endpoint = server.server_get("endpoint", "authorization")
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
@@ -589,6 +589,33 @@ class TestEndpoint(object):
         _payload = _jws.jwt.payload()
         assert "given_name" in _payload
 
+    def test_create_authn_response_id_token_request_claims(self):
+        request = AuthorizationRequest(
+            client_id="client_id",
+            redirect_uri="https://rp.example.com/cb",
+            response_type=["id_token"],
+            claims={"id_token": {"name": {"essential": True}}},
+            state="state",
+            nonce="nonce",
+            scope=["openid", "profile"],
+        )
+
+        _ec = self.endpoint.server_get("endpoint_context")
+        _ec.cdb["client_id"] = {
+            "client_id": "client_id",
+            "redirect_uris": [("https://rp.example.com/cb", {})],
+            "id_token_signed_response_alg": "ES256",
+        }
+
+        session_id = self._create_session(request)
+
+        resp = self.endpoint.create_authn_response(request, session_id)
+        assert isinstance(resp["response_args"], AuthorizationResponse)
+
+        _jws = factory(resp["response_args"]["id_token"])
+        _payload = _jws.jwt.payload()
+        assert "given_name" in _payload
+
     def test_setup_auth(self):
         request = AuthorizationRequest(
             client_id="client_id",
@@ -604,12 +631,18 @@ class TestEndpoint(object):
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "RS256",
         }
+        session_id = self._create_session(request)
 
         kaka = self.endpoint.server_get("endpoint_context").cookie_handler.make_cookie_content(
-            "value", "sso"
+            value=json.dumps({'sid':session_id, 'state':request.get("state")}),
+            name=self.endpoint_context.cookie_handler.name["session"]
         )
 
-        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, [kaka])
+        # Parsed once before setup_auth
+        kakor = self.endpoint_context.cookie_handler.parse_cookie(
+            cookies=[kaka], name=self.endpoint_context.cookie_handler.name["session"])
+
+        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, kakor)
         assert set(res.keys()) == {"session_id", "identity", "user"}
 
     def test_setup_auth_error(self):
@@ -985,7 +1018,8 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.server_get("endpoint_context")
         # userinfo
         _userinfo = init_user_info(
-            {"class": "oidcop.user_info.UserInfo", "kwargs": {"db_file": full_path("users.json")},},
+            {"class": "oidcop.user_info.UserInfo",
+             "kwargs": {"db_file": full_path("users.json")}, },
             "",
         )
         # login_hint
@@ -996,6 +1030,7 @@ class TestEndpoint(object):
 
         # With login_hint and login_hint_lookup
         assert self.endpoint.do_request_user(request) == {"req_user": "diana"}
+
 
 class TestACR(object):
     @pytest.fixture(autouse=True)
@@ -1258,7 +1293,7 @@ class TestUserAuthn(object):
                         "passwd_label": "Secret sauce",
                     },
                 },
-                "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"},},
+                "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"}, },
             },
             "cookie_handler": {
                 "class": "oidcop.cookie_handler.CookieHandler",
@@ -1291,5 +1326,9 @@ class TestUserAuthn(object):
             client_id=authn_req["client_id"],
         )
 
-        _info, _time_stamp = method.authenticated_as(client_id="client 12345", cookie=[_cookie])
+        # Parsed once before setup_auth
+        kakor = self.endpoint_context.cookie_handler.parse_cookie(
+            cookies=[_cookie], name=self.endpoint_context.cookie_handler.name["session"])
+
+        _info, _time_stamp = method.authenticated_as(client_id="client 12345", cookie=kakor)
         assert _info["sub"] == "diana"

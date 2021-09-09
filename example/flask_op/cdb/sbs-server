@@ -1,0 +1,9 @@
+{
+   "client_secret": "changethispassword",
+   "redirect_uris": [
+     [ "https://sbs.scz-vm.net/api/users/resume-session", null ]
+   ],
+   "post_logout_redirect_uris": [
+     [ "https://sbs.scz-vm.net/", null ]
+   ]
+}
