@@ -759,4 +759,44 @@ clients scopes_to_claims).
 -----------------------
 revoke_refresh_on_issue
 -----------------------
+
 Configure whether to revoke the refresh token that was used to issue a new refresh token
+
+----------
+add_claims
+----------
+
+A dictionary with the following keys
+
+always
+######
+
+A dictionary with the following keys: `userinfo`, `id_token`, `introspection`, `access_token`.
+The keys are used to describe the claims we want to add to the corresponding interface.
+The keys can be a list of claims to be added or a dict in the format described
+in https://openid.net/specs/openid-connect-core-1_0.html#IndividualClaimsRequests
+E.g.::
+
+    {
+        "add_claims": {
+            "always": {
+              "userinfo": ["email", "phone"], # Always add "email" and "phone" in the userinfo response if such claims exists
+              "id_token": {"email": null}, # Always add "email" in the id_token if such a claim exists
+              "introspection": {"email": {"value": "a@a.com"}}, # Add "email" in the introspection response only if its value is "a@a.com"
+            }
+        }
+    }
+
+by_scope
+########
+
+A dictionary with the following keys: `userinfo`, `id_token`, `introspection`, `access_token`.
+The keys are boolean values that describe whether the scopes should be mapped
+to claims and added to the response.
+E.g.::
+
+    {
+        "add_claims": {
+            "by_scope": {
+                id_token: True, # Map the requested scopes to claims and add them to the id token
+    }
