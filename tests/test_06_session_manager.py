@@ -199,17 +199,6 @@ class TestSessionManager:
             based_on=based_on,
         )
 
-    def test_grant(self):
-        grant = Grant()
-        assert grant.issued_token == []
-        assert grant.is_active() is True
-
-        code = self._mint_token("authorization_code", grant, self.dummy_session_id)
-        assert isinstance(code, AuthorizationCode)
-        assert code.is_active()
-        assert len(grant.issued_token) == 1
-        assert code.max_usage_reached() is False
-
     def test_code_usage(self):
         session_id = self._create_session(AUTH_REQ)
         session_info = self.endpoint_context.session_manager.get_session_info(
@@ -407,7 +396,6 @@ class TestSessionManager:
                     "expires_in": 120,
                 },
                 "access_token": {"expires_in": 600},
-                "refresh_token": {},
             },
             "expires_in": 43200,
         }
@@ -439,6 +427,7 @@ class TestSessionManager:
         token = self._mint_token("access_token", grant, _session_id, code)
         assert token.usage_rules == {"expires_in": 600}
 
+        # Only allowed to mint access_tokens using the authorization_code
         with pytest.raises(MintingNotAllowed):
             self._mint_token("refresh_token", grant, _session_id, code)
 
