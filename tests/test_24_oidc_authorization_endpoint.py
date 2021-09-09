@@ -613,7 +613,7 @@ class TestEndpoint(object):
 
         _jws = factory(resp["response_args"]["id_token"])
         _payload = _jws.jwt.payload()
-        assert "given_name" in _payload
+        assert "name" in _payload
 
     def test_setup_auth(self):
         request = AuthorizationRequest(
