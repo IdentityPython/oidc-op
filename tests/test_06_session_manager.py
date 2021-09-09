@@ -416,7 +416,6 @@ class TestSessionManager:
                     "expires_in": 120,
                 },
                 "access_token": {"expires_in": 600},
-                "refresh_token": {},
             },
             "expires_in": 43200,
         }
@@ -448,6 +447,7 @@ class TestSessionManager:
         token = self._mint_token("access_token", grant, _session_id, code)
         assert token.usage_rules == {"expires_in": 600}
 
+        # Only allowed to mint access_tokens using the authorization_code
         with pytest.raises(MintingNotAllowed):
             self._mint_token("refresh_token", grant, _session_id, code)
 

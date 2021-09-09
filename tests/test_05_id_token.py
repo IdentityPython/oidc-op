@@ -129,7 +129,10 @@ conf = {
                     "max_usage": 1,
                 },
                 "access_token": {},
-                "refresh_token": {"supports_minting": ["access_token", "refresh_token"]},
+                "refresh_token": {
+                    "supports_minting": ["access_token", "refresh_token"],
+                    "expires_in": 3600
+                },
             },
             "expires_in": 43200,
         }

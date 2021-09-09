@@ -402,7 +402,7 @@ class TestEndpoint(object):
     def test_id_token_claims(self):
         _req = AUTH_REQ_DICT.copy()
         _req["claims"] = CLAIMS
-        _req["response_type"] = "code id_token token"
+        _req["response_type"] = "id_token"
         _req["nonce"] = "rnd_nonce"
         _pr_resp = self.endpoint.parse_request(_req)
         _resp = self.endpoint.process_request(_pr_resp)
@@ -597,7 +597,7 @@ class TestEndpoint(object):
             claims={"id_token": {"name": {"essential": True}}},
             state="state",
             nonce="nonce",
-            scope=["openid", "profile"],
+            scope=["openid"],
         )
 
         _ec = self.endpoint.server_get("endpoint_context")
@@ -614,7 +614,7 @@ class TestEndpoint(object):
 
         _jws = factory(resp["response_args"]["id_token"])
         _payload = _jws.jwt.payload()
-        assert "given_name" in _payload
+        assert "name" in _payload
 
     def test_setup_auth(self):
         request = AuthorizationRequest(
@@ -874,7 +874,12 @@ class TestEndpoint(object):
         grant = self.session_manager.get_grant(sid)
         grant.usage_rules = {"authorization_code": {"expires_in": exp_in}}
 
-        code = self.endpoint.mint_token("authorization_code", grant, sid)
+        DUMMY_SESSION_ID = self.session_manager.encrypted_session_id(
+            "user_id", "client_id", "grant.id"
+        )
+        self.session_manager.set(["user_id", "client_id", "grant.id"], grant)
+
+        code = self.endpoint.mint_token("authorization_code", grant, DUMMY_SESSION_ID)
         if exp_in in [360, "360"]:
             assert code.expires_at
         else:
@@ -1266,7 +1271,6 @@ class TestUserAuthn(object):
     def create_endpoint_context(self):
         conf = {
             "issuer": "https://example.com/",
-            "httpc_params": {"verify": False, "timeout": 1},
             "token_expires_in": 600,
             "grant_expires_in": 300,
             "refresh_token_expires_in": 86400,

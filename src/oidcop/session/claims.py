@@ -45,8 +45,8 @@ class ClaimsInterface:
         client_info = self.server_get("endpoint_context").cdb.get(client_id, {})
         client_claims = (
             client_info.get("add_claims", {})
-            .get("always", {})
-            .get(usage, {})
+                .get("always", {})
+                .get(usage, {})
         )
         if isinstance(client_claims, list):
             client_claims = {k: None for k in client_claims}
@@ -71,16 +71,10 @@ class ClaimsInterface:
 
         return module
 
-    def get_claims_from_request(
-        self,
-        auth_req: dict,
-        claims_release_point: str,
-        scopes: str = None,
-        client_id: str = None,
-    ):
-        _context = self.server_get("endpoint_context")
+    def get_default_claims(self, session_id: str, endpoint_context, release_identifier, client_id):
         # which endpoint module configuration to get the base claims from
-        module = self._get_module(claims_release_point, _context)
+        # which endpoint module configuration to get the base claims from
+        module = self._get_module(release_identifier, endpoint_context)
 
         if module:
             base_claims = module.kwargs.get("base_claims", {})
@@ -92,18 +86,26 @@ class ClaimsInterface:
 
         # Can there be per client specification of which claims to use.
         if module.kwargs.get("enable_claims_per_client"):
-            claims = self._get_client_claims(client_id, claims_release_point)
+            claims = self._get_client_claims(client_id, release_identifier)
         else:
             claims = {}
 
         claims.update(base_claims)
+        return claims
+
+    def get_claims_by_scope(self, endpoint_context, release_identifier, client_id, scopes):
+        # which endpoint module configuration to get the base claims from
+        module = self._get_module(release_identifier, endpoint_context)
+
+        if not module:
+            return {}
 
         # If specific client configuration exists overwrite add_claims_by_scope
-        if client_id in _context.cdb:
+        if client_id in endpoint_context.cdb:
             add_claims_by_scope = (
-                _context.cdb[client_id].get("add_claims", {})
-                .get("by_scope", {})
-                .get(claims_release_point, {})
+                endpoint_context.cdb[client_id].get("add_claims", {})
+                    .get("by_scope", {})
+                    .get(release_identifier, {})
             )
             if isinstance(add_claims_by_scope, dict) and not add_claims_by_scope:
                 add_claims_by_scope = module.kwargs.get("add_claims_by_scope")
@@ -114,15 +116,45 @@ class ClaimsInterface:
             if scopes is None:
                 scopes = auth_req.get("scope")
             if scopes:
-                _claims = _context.scopes_handler.scopes_to_claims(scopes, client_id=client_id)
-                claims.update(_claims)
+                _scopes = endpoint_context.scopes_handler.filter_scopes(client_id, endpoint_context,
+                                                                        scopes)
+
+                _claims = convert_scopes2claims(_scopes,
+                                                scope2claim_map=endpoint_context.scope2claims)
+                return _claims
+        return {}
+
+    def get_claims(self, session_id: str, scopes: str, claims_release_point: str,
+                   secondary_identifier: str = "") -> dict:
+        """
+
+        :param session_id: Session identifier
+        :param scopes: Scopes
+        :param claims_release_point: Where to release the claims. One of
+            "userinfo"/"id_token"/"introspection"/"access_token"
+        :param secondary_identifier: Another interface that may influence the release the claims.
+            One of "userinfo"/"id_token"/"introspection"/"access_token".
+        :return: Claims specification as a dictionary.
+        """
+
+        _context = self.server_get("endpoint_context")
+        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
+
+        claims = self.get_default_claims(session_id, _context, claims_release_point, client_id)
+        scope_claims = self.get_claims_by_scope(_context, claims_release_point, client_id, scopes)
+        claims.update(scope_claims)
+
+        if secondary_identifier:
+            _claims = self.get_default_claims(session_id, _context, secondary_identifier, client_id)
+            claims.update(_claims)
+            scope_claims = self.get_claims_by_scope(_context, secondary_identifier, client_id,
+                                                    scopes)
+            claims.update(scope_claims)
 
         # Bring in claims specification from the authorization request
         # This only goes for ID Token and user info
         request_claims = self.authorization_request_claims(
-            authorization_request=auth_req,
-            claims_release_point=claims_release_point
-        )
+            session_id=session_id, claims_release_point=claims_release_point)
 
         # This will add claims that has not be added before and
         # set filters on those claims that also appears in one of the sources
