@@ -199,6 +199,7 @@ class Grant(Item):
             claims_release_point: str,
             scope: Optional[dict] = None,
             extra_payload: Optional[dict] = None,
+            release_as: str = ''
     ) -> dict:
         """
 
@@ -207,6 +208,7 @@ class Grant(Item):
         :param claims_release_point: One of "userinfo", "introspection", "id_token", "access_token"
         :param scope:
         :param extra_payload:
+        :param release_as: Used if the claims returned are based on rules for another release_point
         :return: dictionary containing information to place in a token value
         """
         if scope is None:
@@ -227,7 +229,7 @@ class Grant(Item):
                 payload.update({"client_id": client_id, "sub": client_id})
 
         _claims_restriction = endpoint_context.claims_interface.get_claims(
-            session_id, scopes=scope, claims_release_point=claims_release_point
+            session_id, scopes=scope, claims_release_point=release_as
         )
         user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
         user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
@@ -309,12 +311,11 @@ class Grant(Item):
 
             # Only access_token and id_token can give rise to claims release
             if token_class in ["access_token", "id_token"]:
-                if token_class == "id_token" and "as_if" in kwargs:
-                    claims_release_point = kwargs["as_if"]
-                else:
-                    claims_release_point = token_class
+                claims_release_point = token_class
             else:
                 claims_release_point = ""
+
+            _release_as = kwargs.get("as_if", claims_release_point)
 
             token_payload = self.payload_arguments(
                 session_id,
@@ -322,6 +323,7 @@ class Grant(Item):
                 claims_release_point=claims_release_point,
                 scope=scope,
                 extra_payload=handler_args,
+                release_as=_release_as
             )
 
             logger.debug(
