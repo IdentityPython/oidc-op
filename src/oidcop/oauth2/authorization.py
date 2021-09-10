@@ -837,6 +837,8 @@ class Authorization(Endpoint):
 
         _context = self.server_get("endpoint_context")
 
+        logger.debug(f"resp_info: {resp_info}")
+
         if "check_session_iframe" in _context.provider_info:
             salt = rndstr()
             try:
