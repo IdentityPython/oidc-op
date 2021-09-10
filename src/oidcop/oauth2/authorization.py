@@ -859,13 +859,13 @@ class Authorization(Endpoint):
             logger.debug(
                 "compute_session_state: client_id=%s, origin=%s, opbs=%s, salt=%s",
                 request["client_id"],
-                resp_info["return_uri"],
+                request["redirect_uri"],
                 opbs_value,
                 salt,
             )
 
             _session_state = compute_session_state(
-                opbs_value, salt, request["client_id"], resp_info["return_uri"]
+                opbs_value, salt, request["client_id"], request["redirect_uri"]
             )
 
             if _session_cookie_content:
@@ -874,11 +874,13 @@ class Authorization(Endpoint):
                 else:
                     resp_info["cookie"] = [_session_cookie_content]
 
-            resp_info["response_args"]["session_state"] = _session_state
+            if "response_args" in resp_info:
+                resp_info["response_args"]["session_state"] = _session_state
 
         # Mix-Up mitigation
-        resp_info["response_args"]["iss"] = _context.issuer
-        resp_info["response_args"]["client_id"] = request["client_id"]
+        if "response_args" in resp_info:
+            resp_info["response_args"]["iss"] = _context.issuer
+            resp_info["response_args"]["client_id"] = request["client_id"]
 
         return resp_info
 
