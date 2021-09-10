@@ -858,16 +858,21 @@ class Authorization(Endpoint):
 
             opbs_value = _session_cookie_content["value"]
 
+            if "return_uri" in resp_info:
+                re_uri = resp_info["return_uri"]
+            else:
+                re_uri = request["redirect_uri"]
+
             logger.debug(
                 "compute_session_state: client_id=%s, origin=%s, opbs=%s, salt=%s",
                 request["client_id"],
-                request["redirect_uri"],
+                re_uri,
                 opbs_value,
                 salt,
             )
 
             _session_state = compute_session_state(
-                opbs_value, salt, request["client_id"], request["redirect_uri"]
+                opbs_value, salt, request["client_id"], re_uri
             )
 
             if _session_cookie_content:
