@@ -376,21 +376,7 @@ class TestEndpoint(object):
         _req = self.token_endpoint.parse_request(_token_request)
         _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
 
-        _request = REFRESH_TOKEN_REQ.copy()
-        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
-
-        _token_value = _resp["response_args"]["refresh_token"]
-        _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
-        _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
-
-        _req = self.token_endpoint.parse_request(_request.to_json())
-
-        assert isinstance(_req, TokenErrorResponse)
-        assert _req.to_dict() == {
-            "error": "invalid_request",
-            "error_description": "Unsupported grant_type: refresh_token",
-        }
+        assert "refresh_token" not in _resp
 
     def test_do_2nd_refresh_access_token(self):
         areq = AUTH_REQ.copy()
