@@ -951,7 +951,8 @@ class Authorization(Endpoint):
         info = self.setup_auth(request, request["redirect_uri"], cinfo, _my_cookies, **kwargs)
 
         if "error" in info:
-            return self.response_mode(request, info)
+            # return self.response_mode(request, info)
+            return info
 
         _function = info.get("function")
         if not _function:
