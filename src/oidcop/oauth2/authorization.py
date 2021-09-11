@@ -502,7 +502,7 @@ class Authorization(Endpoint):
             cookie: List[dict] = None,
             acr: str = None,
             **kwargs,
-    ):
+    ) -> dict:
         """
 
         :param request: The authorization/authentication request
@@ -628,7 +628,7 @@ class Authorization(Endpoint):
     def response_mode(
             self,
             request: Union[dict, AuthorizationRequest],
-            response_args: Optional[AuthorizationResponse] = None,
+            response_args: Optional[Union[dict, AuthorizationResponse]] = None,
             return_uri: Optional[str] = "",
             fragment_enc: Optional[bool] = None,
             **kwargs,
@@ -666,6 +666,11 @@ class Authorization(Endpoint):
                                                   error=error,
                                                   error_description=str(error_description))
         response_info["response_args"] = resp
+        return response_info
+
+    def error_by_response_mode(self, response_info, request, error, error_description):
+        response_info = self.error_response(response_info, request, error, error_description)
+        response_info = self.response_mode(request, **response_info)
         return response_info
 
     def create_authn_response(self, request: Union[dict, Message], sid: str) -> dict:
@@ -841,7 +846,7 @@ class Authorization(Endpoint):
         try:
             resp_info = self.post_authentication(request, session_id, **kwargs)
         except Exception as err:
-            return self.error_response({}, request, "server_error", err)
+            return self.error_by_response_mode({}, request, "server_error", err)
 
         _context = self.server_get("endpoint_context")
 
@@ -852,10 +857,10 @@ class Authorization(Endpoint):
             try:
                 authn_event = _context.session_manager.get_authentication_event(session_id)
             except KeyError:
-                return self.error_response({}, request, "server_error", "No such session")
+                return self.error_by_response_mode({}, request, "server_error", "No such session")
             else:
                 if authn_event.is_valid() is False:
-                    return self.error_response({}, request, "server_error",
+                    return self.error_by_response_mode({}, request, "server_error",
                                                "Authentication has timed out")
 
             _state = b64e(as_bytes(json.dumps({"authn_time": authn_event["authn_time"]})))
@@ -942,7 +947,7 @@ class Authorization(Endpoint):
         info = self.setup_auth(request, request["redirect_uri"], cinfo, _my_cookies, **kwargs)
 
         if "error" in info:
-            return info
+            return self.response_mode(request, info)
 
         _function = info.get("function")
         if not _function:

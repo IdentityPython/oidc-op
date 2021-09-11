@@ -634,7 +634,7 @@ class TestEndpoint(object):
         session_id = self._create_session(request)
 
         kaka = self.endpoint.server_get("endpoint_context").cookie_handler.make_cookie_content(
-            value=json.dumps({'sid':session_id, 'state':request.get("state")}),
+            value=json.dumps({'sid': session_id, 'state': request.get("state")}),
             name=self.endpoint_context.cookie_handler.name["session"]
         )
 
@@ -674,21 +674,16 @@ class TestEndpoint(object):
 
         item["method"].file = ""
 
-    def test_setup_auth_user(self):
+    def test_setup_auth_user_form_post(self):
         request = AuthorizationRequest(
-            client_id="client_id",
-            redirect_uri="https://rp.example.com/cb",
-            response_type=["id_token"],
+            client_id="client_1",
+            redirect_uri="https://example.com/cb",
+            response_type=["code"],
+            response_mode="form_post",
             state="state",
             nonce="nonce",
             scope="openid",
         )
-        redirect_uri = request["redirect_uri"]
-        cinfo = {
-            "client_id": "client_id",
-            "redirect_uris": [("https://rp.example.com/cb", {})],
-            "id_token_signed_response_alg": "RS256",
-        }
         _ec = self.endpoint.server_get("endpoint_context")
 
         session_id = self._create_session(request)
@@ -696,9 +691,30 @@ class TestEndpoint(object):
         item = _ec.authn_broker.db["anon"]
         item["method"].user = b64e(as_bytes(json.dumps({"uid": "krall", "sid": session_id})))
 
-        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
-        assert set(res.keys()) == {"session_id", "identity", "user"}
-        assert res["identity"]["uid"] == "krall"
+        res = self.endpoint.process_request(request)
+        assert set(res.keys()) == {'content_type', 'cookie', 'response_msg', 'response_placement',
+                                   'session_id'}
+
+    def test_setup_auth_error_form_post(self):
+        request = AuthorizationRequest(
+            client_id="client_1",
+            redirect_uri="https://example.com/cb",
+            response_type=["code"],
+            response_mode="form_post",
+            prompt="none",
+            state="state",
+            nonce="nonce",
+            scope=["openid"],
+        )
+
+        item = self.endpoint.server_get("endpoint_context").authn_broker.db["anon"]
+        item["method"].fail = NoSuchAuthentication
+
+        res = self.endpoint.process_request(request)
+        assert set(res.keys()) == {'content_type', 'response_msg', 'response_placement'}
+        assert res["response_placement"] == "body"
+        assert res["content_type"] == "text/html"
+        assert "Submit This Form" in res["response_msg"]
 
     def test_setup_auth_session_revoked(self):
         request = AuthorizationRequest(
