@@ -633,6 +633,14 @@ class Authorization(Endpoint):
                 _args = response_args.to_dict()
             else:
                 _args = response_args
+
+            if "error" in _args:
+                if not return_uri:
+                    return_uri = _args["return_uri"]
+                    del _args["return_uri"]
+                if "return_type" in _args:
+                    del _args["return_type"]
+
             msg = FORM_POST.format(inputs=inputs(_args), action=return_uri)
             kwargs.update(
                 {"response_msg": msg, "content_type": "text/html", "response_placement": "body", }
@@ -942,7 +950,7 @@ class Authorization(Endpoint):
         info = self.setup_auth(request, request["redirect_uri"], cinfo, _my_cookies, **kwargs)
 
         if "error" in info:
-            return self.response_mode(request, info, return_uri=request["redirect_uri"])
+            return self.response_mode(request, info)
             # return info
 
         _function = info.get("function")
