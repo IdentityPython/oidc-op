@@ -633,7 +633,7 @@ class Authorization(Endpoint):
                 _args = response_args.to_dict()
             else:
                 _args = response_args
-            msg = FORM_POST.format(inputs=inputs(_args), action=return_uri, )
+            msg = FORM_POST.format(inputs=inputs(_args), action=return_uri)
             kwargs.update(
                 {"response_msg": msg, "content_type": "text/html", "response_placement": "body", }
             )
@@ -662,10 +662,12 @@ class Authorization(Endpoint):
         response_info["response_args"] = resp
         return response_info
 
-    # def error_by_response_mode(self, response_info, request, error, error_description):
-    #     response_info = self.error_response(response_info, request, error, error_description)
-    #     response_info = self.response_mode(request, **response_info)
-    #     return response_info
+    def error_by_response_mode(self, response_info, request, error, error_description):
+        response_info = self.error_response(response_info, request, error, error_description)
+        if 'return_uri' not in response_info:
+            response_info["return_uri"] = request["redirect_uri"]
+        response_info = self.response_mode(request, **response_info)
+        return response_info
 
     def create_authn_response(self, request: Union[dict, Message], sid: str) -> dict:
         """
@@ -854,10 +856,9 @@ class Authorization(Endpoint):
                 return self.error_response({}, request, "server_error", "No such session")
             else:
                 if authn_event.is_valid() is False:
+                    # return self.error_by_response_mode({}, request, "server_error",
                     return self.error_response({}, request, "server_error",
                                                "Authentication has timed out")
-                    # return self.error_by_response_mode({}, request, "server_error",
-                    #                           "Authentication has timed out")
 
             _state = b64e(as_bytes(json.dumps({"authn_time": authn_event["authn_time"]})))
 
@@ -944,8 +945,8 @@ class Authorization(Endpoint):
         info = self.setup_auth(request, request["redirect_uri"], cinfo, _my_cookies, **kwargs)
 
         if "error" in info:
-            # return self.response_mode(request, info)
-            return info
+            return self.response_mode(request, info, return_uri=request["redirect_uri"])
+            # return info
 
         _function = info.get("function")
         if not _function:
