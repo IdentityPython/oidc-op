@@ -848,8 +848,7 @@ class Authorization(Endpoint):
         try:
             resp_info = self.post_authentication(request, session_id, **kwargs)
         except Exception as err:
-            return self.error_response({}, request, "server_error", err)
-            # return self.error_by_response_mode({}, request, "server_error", err)
+            return self.error_by_response_mode({}, request, "server_error", err)
 
         _context = self.server_get("endpoint_context")
 
@@ -860,13 +859,11 @@ class Authorization(Endpoint):
             try:
                 authn_event = _context.session_manager.get_authentication_event(session_id)
             except KeyError:
-                # return self.error_by_response_mode({}, request, "server_error", "No such session")
-                return self.error_response({}, request, "server_error", "No such session")
+                return self.error_by_response_mode({}, request, "server_error", "No such session")
             else:
                 if authn_event.is_valid() is False:
-                    # return self.error_by_response_mode({}, request, "server_error",
-                    return self.error_response({}, request, "server_error",
-                                               "Authentication has timed out")
+                    return self.error_by_response_mode({}, request, "server_error",
+                                                       "Authentication has timed out")
 
             _state = b64e(as_bytes(json.dumps({"authn_time": authn_event["authn_time"]})))
 
