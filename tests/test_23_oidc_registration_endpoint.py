@@ -332,6 +332,13 @@ class TestEndpoint(object):
         assert "error" in _resp
         assert _resp["error_description"] == "request_uris contains query part"
 
+    def test_register_initiate_login_uri_wrong_scheme(self):
+        _req = MSG.copy()
+        _req["initiate_login_uri"] = "http://ilu.example.com"
+        _resp = self.endpoint.process_request(request=RegistrationRequest(**_req))
+        assert "error" in _resp
+        assert _resp["error"] == "invalid_client_metadata"
+
 
 def test_match_sp_sep():
     assert match_sp_sep("foo bar", "bar foo")

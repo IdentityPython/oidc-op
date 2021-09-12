@@ -384,10 +384,13 @@ class Registration(Endpoint):
         try:
             request.verify()
         except (MessageException, ValueError) as err:
-            logger.error("request.verify() on %s", request)
-            return ResponseMessage(
-                error="invalid_configuration_request", error_description="%s" % err
-            )
+            logger.error("request.verify() error on %s", request)
+            _error = "invalid_configuration_request"
+            if len(err.args) > 1:
+                if err.args[1] == 'initiate_login_uri':
+                    _error = "invalid_client_metadata"
+
+            return ResponseMessage(error=_error, error_description="%s" % err)
 
         request.rm_blanks()
         try:
