@@ -62,7 +62,10 @@ MSG = {
         "https://client.example.org/rf.txt#qpXaRLh_n93TT",
         "https://client.example.org/rf.txt",
     ],
-    "post_logout_redirect_uri": "https://rp.example.com/pl"
+    "post_logout_redirect_uris": [
+        "https://rp.example.com/pl?foo=bar",
+        "https://rp.example.com/pl",
+    ],
 }
 
 CLI_REQ = RegistrationRequest(**MSG)
@@ -210,14 +213,14 @@ class TestEndpoint(object):
 
     def test_register_post_logout_redirect_uri_with_fragment(self):
         _msg = MSG.copy()
-        _msg["post_logout_redirect_uri"] = "https://rp.example.com/pl#fragment"
+        _msg["post_logout_redirect_uris"] = ["https://rp.example.com/pl#fragment"]
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_configuration_parameter"
 
     def test_register_redirect_uri_with_fragment(self):
         _msg = MSG.copy()
-        _msg["post_logout_redirect_uri"] = "https://rp.example.com/cb#fragment"
+        _msg["post_logout_redirect_uris"] = ["https://rp.example.com/cb#fragment"]
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_configuration_parameter"
