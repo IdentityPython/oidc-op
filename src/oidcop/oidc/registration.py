@@ -477,3 +477,12 @@ class Registration(Endpoint):
             )
 
             return {"response_args": reg_resp, "cookie": _cookie, "response_code": 201}
+
+    def process_verify_error(self, exception):
+        _error = "invalid_request"
+        if isinstance(exception, ValueError):
+            if len(exception.args) > 1:
+                if exception.args[1] == 'initiate_login_uri':
+                    _error = "invalid_client_metadata"
+
+        return self.error_cls(error=_error, error_description=f"{exception}")
