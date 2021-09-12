@@ -190,6 +190,7 @@ class Endpoint(object):
         try:
             req.verify(keyjar=keyjar, opponent_id=_client_id)
         except (MissingRequiredAttribute, ValueError, MissingRequiredValue) as err:
+            return self.process_verify_error(err)
             _error = "invalid_request"
             if isinstance(err, ValueError) and self.request_cls == RegistrationRequest:
                 if len(err.args) > 1:
