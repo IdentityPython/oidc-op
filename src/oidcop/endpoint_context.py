@@ -1,6 +1,7 @@
 import json
 import logging
 from typing import Any
+from typing import Callable
 from typing import Optional
 from typing import Union
 
@@ -121,6 +122,7 @@ class EndpointContext(OidcContext):
     def __init__(
         self,
         conf: Union[dict, OPConfiguration],
+        server_get: Callable,
         keyjar: Optional[KeyJar] = None,
         cwd: Optional[str] = "",
         cookie_handler: Optional[Any] = None,
@@ -128,6 +130,7 @@ class EndpointContext(OidcContext):
     ):
         OidcContext.__init__(self, conf, keyjar, entity_id=conf.get("issuer", ""))
         self.conf = conf
+        self.server_get = server_get
 
         _client_db = conf.get("client_db")
         if _client_db:
@@ -248,10 +251,14 @@ class EndpointContext(OidcContext):
         _spec = self.conf.get("scopes_handler")
         if _spec:
             _kwargs = _spec.get("kwargs", {})
-            _cls = importer(_spec["class"])(**_kwargs)
-            self.scopes_handler = _cls(_kwargs)
+            _cls = importer(_spec["class"])
+            self.scopes_handler = _cls(self.server_get, **_kwargs)
         else:
-            self.scopes_handler = Scopes()
+            self.scopes_handler = Scopes(
+                self.server_get,
+                allowed_scopes=self.conf.get("allowed_scopes"),
+                scopes_mapping=self.conf.get("scopes_mapping"),
+            )
 
     def do_add_on(self, endpoints):
         _add_on_conf = self.conf.get("add_on")
@@ -325,8 +332,10 @@ class EndpointContext(OidcContext):
             _provider_info["jwks_uri"] = self.jwks_uri
 
         if "scopes_supported" not in _provider_info:
-            _provider_info["scopes_supported"] = [s for s in self.scope2claims.keys()]
+            _provider_info["scopes_supported"] = self.scopes_handler.get_allowed_scopes()
         if "claims_supported" not in _provider_info:
-            _provider_info["claims_supported"] = STANDARD_CLAIMS[:]
+            _provider_info["claims_supported"] = list(
+                self.scopes_handler.scopes_to_claims(_provider_info["scopes_supported"]).keys()
+            )
 
         return _provider_info

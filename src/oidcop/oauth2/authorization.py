@@ -244,15 +244,17 @@ def authn_args_gather(
     return authn_args
 
 
-def check_unknown_scopes_policy(request_info, cinfo, endpoint_context):
-    op_capabilities = endpoint_context.conf["capabilities"]
-    client_allowed_scopes = cinfo.get("allowed_scopes") or op_capabilities["scopes_supported"]
+def check_unknown_scopes_policy(request_info, client_id, endpoint_context):
+    if not endpoint_context.conf["capabilities"].get("deny_unknown_scopes"):
+        return
+
+    allowed_scopes = endpoint_context.scopes_handler.get_allowed_scopes(client_id=client_id)
 
     # this prevents that authz would be released for unavailable scopes
     for scope in request_info["scope"]:
-        if op_capabilities.get("deny_unknown_scopes") and scope not in client_allowed_scopes:
+        if scope not in allowed_scopes:
             _msg = "{} requested an unauthorized scope ({})"
-            logger.warning(_msg.format(cinfo["client_id"], scope))
+            logger.warning(_msg.format(client_id, scope))
             raise UnAuthorizedClientScope()
 
 
@@ -681,7 +683,9 @@ class Authorization(Endpoint):
             _sinfo = _mngr.get_session_info(sid, grant=True)
 
             if request.get("scope"):
-                aresp["scope"] = request["scope"]
+                aresp["scope"] = _context.scopes_handler.filter_scopes(
+                    request["scope"], _sinfo["client_id"]
+                )
 
             rtype = set(request["response_type"][:])
             handled_response_type = []
@@ -903,8 +907,7 @@ class Authorization(Endpoint):
         # logger.debug("client {}: {}".format(_cid, cinfo))
 
         # this apply the default optionally deny_unknown_scopes policy
-        if cinfo:
-            check_unknown_scopes_policy(request, cinfo, _context)
+        check_unknown_scopes_policy(request, _cid, _context)
 
         if http_info is None:
             http_info = {}

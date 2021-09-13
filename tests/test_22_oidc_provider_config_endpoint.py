@@ -1,9 +1,9 @@
 import json
 import os
 
-from oidcop.configure import OPConfiguration
 import pytest
 
+from oidcop.configure import OPConfiguration
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
@@ -50,9 +50,9 @@ CAPABILITIES = {
 
 
 class TestEndpoint(object):
-    @pytest.fixture(autouse=True)
-    def create_endpoint(self):
-        conf = {
+    @pytest.fixture
+    def conf(self):
+        return {
             "issuer": "https://example.com/",
             "password": "mycket hemligt",
             "verify_ssl": False,
@@ -68,6 +68,9 @@ class TestEndpoint(object):
             },
             "template_dir": "template",
         }
+
+    @pytest.fixture(autouse=True)
+    def create_endpoint(self, conf):
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
         self.endpoint_context = server.endpoint_context
@@ -104,3 +107,32 @@ class TestEndpoint(object):
             "birthdate",
         }
         assert ("Content-type", "application/json; charset=utf-8") in msg["http_headers"]
+
+    def test_advertised_scopes(self, conf):
+        scopes_supported = ["openid", "random", "profile"]
+        conf["capabilities"]["scopes_supported"] = scopes_supported
+
+        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+        endpoint = server.server_get("endpoint", "provider_config")
+        args = endpoint.process_request()
+        msg = endpoint.do_response(args["response_args"])
+        assert isinstance(msg, dict)
+        _msg = json.loads(msg["response"])
+        assert set(_msg["scopes_supported"]) == set(scopes_supported)
+        assert set(_msg["claims_supported"]) == {
+            "zoneinfo",
+            "gender",
+            "sub",
+            "middle_name",
+            "given_name",
+            "nickname",
+            "preferred_username",
+            "name",
+            "updated_at",
+            "birthdate",
+            "locale",
+            "profile",
+            "family_name",
+            "picture",
+            "website",
+        }

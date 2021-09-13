@@ -4,8 +4,8 @@ from typing import Union
 
 from oidcmsg.oidc import OpenIDSchema
 
-from oidcop.exception import ServiceError
 from oidcop.exception import ImproperlyConfigured
+from oidcop.exception import ServiceError
 from oidcop.scopes import convert_scopes2claims
 
 logger = logging.getLogger(__name__)
@@ -113,9 +113,7 @@ class ClaimsInterface:
 
         if add_claims_by_scope:
             if scopes:
-                _scopes = _context.scopes_handler.filter_scopes(client_id, _context, scopes)
-
-                _claims = convert_scopes2claims(_scopes, scope2claim_map=_context.scope2claims)
+                _claims = _context.scopes_handler.scopes_to_claims(scopes, client_id=client_id)
                 claims.update(_claims)
 
         # Bring in claims specification from the authorization request

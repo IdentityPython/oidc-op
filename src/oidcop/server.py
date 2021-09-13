@@ -67,7 +67,12 @@ class Server(ImpExp):
         ImpExp.__init__(self)
         self.conf = conf
         self.endpoint_context = EndpointContext(
-            conf=conf, keyjar=keyjar, cwd=cwd, cookie_handler=cookie_handler, httpc=httpc,
+            conf=conf,
+            server_get=self.server_get,
+            keyjar=keyjar,
+            cwd=cwd,
+            cookie_handler=cookie_handler,
+            httpc=httpc,
         )
         self.endpoint_context.authz = self.do_authz()
 

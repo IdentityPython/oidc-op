@@ -53,6 +53,28 @@ sub_funcs
 
 Optional. Functions involved in *sub*ject value creation.
 
+
+
+scopes_mapping
+##############
+
+A dict defining the scopes that are allowed to be used per client and the claims
+they map to (defaults to the scopes mapping described in the spec). If we want
+to define a scope that doesn't map to claims (e.g. offline_access) then we
+simply map it to an empty list. E.g.::
+  {
+    "scope_a": ["claim1", "claim2"],
+    "scope_b": []
+  }
+*Note*: For OIDC the `openid` scope must be present in this mapping.
+
+
+allowed_scopes
+##############
+
+A list with the scopes that are allowed to be used (defaults to the keys in scopes_mapping).
+
+
 ------
 add_on
 ------
@@ -67,21 +89,6 @@ An example::
             "code_challenge_method": "S256 S384 S512"
           }
         },
-        "claims": {
-          "function": "oidcop.oidc.add_on.custom_scopes.add_custom_scopes",
-          "kwargs": {
-            "research_and_scholarship": [
-              "name",
-              "given_name",
-              "family_name",
-              "email",
-              "email_verified",
-              "sub",
-              "iss",
-              "eduperson_scoped_affiliation"
-            ]
-          }
-        }
       }
 
 The provided add-ons can be seen in the following sections.
@@ -176,6 +183,8 @@ An example::
       backchannel_logout_supported: True
       backchannel_logout_session_supported: True
       check_session_iframe: https://127.0.0.1:5000/check_session_iframe
+      scopes_supported: ["openid", "profile", "random"]
+      claims_supported: ["sub", "given_name", "birthdate"]
 
 ---------
 client_db
@@ -720,3 +729,23 @@ grant_types_supported
 ---------------------
 
 Configure the allowed grant types on the token endpoint.
+
+--------------
+scopes_mapping
+--------------
+
+A dict defining the scopes that are allowed to be used per client and the claims
+they map to (defaults to the scopes mapping described in the spec). If we want
+to define a scope that doesn't map to claims (e.g. offline_access) then we
+simply map it to an empty list. E.g.::
+  {
+    "scope_a": ["claim1", "claim2"],
+    "scope_b": []
+  }
+
+--------------
+allowed_scopes
+--------------
+
+A list with the scopes that are allowed to be used (defaults to the keys in the
+clients scopes_mapping).

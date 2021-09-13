@@ -1,11 +1,11 @@
 import json
 import os
 
-from oidcop.configure import OPConfiguration
 import pytest
 from oidcmsg.oidc import OpenIDRequest
 
 from oidcop.authn_event import create_authn_event
+from oidcop.configure import OPConfiguration
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -388,83 +388,89 @@ class TestCollectUserInfo:
 
 
 class TestCollectUserInfoCustomScopes:
+    @pytest.fixture
+    def conf(self):
+        return {
+            "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_DB}},
+            "password": "we didn't start the fire",
+            "issuer": "https://example.com/op",
+            "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
+            "endpoint": {
+                "provider_config": {
+                    "path": "{}/.well-known/openid-configuration",
+                    "class": ProviderConfiguration,
+                    "kwargs": {},
+                },
+                "registration": {
+                    "path": "{}/registration",
+                    "class": Registration,
+                    "kwargs": {},
+                },
+                "authorization": {
+                    "path": "{}/authorization",
+                    "class": Authorization,
+                    "kwargs": {
+                        "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
+                        "response_modes_supported": [
+                            "query",
+                            "fragment",
+                            "form_post",
+                        ],
+                        "claims_parameter_supported": True,
+                        "request_parameter_supported": True,
+                        "request_uri_parameter_supported": True,
+                    },
+                },
+                "userinfo": {
+                    "path": "userinfo",
+                    "class": userinfo.UserInfo,
+                    "kwargs": {
+                        "claim_types_supported": [
+                            "normal",
+                            "aggregated",
+                            "distributed",
+                        ],
+                        "client_authn_method": ["bearer_header"],
+                        "base_claims": {
+                            "eduperson_scoped_affiliation": None,
+                            "email": None,
+                        },
+                        "add_claims_by_scope": True,
+                        "enable_claims_per_client": True,
+                    },
+                },
+            },
+            "scopes_mapping": {
+                "openid": ["sub"],
+                "research_and_scholarship": [
+                    "name",
+                    "given_name",
+                    "family_name",
+                    "email",
+                    "email_verified",
+                    "sub",
+                    "iss",
+                    "eduperson_scoped_affiliation",
+                ],
+            },
+            "keys": {
+                "public_path": "jwks.json",
+                "key_defs": KEYDEFS,
+                "uri_path": "static/jwks.json",
+            },
+            "authentication": {
+                "anon": {
+                    "acr": INTERNETPROTOCOLPASSWORD,
+                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "kwargs": {"user": "diana"},
+                }
+            },
+            "template_dir": "template",
+        }
+
     @pytest.fixture(autouse=True)
-    def create_endpoint_context(self):
-        self.server = Server(
-            {
-                "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_DB}},
-                "password": "we didn't start the fire",
-                "issuer": "https://example.com/op",
-                "claims_interface": {"class": "oidcop.session.claims.OAuth2ClaimsInterface",
-                                     "kwargs": {}},
-                "endpoint": {
-                    "provider_config": {
-                        "path": "{}/.well-known/openid-configuration",
-                        "class": ProviderConfiguration,
-                        "kwargs": {},
-                    },
-                    "registration": {
-                        "path": "{}/registration",
-                        "class": Registration,
-                        "kwargs": {},
-                    },
-                    "authorization": {
-                        "path": "{}/authorization",
-                        "class": Authorization,
-                        "kwargs": {
-                            "response_types_supported": [
-                                " ".join(x) for x in RESPONSE_TYPES_SUPPORTED
-                            ],
-                            "response_modes_supported": ["query", "fragment", "form_post",],
-                            "claims_parameter_supported": True,
-                            "request_parameter_supported": True,
-                            "request_uri_parameter_supported": True,
-                        },
-                    },
-                    "userinfo": {
-                        "path": "userinfo",
-                        "class": userinfo.UserInfo,
-                        "kwargs": {
-                            "claim_types_supported": ["normal", "aggregated", "distributed",],
-                            "client_authn_method": ["bearer_header"],
-                            "base_claims": {"eduperson_scoped_affiliation": None, "email": None,},
-                            "add_claims_by_scope": True,
-                            "enable_claims_per_client": True,
-                        },
-                    },
-                },
-                "add_on": {
-                    "custom_scopes": {
-                        "function": "oidcop.oidc.add_on.custom_scopes.add_custom_scopes",
-                        "kwargs": {
-                            "research_and_scholarship": [
-                                "name",
-                                "given_name",
-                                "family_name",
-                                "email",
-                                "email_verified",
-                                "sub",
-                                "iss",
-                                "eduperson_scoped_affiliation",
-                            ]
-                        },
-                    }
-                },
-                "keys": {
-                    "public_path": "jwks.json",
-                    "key_defs": KEYDEFS,
-                    "uri_path": "static/jwks.json",
-                },
-                "authentication": {
-                    "anon": {
-                        "acr": INTERNETPROTOCOLPASSWORD,
-                        "class": "oidcop.user_authn.user.NoAuthn",
-                        "kwargs": {"user": "diana"},
-                    }
-                },
-                "template_dir": "template",
-            }
-        )
+    def create_endpoint_context(self, conf):
+        self.server = Server(conf)
         self.endpoint_context = self.server.endpoint_context
         self.endpoint_context.cdb["client1"] = {}
         self.session_manager = self.endpoint_context.session_manager
@@ -512,4 +518,67 @@ class TestCollectUserInfoCustomScopes:
             "family_name": "Krall",
             "given_name": "Diana",
             "name": "Diana Krall",
+        }
+
+    def test_collect_user_info_scope_mapping_per_client(self, conf):
+        conf["scopes_mapping"] = SCOPE2CLAIMS
+        server = Server(conf)
+        endpoint_context = server.endpoint_context
+        self.session_manager = endpoint_context.session_manager
+        claims_interface = endpoint_context.claims_interface
+        endpoint_context.cdb["client1"] = {
+            "scopes_mapping": {
+                "openid": ["sub"],
+                "research_and_scholarship": [
+                    "name",
+                    "given_name",
+                    "family_name",
+                    "email",
+                    "email_verified",
+                    "sub",
+                    "iss",
+                    "eduperson_scoped_affiliation",
+                ],
+            }
+        }
+
+        _req = OIDR.copy()
+        _req["scope"] = "openid research_and_scholarship"
+        del _req["claims"]
+
+        session_id = self._create_session(_req)
+
+        _restriction = claims_interface.get_claims(
+            session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"
+        )
+
+        res = claims_interface.get_user_claims("diana", _restriction)
+
+        assert res == {
+            "eduperson_scoped_affiliation": ["staff@example.org"],
+            "email": "diana@example.org",
+            "email_verified": False,
+            "family_name": "Krall",
+            "given_name": "Diana",
+            "name": "Diana Krall",
+        }
+
+    def test_collect_user_info_allowed_scopes_per_client(self):
+        self.endpoint_context.cdb["client1"] = {"allowed_scopes": {"openid"}}
+
+        _req = OIDR.copy()
+        _req["scope"] = "openid research_and_scholarship"
+        del _req["claims"]
+
+        session_id = self._create_session(_req)
+
+        _restriction = self.claims_interface.get_claims(
+            session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"
+        )
+
+        res = self.claims_interface.get_user_claims("diana", _restriction)
+
+        assert res == {
+            "eduperson_scoped_affiliation": ["staff@example.org"],
+            "email": "diana@example.org",
         }
