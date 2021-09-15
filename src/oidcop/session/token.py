@@ -212,7 +212,51 @@ class RefreshToken(SessionToken):
 
 
 class IDToken(SessionToken):
-    pass
+    parameter = SessionToken.parameter.copy()
+    parameter.update(
+        {
+            "session_id": ""
+        }
+    )
+
+    def __init__(
+            self,
+            token_class: str = "",
+            value: str = "",
+            based_on: Optional[str] = None,
+            usage_rules: Optional[dict] = None,
+            issued_at: int = 0,
+            expires_in: int = 0,
+            expires_at: int = 0,
+            not_before: int = 0,
+            revoked: bool = False,
+            used: int = 0,
+            id: str = "",
+            session_id: str = "",
+            scope: Optional[list] = None,
+            claims: Optional[dict] = None,
+            resources: Optional[list] = None,
+            token_type: Optional[str] = "bearer",
+    ):
+        SessionToken.__init__(
+            self,
+            token_class=token_class,
+            value=value,
+            based_on=based_on,
+            usage_rules=usage_rules,
+            issued_at=issued_at,
+            expires_in=expires_in,
+            expires_at=expires_at,
+            not_before=not_before,
+            revoked=revoked,
+            used=used,
+            id=id,
+            scope=scope,
+            claims=claims,
+            resources=resources
+        )
+
+        self.session_id = session_id
 
 
 SHORT_TYPE_NAME = {"authorization_code": "A", "access_token": "T", "refresh_token": "R"}

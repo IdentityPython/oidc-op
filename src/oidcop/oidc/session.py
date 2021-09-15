@@ -123,9 +123,9 @@ class Session(Endpoint):
         # always include sub and sid so I don't check for
         # backchannel_logout_session_required
 
-        enc_msg = self._encrypt_sid(sid)
+        # enc_msg = self._encrypt_sid(sid)
 
-        payload = {"sid": enc_msg, "events": {BACK_CHANNEL_LOGOUT_EVENT: {}}}
+        payload = {"sid": sid, "events": {BACK_CHANNEL_LOGOUT_EVENT: {}}}
 
         try:
             alg = cinfo["id_token_signed_response_alg"]
@@ -148,7 +148,7 @@ class Session(Endpoint):
         _context = self.server_get("endpoint_context")
         _mngr = _context.session_manager
         _session_info = _mngr.get_session_info(
-            sid, user_session_info=True, client_session_info=True
+            sid, user_session_info=True, client_session_info=True, grant=True
         )
 
         # Front-/Backchannel logout ?
@@ -159,19 +159,37 @@ class Session(Endpoint):
         fc_iframes = {}
         _rel_sid = []
         for _client_id in _session_info["user_session_info"].subordinate:
+            # I prefer back-channel. Should it be configurable ?
             if "backchannel_logout_uri" in _cdb[_client_id]:
-                _sid = _mngr.encrypted_session_id(_user_id, _client_id)
-                _rel_sid.append(_sid)
-                _spec = self.do_back_channel_logout(_cdb[_client_id], _sid)
-                if _spec:
-                    bc_logouts[_client_id] = _spec
+                _cli = _mngr.get([_user_id, _client_id])
+                for gid in _cli.subordinate:
+                    grant = _mngr.get([_user_id, _client_id, gid])
+                    # Has to be connected to an authentication event
+                    if not grant.authentication_event:
+                        continue
+                    idt = grant.last_issued_token_of_type("id_token")
+                    if idt:
+                        _rel_sid.append(idt.session_id)
+                        _spec = self.do_back_channel_logout(_cdb[_client_id], idt.session_id)
+                        if _spec:
+                            bc_logouts[_client_id] = _spec
+                        break
             elif "frontchannel_logout_uri" in _cdb[_client_id]:
-                # Construct an IFrame
-                _sid = _mngr.encrypted_session_id(_user_id, _client_id)
-                _rel_sid.append(_sid)
-                _spec = do_front_channel_logout_iframe(_cdb[_client_id], _iss, _sid)
-                if _spec:
-                    fc_iframes[_client_id] = _spec
+                _cli = _mngr.get([_user_id, _client_id])
+                for gid in _cli.subordinate:
+                    grant = _mngr.get([_user_id, _client_id, gid])
+                    # Has to be connected to an authentication event
+                    if not grant.authentication_event:
+                        continue
+                    idt = grant.last_issued_token_of_type("id_token")
+                    if idt:
+                        _rel_sid.append(idt.session_id)
+                        # Construct an IFrame
+                        _spec = do_front_channel_logout_iframe(_cdb[_client_id], _iss,
+                                                               idt.session_id)
+                        if _spec:
+                            fc_iframes[_client_id] = _spec
+                        break
 
         self.clean_sessions(_rel_sid)
 
@@ -217,10 +235,10 @@ class Session(Endpoint):
         return res
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs
     ):
         """
         Perform user logout
@@ -356,8 +374,8 @@ class Session(Endpoint):
                 pass
             else:
                 if (
-                    _ith.jws_header["alg"]
-                    not in _context.provider_info["id_token_signing_alg_values_supported"]
+                        _ith.jws_header["alg"]
+                        not in _context.provider_info["id_token_signing_alg_values_supported"]
                 ):
                     raise JWSException("Unsupported signing algorithm")
 
@@ -378,7 +396,9 @@ class Session(Endpoint):
                 logger.info("logging out from {} at {}".format(_cid, _url))
 
                 res = _context.httpc.post(
-                    _url, data="logout_token={}".format(sjwt), **_context.httpc_params
+                    _url, data="logout_token={}".format(sjwt),
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    **_context.httpc_params
                 )
 
                 if res.status_code < 300:
