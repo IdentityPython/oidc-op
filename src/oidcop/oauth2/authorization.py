@@ -568,7 +568,7 @@ class Authorization(Endpoint):
             else:
                 return {"function": authn, "args": authn_args}
         else:
-            logger.info("Active authentication")
+            logger.info(f"Active authentication: {identity}")
             if re_authenticate(request, authn):
                 # demand re-authentication
                 return {"function": authn, "args": authn_args}
