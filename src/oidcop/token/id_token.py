@@ -279,7 +279,7 @@ class IDToken(Token):
                 _context, client_id, "front"
         ):
 
-            xargs = {"sid": get_logout_id(_context, user_id=user_id, client_id=client_id)}
+            xargs = {"sid": session_id}
         else:
             xargs = {}
 
