@@ -324,6 +324,9 @@ class Grant(Item):
                 f"claims_release_point: {claims_release_point}, secondary_identifier: "
                 f"{_secondary_identifier}")
 
+            if token_class == "id_token":
+                item.session_id = session_id
+
             token_payload = self.payload_arguments(
                 session_id,
                 endpoint_context,
@@ -386,6 +389,16 @@ class Grant(Item):
                 _val = getattr(self, attr)
                 if _val:
                     res[attr] = _val
+        return res
+
+    def last_issued_token_of_type(self, token_class):
+        res = None
+        for t in self.issued_token:
+            if t.token_class == token_class:
+                if res is None:
+                    res = t
+                elif t.issued_at > res.issued_at:
+                    res = t
         return res
 
 
