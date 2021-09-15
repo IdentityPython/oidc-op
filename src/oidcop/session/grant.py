@@ -324,6 +324,9 @@ class Grant(Item):
                 f"claims_release_point: {claims_release_point}, secondary_identifier: "
                 f"{_secondary_identifier}")
 
+            if token_class == "id_token":
+                item.session_id = session_id
+
             token_payload = self.payload_arguments(
                 session_id,
                 endpoint_context,
