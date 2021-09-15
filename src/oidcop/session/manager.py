@@ -374,6 +374,11 @@ class SessionManager(Database):
         _info = self.get([_user_id, _client_id])
         self.set([_user_id, _client_id], _info.revoke())
 
+    def client_session_is_revoked(self, session_id: str):
+        _user_id, _client_id, _ = self.decrypt_session_id(session_id)
+        _client_inst = self.get([_user_id, _client_id])
+        return _client_inst.revoked
+
     def revoke_grant(self, session_id: str):
         """
         Revokes the grant pointed to by a session identifier.
