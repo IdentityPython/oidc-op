@@ -10,6 +10,7 @@ from oidcmsg.message import Message
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import verified_claim_name
 from oidcmsg.oidc import verify_id_token
+from oidcmsg.time_util import time_sans_frac
 import pytest
 import responses
 
@@ -163,7 +164,7 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "oidcop.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
                     "class": "oidcop.token.id_token.IDToken",
@@ -211,6 +212,7 @@ class TestEndpoint(object):
                 "post_logout_redirect_uris": [("{}logout_cb".format(CLI2), "")],
             },
         }
+        self.endpoint_context = endpoint_context
         self.session_manager = endpoint_context.session_manager
         self.authn_endpoint = server.server_get("endpoint", "authorization")
         self.session_endpoint = server.server_get("endpoint", "session")
@@ -226,7 +228,7 @@ class TestEndpoint(object):
 
     def _create_cookie(self, session_id):
         ec = self.session_endpoint.server_get("endpoint_context")
-        return ec.new_cookie(name=ec.cookie_handler.name["session"], sid=session_id,)
+        return ec.new_cookie(name=ec.cookie_handler.name["session"], sid=session_id, )
 
     def _code_auth(self, state):
         req = AuthorizationRequest(
@@ -269,6 +271,16 @@ class TestEndpoint(object):
         _cookie_info = json.loads(_info[0]["value"])
 
         return _resp["response_args"], _cookie_info["sid"]
+
+    def _mint_token(self, token_class, grant, session_id, token_ref=None):
+        return grant.mint_token(
+            session_id=session_id,
+            endpoint_context=self.endpoint_context,
+            token_class=token_class,
+            token_handler=self.session_manager.token_handler[token_class],
+            expires_at=time_sans_frac() + 900,  # 15 minutes from now
+            based_on=token_ref,  # Means the token (tok) was used to mint this token
+        )
 
     def test_end_session_endpoint_with_cookie(self):
         _resp = self._code_auth("1234567")
@@ -354,7 +366,7 @@ class TestEndpoint(object):
 
         with pytest.raises(InvalidRequest):
             self.session_endpoint.process_request(
-                {"post_logout_redirect_uri": post_logout_redirect_uri, "state": "abcde",},
+                {"post_logout_redirect_uri": post_logout_redirect_uri, "state": "abcde", },
                 http_info=http_info,
             )
 
@@ -384,21 +396,22 @@ class TestEndpoint(object):
                 http_info=http_info,
             )
 
-    def test_back_channel_logout_no_uri(self):
-        self._code_auth("1234567")
+    def test_back_channel_logout_no_backchannel_logout_uri(self):
+        info = self._code_auth("1234567")
 
         res = self.session_endpoint.do_back_channel_logout(
-            self.session_endpoint.server_get("endpoint_context").cdb["client_1"], 0
+            self.session_endpoint.server_get("endpoint_context").cdb["client_1"],
+            info["session_id"]
         )
         assert res is None
 
     def test_back_channel_logout(self):
-        self._code_auth("1234567")
+        info = self._code_auth("1234567")
 
         _cdb = copy.copy(self.session_endpoint.server_get("endpoint_context").cdb["client_1"])
         _cdb["backchannel_logout_uri"] = "https://example.com/bc_logout"
         _cdb["client_id"] = "client_1"
-        res = self.session_endpoint.do_back_channel_logout(_cdb, "_sid_")
+        res = self.session_endpoint.do_back_channel_logout(_cdb, info["session_id"])
         assert isinstance(res, tuple)
         assert res[0] == "https://example.com/bc_logout"
         _jwt = self.session_endpoint.unpack_signed_jwt(res[1], "RS256")
@@ -475,8 +488,7 @@ class TestEndpoint(object):
         assert _jwt["aud"] == ["client_1"]
         assert "sid" in _jwt  # This session ID is not the same as the session_id mentioned above
 
-        _sid = self.session_endpoint._decrypt_sid(_jwt["sid"])
-        assert _sid == _session_info["session_id"]
+        assert _jwt["sid"] == _session_info["session_id"]
         assert _session_info["client_session_info"].is_revoked()
 
     def test_logout_from_client_fc(self):
@@ -507,9 +519,20 @@ class TestEndpoint(object):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
         _session_info = self.session_manager.get_session_info_by_token(
-            _code, client_session_info=True
+            _code, client_session_info=True, grant=True
         )
-        self._code_auth2("abcdefg")
+        _grant_code = self.session_manager.find_token(_session_info["session_id"], _code)
+        id_token1 = self._mint_token("id_token", _session_info["grant"],
+                                     _session_info["session_id"], _grant_code)
+
+        _resp2 = self._code_auth2("abcdefg")
+        _code2 = _resp2["response_args"]["code"]
+        _session_info2 = self.session_manager.get_session_info_by_token(
+            _code2, client_session_info=True, grant=True
+        )
+        _grant_code2 = self.session_manager.find_token(_session_info2["session_id"], _code2)
+        id_token2 = self._mint_token("id_token", _session_info2["grant"],
+                                     _session_info2["session_id"], _grant_code2)
 
         # client0
         self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
@@ -529,16 +552,21 @@ class TestEndpoint(object):
 
         assert res
         assert set(res.keys()) == {"blu", "flu"}
+        # Front channel logout
         assert set(res["flu"].keys()) == {"client_2"}
         _spec = res["flu"]["client_2"]
         assert _spec == '<iframe src="https://example.com/fc_logout">'
+        # Back channel logout
         assert set(res["blu"].keys()) == {"client_1"}
-        _spec = res["blu"]["client_1"]
-        assert _spec[0] == "https://example.com/bc_logout"
-        _jwt = self.session_endpoint.unpack_signed_jwt(_spec[1], "RS256")
+        logout_url, logout_token = res["blu"]["client_1"]
+        assert logout_url == "https://example.com/bc_logout"
+        _jwt = self.session_endpoint.unpack_signed_jwt(logout_token, "RS256")
         assert _jwt
         assert _jwt["iss"] == ISS
         assert _jwt["aud"] == ["client_1"]
+        assert _jwt["sid"] == id_token1.session_id
+        _id_token = self.session_endpoint.unpack_signed_jwt(id_token1.value, "RS256")
+        assert _id_token["sid"] == _jwt["sid"]
 
         # both should be revoked
         assert _session_info["client_session_info"].is_revoked()
