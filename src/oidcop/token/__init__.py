@@ -54,11 +54,10 @@ class Token(object):
 
     def info(self, token):
         """
-        Return type of Token (A=Access code, T=Token, R=Refresh token) and
-        the session id.
+        Return dictionary with token information.
 
         :param token: A token
-        :return: tuple of token type and session id
+        :return: Dictionary with information about the token
         """
         raise NotImplementedError()
 

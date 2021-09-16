@@ -59,7 +59,10 @@ OP_DEFAULT_CONFIG = {
                         "max_usage": 1,
                     },
                     "access_token": {},
-                    "refresh_token": {"supports_minting": ["access_token", "refresh_token"]},
+                    "refresh_token": {
+                        "supports_minting": ["access_token", "refresh_token"],
+                        "expires_in": -1
+                    },
                 },
                 "expires_in": 43200,
             }
@@ -380,7 +383,10 @@ DEFAULT_EXTENDED_CONF = {
                         "max_usage": 1,
                     },
                     "access_token": {},
-                    "refresh_token": {"supports_minting": ["access_token", "refresh_token"]},
+                    "refresh_token": {
+                        "supports_minting": ["access_token", "refresh_token"],
+                        "expires_in": -1
+                    },
                 },
                 "expires_in": 43200,
             }
