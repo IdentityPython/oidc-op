@@ -54,7 +54,6 @@ sub_funcs
 Optional. Functions involved in *sub*ject value creation.
 
 
-
 scopes_mapping
 ##############
 
@@ -73,6 +72,12 @@ allowed_scopes
 ##############
 
 A list with the scopes that are allowed to be used (defaults to the keys in scopes_mapping).
+
+
+advertised_scopes
+#################
+
+A list with the scopes that will be advertised in the well-known endpoint (defaults to allowed_scopes).
 
 
 ------
