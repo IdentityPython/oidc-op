@@ -112,7 +112,7 @@ class ClaimsInterface:
 
         if add_claims_by_scope:
             if scopes is None:
-                scopes = auth_req.get("scopes")
+                scopes = auth_req.get("scope")
             if scopes:
                 _claims = _context.scopes_handler.scopes_to_claims(scopes, client_id=client_id)
                 claims.update(_claims)
@@ -162,12 +162,12 @@ class ClaimsInterface:
         return claims
 
     def get_claims_all_usage_from_request(
-        self, auth_req: dict, scopes: str
+        self, auth_req: dict, scopes: str = None, client_id: str = None
     ) -> dict:
         _claims = {}
         for usage in self.claims_release_points:
             _claims[usage] = self.get_claims_from_request(
-                auth_req, usage, scopes
+                auth_req, usage, scopes=scopes, client_id=client_id
             )
         return _claims
 
