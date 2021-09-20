@@ -200,11 +200,12 @@ class TestSessionManager:
         )
 
     def test_grant(self):
-        grant = Grant()
+        sid = self._create_session(AUTH_REQ)
+        grant = self.session_manager.get_grant(sid)
         assert grant.issued_token == []
         assert grant.is_active() is True
 
-        code = self._mint_token("authorization_code", grant, self.dummy_session_id)
+        code = self._mint_token("authorization_code", grant, sid)
         assert isinstance(code, AuthorizationCode)
         assert code.is_active()
         assert len(grant.issued_token) == 1

@@ -1,6 +1,7 @@
 import json
 import os
 
+import pytest
 from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oidc import AccessTokenRequest
@@ -8,7 +9,6 @@ from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import utc_time_sans_frac
-import pytest
 
 from oidcop import JWT_BEARER
 from oidcop.authn_event import create_authn_event
@@ -361,9 +361,7 @@ class TestEndpoint(object):
     def test_refresh_grant_disallowed_per_client(self):
         areq = AUTH_REQ.copy()
         areq["scope"] = ["email"]
-        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = [
-            "authorization_code"
-        ]
+        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = ["authorization_code"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)

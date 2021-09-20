@@ -25,14 +25,6 @@ SCOPE2CLAIMS = {
 }
 
 
-def available_scopes(endpoint_context):
-    _supported = endpoint_context.provider_info.get("scopes_supported")
-    if _supported:
-        return [s for s in endpoint_context.scope2claims.keys() if s in _supported]
-    else:
-        return [s for s in endpoint_context.scope2claims.keys()]
-
-
 def convert_scopes2claims(scopes, allowed_claims=None, scope2claim_map=None):
     scope2claim_map = scope2claim_map or SCOPE2CLAIMS
 
@@ -53,26 +45,55 @@ def convert_scopes2claims(scopes, allowed_claims=None, scope2claim_map=None):
 
 
 class Scopes:
-    def __init__(self):
-        pass
+    def __init__(self, server_get, allowed_scopes=None, scopes_mapping=None):
+        self.server_get = server_get
+        if not scopes_mapping:
+            scopes_mapping = dict(SCOPE2CLAIMS)
+        self.scopes_mapping = scopes_mapping
+        if not allowed_scopes:
+            allowed_scopes = list(scopes_mapping.keys())
+        self.allowed_scopes = allowed_scopes
 
-    def allowed_scopes(self, client_id, endpoint_context):
+    def get_allowed_scopes(self, client_id=None):
         """
         Returns the set of scopes that a specific client can use.
 
         :param client_id: The client identifier
-        :param endpoint_context: A EndpointContext instance
         :returns: List of scope names. Can be empty.
         """
-        _cli = endpoint_context.cdb.get(client_id)
-        if _cli is not None:
-            _scopes = _cli.get("allowed_scopes")
-            if _scopes:
-                return _scopes
-            else:
-                return available_scopes(endpoint_context)
-        return []
+        allowed_scopes = self.allowed_scopes
+        if client_id:
+            client = self.server_get("endpoint_context").cdb.get(client_id)
+            if client is not None:
+                if "allowed_scopes" in client:
+                    allowed_scopes = client.get("allowed_scopes")
+                elif "scopes_mapping" in client:
+                    allowed_scopes = list(client.get("scopes_mapping").keys())
 
-    def filter_scopes(self, client_id, endpoint_context, scopes):
-        allowed_scopes = self.allowed_scopes(client_id, endpoint_context)
+        return allowed_scopes
+
+    def get_scopes_mapping(self, client_id=None):
+        """
+        Returns the mapping of scopes to claims fora specific client.
+
+        :param client_id: The client identifier
+        :returns: Dict of scopes to claims. Can be empty.
+        """
+        scopes_mapping = self.scopes_mapping
+        if client_id:
+            client = self.server_get("endpoint_context").cdb.get(client_id)
+            if client is not None:
+                scopes_mapping = client.get("scopes_mapping", scopes_mapping)
+        return scopes_mapping
+
+    def filter_scopes(self, scopes, client_id=None):
+        allowed_scopes = self.get_allowed_scopes(client_id)
         return [s for s in scopes if s in allowed_scopes]
+
+    def scopes_to_claims(self, scopes, scopes_mapping=None, client_id=None):
+        if not scopes_mapping:
+            scopes_mapping = self.get_scopes_mapping(client_id)
+
+        scopes = self.filter_scopes(scopes, client_id)
+
+        return convert_scopes2claims(scopes, scope2claim_map=scopes_mapping)

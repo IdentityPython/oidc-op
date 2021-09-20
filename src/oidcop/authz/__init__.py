@@ -80,8 +80,10 @@ class AuthzHandling(object):
             grant.resources = resources
 
         # After this is where user consent should be handled
-        scopes = request.get("scope", [])
-        grant.scope = scopes
+        scopes = grant.scope
+        if not scopes:
+            scopes = request.get("scope", [])
+            grant.scope = scopes
         grant.claims = self.server_get("endpoint_context").claims_interface.get_claims_all_usage(
             session_id=session_id, scopes=scopes
         )
