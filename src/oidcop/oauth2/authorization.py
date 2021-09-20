@@ -71,6 +71,8 @@ def inputs(form_args):
     element = []
     html_field = '<input type="hidden" name="{}" value="{}"/>'
     for name, value in form_args.items():
+        if name == "scope" and isinstance(value, list):
+            value = " ".join(value)
         element.append(html_field.format(name, value))
     return "\n".join(element)
 
@@ -877,8 +879,9 @@ class Authorization(Endpoint):
             resp_info["response_args"]["session_state"] = _session_state
 
         # Mix-Up mitigation
-        resp_info["response_args"]["iss"] = _context.issuer
-        resp_info["response_args"]["client_id"] = request["client_id"]
+        if "response_args" in resp_info:
+            resp_info["response_args"]["iss"] = _context.issuer
+            resp_info["response_args"]["client_id"] = request["client_id"]
 
         return resp_info
 
