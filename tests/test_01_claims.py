@@ -141,33 +141,24 @@ class TestEndpoint(object):
         )
 
     def test_authorization_request_id_token_claims(self):
-        session_id = self._create_session(AREQ)
-
-        claims = self.claims_interface.authorization_request_claims(session_id, "id_token")
+        claims = self.claims_interface.authorization_request_claims(AREQ, "id_token")
         assert claims == {}
 
     def test_authorization_request_id_token_claims_2(self):
-        session_id = self._create_session(AREQ_2)
-        claims = self.claims_interface.authorization_request_claims(session_id, "id_token")
+        claims = self.claims_interface.authorization_request_claims(AREQ_2, "id_token")
         assert claims
         assert set(claims.keys()) == {"nickname"}
 
     def test_authorization_request_userinfo_claims(self):
-        session_id = self._create_session(AREQ)
-
-        claims = self.claims_interface.authorization_request_claims(session_id, "userinfo")
+        claims = self.claims_interface.authorization_request_claims(AREQ, "userinfo")
         assert claims == {}
 
     def test_authorization_request_userinfo_claims_2(self):
-        session_id = self._create_session(AREQ_2)
-
-        claims = self.claims_interface.authorization_request_claims(session_id, "userinfo")
+        claims = self.claims_interface.authorization_request_claims(AREQ_2, "userinfo")
         assert claims == {}
 
     def test_authorization_request_userinfo_claims_3(self):
-        session_id = self._create_session(AREQ_3)
-
-        claims = self.claims_interface.authorization_request_claims(session_id, "userinfo")
+        claims = self.claims_interface.authorization_request_claims(AREQ_3, "userinfo")
         assert set(claims.keys()) == {"name", "email", "email_verified"}
 
     @pytest.mark.parametrize("usage", ["id_token", "userinfo", "introspection", "token"])

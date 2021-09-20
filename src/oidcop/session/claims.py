@@ -31,12 +31,13 @@ class ClaimsInterface:
     def __init__(self, server_get):
         self.server_get = server_get
 
-    def authorization_request_claims(self,
-                                     session_id: str,
-                                     claims_release_point: Optional[str] = "") -> dict:
-        _grant = self.server_get("endpoint_context").session_manager.get_grant(session_id)
-        if _grant.authorization_request and "claims" in _grant.authorization_request:
-            return _grant.authorization_request["claims"].get(claims_release_point, {})
+    def authorization_request_claims(
+        self,
+        authorization_request: dict,
+        claims_release_point: Optional[str] = "",
+    ) -> dict:
+        if authorization_request and "claims" in authorization_request:
+            return authorization_request["claims"].get(claims_release_point, {})
 
         return {}
 
@@ -70,16 +71,13 @@ class ClaimsInterface:
 
         return module
 
-    def get_claims(self, session_id: str, scopes: str, claims_release_point: str) -> dict:
-        """
-
-        :param session_id: Session identifier
-        :param scopes: Scopes
-        :param claims_release_point: Where to release the claims. One of
-            "userinfo"/"id_token"/"introspection"/"access_token"
-        :return: Claims specification as a dictionary.
-        """
-
+    def get_claims_from_request(
+        self,
+        auth_req: dict,
+        claims_release_point: str,
+        scopes: str = None,
+        client_id: str = None,
+    ):
         _context = self.server_get("endpoint_context")
         # which endpoint module configuration to get the base claims from
         module = self._get_module(claims_release_point, _context)
@@ -89,7 +87,8 @@ class ClaimsInterface:
         else:
             return {}
 
-        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
+        if not client_id:
+            client_id = auth_req.get("client_id")
 
         # Can there be per client specification of which claims to use.
         if module.kwargs.get("enable_claims_per_client"):
@@ -112,27 +111,75 @@ class ClaimsInterface:
             add_claims_by_scope = module.kwargs.get("add_claims_by_scope")
 
         if add_claims_by_scope:
+            if scopes is None:
+                scopes = auth_req.get("scopes")
             if scopes:
                 _claims = _context.scopes_handler.scopes_to_claims(scopes, client_id=client_id)
                 claims.update(_claims)
 
         # Bring in claims specification from the authorization request
         # This only goes for ID Token and user info
-        request_claims = self.authorization_request_claims(session_id=session_id,
-                                                           claims_release_point=claims_release_point)
+        request_claims = self.authorization_request_claims(
+            authorization_request=auth_req,
+            claims_release_point=claims_release_point
+        )
 
         # This will add claims that has not be added before and
-        # set filters on those claims that also appears in one of the sources above
+        # set filters on those claims that also appears in one of the sources
+        # above
         if request_claims:
             claims.update(request_claims)
 
         return claims
 
-    def get_claims_all_usage(self, session_id: str, scopes: str) -> dict:
+    def get_claims(self, session_id: str, scopes: str, claims_release_point: str) -> dict:
+        """
+
+        :param session_id: Session identifier
+        :param scopes: Scopes
+        :param claims_release_point: Where to release the claims. One of
+            "userinfo"/"id_token"/"introspection"/"access_token"
+        :return: Claims specification as a dictionary.
+        """
+        _context = self.server_get("endpoint_context")
+        session_info = _context.session_manager.get_session_info(
+            session_id, grant=True
+        )
+        client_id = session_info["client_id"]
+        grant = session_info["grant"]
+
+        if grant.authorization_request:
+            auth_req = grant.authorization_request
+        else:
+            auth_req = {}
+        claims = self.get_claims_from_request(
+            auth_req=auth_req,
+            claims_release_point=claims_release_point,
+            scopes=scopes,
+            client_id=client_id,
+        )
+
+        return claims
+
+    def get_claims_all_usage_from_request(
+        self, auth_req: dict, scopes: str
+    ) -> dict:
         _claims = {}
         for usage in self.claims_release_points:
-            _claims[usage] = self.get_claims(session_id, scopes, usage)
+            _claims[usage] = self.get_claims_from_request(
+                auth_req, usage, scopes
+            )
         return _claims
+
+    def get_claims_all_usage(self, session_id: str, scopes: str) -> dict:
+        grant = self.server_get(
+            "endpoint_context"
+        ).session_manager.get_grant(session_id)
+        if grant.authorization_request:
+            auth_req = grant.authorization_request
+        else:
+            auth_req = {}
+        return self.get_claims_all_usage_from_request(auth_req, scopes)
 
     def get_user_claims(self, user_id: str, claims_restriction: dict) -> dict:
         """
