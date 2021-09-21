@@ -107,7 +107,13 @@ class UserInfo(Endpoint):
 
     def process_request(self, request=None, **kwargs):
         _mngr = self.server_get("endpoint_context").session_manager
-        _session_info = _mngr.get_session_info_by_token(request["access_token"], grant=True)
+        try:
+            _session_info = _mngr.get_session_info_by_token(
+                request["access_token"], grant=True
+            )
+        except (KeyError, ValueError):
+            return self.error_cls(error="invalid_token", error_description="Invalid Token")
+
         _grant = _session_info["grant"]
         token = _grant.get_token(request["access_token"])
         # should be an access token
