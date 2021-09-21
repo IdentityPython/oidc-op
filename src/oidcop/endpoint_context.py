@@ -257,7 +257,7 @@ class EndpointContext(OidcContext):
             self.scopes_handler = Scopes(
                 self.server_get,
                 allowed_scopes=self.conf.get("allowed_scopes"),
-                scopes_mapping=self.conf.get("scopes_mapping"),
+                scopes_to_claims=self.conf.get("scopes_to_claims"),
             )
 
     def do_add_on(self, endpoints):

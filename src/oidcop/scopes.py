@@ -45,13 +45,13 @@ def convert_scopes2claims(scopes, allowed_claims=None, scope2claim_map=None):
 
 
 class Scopes:
-    def __init__(self, server_get, allowed_scopes=None, scopes_mapping=None):
+    def __init__(self, server_get, allowed_scopes=None, scopes_to_claims=None):
         self.server_get = server_get
-        if not scopes_mapping:
-            scopes_mapping = dict(SCOPE2CLAIMS)
-        self.scopes_mapping = scopes_mapping
+        if not scopes_to_claims:
+            scopes_to_claims = dict(SCOPE2CLAIMS)
+        self._scopes_to_claims = scopes_to_claims
         if not allowed_scopes:
-            allowed_scopes = list(scopes_mapping.keys())
+            allowed_scopes = list(scopes_to_claims.keys())
         self.allowed_scopes = allowed_scopes
 
     def get_allowed_scopes(self, client_id=None):
@@ -67,8 +67,8 @@ class Scopes:
             if client is not None:
                 if "allowed_scopes" in client:
                     allowed_scopes = client.get("allowed_scopes")
-                elif "scopes_mapping" in client:
-                    allowed_scopes = list(client.get("scopes_mapping").keys())
+                elif "scopes_to_claims" in client:
+                    allowed_scopes = list(client.get("scopes_to_claims").keys())
 
         return allowed_scopes
 
@@ -79,21 +79,21 @@ class Scopes:
         :param client_id: The client identifier
         :returns: Dict of scopes to claims. Can be empty.
         """
-        scopes_mapping = self.scopes_mapping
+        scopes_to_claims = self._scopes_to_claims
         if client_id:
             client = self.server_get("endpoint_context").cdb.get(client_id)
             if client is not None:
-                scopes_mapping = client.get("scopes_mapping", scopes_mapping)
-        return scopes_mapping
+                scopes_to_claims = client.get("scopes_to_claims", scopes_to_claims)
+        return scopes_to_claims
 
     def filter_scopes(self, scopes, client_id=None):
         allowed_scopes = self.get_allowed_scopes(client_id)
         return [s for s in scopes if s in allowed_scopes]
 
-    def scopes_to_claims(self, scopes, scopes_mapping=None, client_id=None):
-        if not scopes_mapping:
-            scopes_mapping = self.get_scopes_mapping(client_id)
+    def scopes_to_claims(self, scopes, scopes_to_claims=None, client_id=None):
+        if not scopes_to_claims:
+            scopes_to_claims = self.get_scopes_mapping(client_id)
 
         scopes = self.filter_scopes(scopes, client_id)
 
-        return convert_scopes2claims(scopes, scope2claim_map=scopes_mapping)
+        return convert_scopes2claims(scopes, scope2claim_map=scopes_to_claims)
