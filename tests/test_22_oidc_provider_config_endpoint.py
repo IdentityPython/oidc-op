@@ -108,7 +108,7 @@ class TestEndpoint(object):
         }
         assert ("Content-type", "application/json; charset=utf-8") in msg["http_headers"]
 
-    def test_advertised_scopes(self, conf):
+    def test_scopes_supported(self, conf):
         scopes_supported = ["openid", "random", "profile"]
         conf["capabilities"]["scopes_supported"] = scopes_supported
 

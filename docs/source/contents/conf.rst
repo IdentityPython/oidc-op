@@ -74,8 +74,8 @@ allowed_scopes
 A list with the scopes that are allowed to be used (defaults to the keys in scopes_mapping).
 
 
-advertised_scopes
-#################
+scopes_supported
+################
 
 A list with the scopes that will be advertised in the well-known endpoint (defaults to allowed_scopes).
 

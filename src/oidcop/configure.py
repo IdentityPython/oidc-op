@@ -283,8 +283,6 @@ class OPConfiguration(EntityConfiguration):
             "login_hint_lookup": None,
             "sub_func": {},
             "scopes_mapping": {},
-            "scopes_supported": None,
-            "advertised_scopes": None,
         }
     )
 
@@ -306,8 +304,6 @@ class OPConfiguration(EntityConfiguration):
             file_attributes=file_attributes,
         )
         scopes_mapping = self.scopes_mapping
-        if "advertised_scopes" not in self:
-            self["advertised_scopes"] = list(scopes_mapping.keys())
 
 
 class ASConfiguration(EntityConfiguration):
