@@ -54,7 +54,7 @@ sub_funcs
 Optional. Functions involved in *sub*ject value creation.
 
 
-scopes_mapping
+scopes_to_claims
 ##############
 
 A dict defining the scopes that are allowed to be used per client and the claims
@@ -71,7 +71,7 @@ simply map it to an empty list. E.g.::
 allowed_scopes
 ##############
 
-A list with the scopes that are allowed to be used (defaults to the keys in scopes_mapping).
+A list with the scopes that are allowed to be used (defaults to the keys in scopes_to_claims).
 
 
 scopes_supported
@@ -736,7 +736,7 @@ grant_types_supported
 Configure the allowed grant types on the token endpoint.
 
 --------------
-scopes_mapping
+scopes_to_claims
 --------------
 
 A dict defining the scopes that are allowed to be used per client and the claims
@@ -753,4 +753,4 @@ allowed_scopes
 --------------
 
 A list with the scopes that are allowed to be used (defaults to the keys in the
-clients scopes_mapping).
+clients scopes_to_claims).

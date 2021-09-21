@@ -137,7 +137,7 @@ ENDPOINT_CONTEXT_CONFIG = {
         }
     },
     "template_dir": "template",
-    "scopes_mapping": {
+    "scopes_to_claims": {
         **SCOPE2CLAIMS,
         "research_and_scholarship": [
             "name",

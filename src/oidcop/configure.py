@@ -79,7 +79,7 @@ OP_DEFAULT_CONFIG = {
         "refresh": {"class": "oidcop.token.jwt_token.JWTToken", "kwargs": {"lifetime": 86400}, },
         "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
     },
-    "scopes_mapping": SCOPE2CLAIMS,
+    "scopes_to_claims": SCOPE2CLAIMS,
 }
 
 AS_DEFAULT_CONFIG = copy.deepcopy(OP_DEFAULT_CONFIG)
@@ -282,7 +282,7 @@ class OPConfiguration(EntityConfiguration):
             "login_hint2acrs": {},
             "login_hint_lookup": None,
             "sub_func": {},
-            "scopes_mapping": {},
+            "scopes_to_claims": {},
         }
     )
 
@@ -303,7 +303,7 @@ class OPConfiguration(EntityConfiguration):
             port=port,
             file_attributes=file_attributes,
         )
-        scopes_mapping = self.scopes_mapping
+        scopes_to_claims = self.scopes_to_claims
 
 
 class ASConfiguration(EntityConfiguration):

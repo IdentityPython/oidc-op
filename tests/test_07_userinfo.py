@@ -440,7 +440,7 @@ class TestCollectUserInfoCustomScopes:
                     },
                 },
             },
-            "scopes_mapping": {
+            "scopes_to_claims": {
                 "openid": ["sub"],
                 "research_and_scholarship": [
                     "name",
@@ -521,13 +521,13 @@ class TestCollectUserInfoCustomScopes:
         }
 
     def test_collect_user_info_scope_mapping_per_client(self, conf):
-        conf["scopes_mapping"] = SCOPE2CLAIMS
+        conf["scopes_to_claims"] = SCOPE2CLAIMS
         server = Server(conf)
         endpoint_context = server.endpoint_context
         self.session_manager = endpoint_context.session_manager
         claims_interface = endpoint_context.claims_interface
         endpoint_context.cdb["client1"] = {
-            "scopes_mapping": {
+            "scopes_to_claims": {
                 "openid": ["sub"],
                 "research_and_scholarship": [
                     "name",

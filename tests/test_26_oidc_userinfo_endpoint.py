@@ -149,7 +149,7 @@ class TestEndpoint(object):
 
             },
             "template_dir": "template",
-            "scopes_mapping": {
+            "scopes_to_claims": {
                 **SCOPE2CLAIMS,
                 "research_and_scholarship": [
                     "name",
@@ -317,7 +317,7 @@ class TestEndpoint(object):
         res = self.endpoint.do_response(request=_req, **args)
         assert res
 
-    def test_scopes_mapping(self):
+    def test_scopes_to_claims(self):
         _auth_req = AUTH_REQ.copy()
         _auth_req["scope"] = ["openid", "research_and_scholarship"]
 
@@ -347,8 +347,8 @@ class TestEndpoint(object):
             "sub",
         }
 
-    def test_scopes_mapping_per_client(self):
-        self.endpoint_context.cdb["client_1"]["scopes_mapping"] = {
+    def test_scopes_to_claims_per_client(self):
+        self.endpoint_context.cdb["client_1"]["scopes_to_claims"] = {
             **SCOPE2CLAIMS,
             "research_and_scholarship_2": [
                 "name",
@@ -415,7 +415,7 @@ class TestEndpoint(object):
         assert set(args["response_args"].keys()) == {"sub"}
 
     def test_allowed_scopes_per_client(self):
-        self.endpoint_context.cdb["client_1"]["scopes_mapping"] = {
+        self.endpoint_context.cdb["client_1"]["scopes_to_claims"] = {
             **SCOPE2CLAIMS,
             "research_and_scholarship_2": [
                 "name",

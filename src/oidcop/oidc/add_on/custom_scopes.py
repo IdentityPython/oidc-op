@@ -11,7 +11,7 @@ def add_custom_scopes(endpoint, **kwargs):
     """
     # Just need an endpoint, anyone will do
     LOGGER.warning(
-        "The custom_scopes add on is deprecated. The `scopes_mapping` config "
+        "The custom_scopes add on is deprecated. The `scopes_to_claims` config "
         "option should be used instead."
     )
     _endpoint = list(endpoint.values())[0]
@@ -19,7 +19,7 @@ def add_custom_scopes(endpoint, **kwargs):
     _scopes2claims = SCOPE2CLAIMS.copy()
     _scopes2claims.update(kwargs)
     _context = _endpoint.server_get("endpoint_context")
-    _context.scopes_handler.scopes_mapping = _scopes2claims
+    _context.scopes_handler.scopes_to_claims = _scopes2claims
 
     pi = _context.provider_info
     _scopes = set(pi.get("scopes_supported", []))
