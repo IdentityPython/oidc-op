@@ -482,6 +482,22 @@ class TestEndpoint(object):
         assert isinstance(args, ResponseMessage)
         assert args["error_description"] == "Invalid Token"
 
+    def test_invalid_token_2(self):
+        _auth_req = AUTH_REQ.copy()
+        _auth_req["scope"] = ["openid", "research_and_scholarship"]
+
+        session_id = self._create_session(_auth_req)
+        grant = self.session_manager[session_id]
+        access_token = self._mint_token("access_token", grant, session_id)
+        self.session_manager.flush()
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        _req = self.endpoint.parse_request({}, http_info=http_info)
+        args = self.endpoint.process_request(_req)
+
+        assert isinstance(args, ResponseMessage)
+        assert args["error_description"] == "Invalid Token"
+
     def test_expired_token(self, monkeypatch):
         _auth_req = AUTH_REQ.copy()
         _auth_req["scope"] = ["openid", "research_and_scholarship"]
