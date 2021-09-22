@@ -360,9 +360,10 @@ class TestEndpoint(object):
                 "eduperson_scoped_affiliation",
             ],
         }
+        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = list(self.endpoint_context.cdb["client_1"]["scopes_to_claims"].keys()) + ["aba"]
 
         _auth_req = AUTH_REQ.copy()
-        _auth_req["scope"] = ["openid", "research_and_scholarship_2"]
+        _auth_req["scope"] = ["openid", "research_and_scholarship_2", "aba"]
 
         session_id = self._create_session(_auth_req)
         grant = self.session_manager[session_id]

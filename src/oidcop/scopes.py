@@ -31,12 +31,12 @@ def convert_scopes2claims(scopes, allowed_claims=None, scope2claim_map=None):
     res = {}
     if allowed_claims is None:
         for scope in scopes:
-            claims = {name: None for name in scope2claim_map[scope]}
+            claims = {name: None for name in scope2claim_map.get(scope, [])}
             res.update(claims)
     else:
         for scope in scopes:
             try:
-                claims = {name: None for name in scope2claim_map[scope] if name in allowed_claims}
+                claims = {name: None for name in scope2claim_map.get(scope, []) if name in allowed_claims}
                 res.update(claims)
             except KeyError:
                 continue
