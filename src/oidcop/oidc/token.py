@@ -81,12 +81,10 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         logger.debug("All checks OK")
 
-        issue_refresh = False
-        if "issue_refresh" in kwargs:
-            issue_refresh = kwargs["issue_refresh"]
-        else:
-            if "offline_access" in grant.scope:
-                issue_refresh = True
+        issue_refresh = kwargs.get("issue_refresh", None)
+        # The existence of offline_access scope overwrites issue_refresh
+        if issue_refresh is None and "offline_access" in grant.scope:
+            issue_refresh = True
 
         _response = {
             "token_type": token_type,
@@ -242,12 +240,12 @@ class RefreshTokenHelper(TokenEndpointHelper):
             _resp["expires_in"] = access_token.expires_at - utc_time_sans_frac()
 
         _mints = token.usage_rules.get("supports_minting")
-        issue_refresh = False
-        if "issue_refresh" in kwargs:
-            issue_refresh = kwargs["issue_refresh"]
-        else:
-            if "offline_access" in scope:
-                issue_refresh = True
+
+        issue_refresh = kwargs.get("issue_refresh", None)
+        # The existence of offline_access scope overwrites issue_refresh
+        if issue_refresh is None and "offline_access" in scope:
+            issue_refresh = True
+
         if "refresh_token" in _mints and issue_refresh:
             refresh_token = self._mint_token(
                 token_class="refresh_token",
@@ -280,6 +278,17 @@ class RefreshTokenHelper(TokenEndpointHelper):
             _resp["id_token"] = _idtoken.value
 
         token.register_usage()
+
+        if ("client_id" in req
+            and req["client_id"] in _context.cdb
+            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+        ):
+            revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
+        else:
+            revoke_refresh = revoke_refresh = self.endpoint.revoke_refresh_on_issue
+
+        if revoke_refresh:
+            token.revoke()
 
         return _resp
 
