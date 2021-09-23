@@ -118,11 +118,16 @@ class AccessTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_request", error_description="Missing code")
 
         _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
-        if _session_info["client_id"] != req["client_id"]:
-            logger.debug("{} owner of token".format(_session_info["client_id"]))
+        client_id = _session_info["client_id"]
+        if client_id != req["client_id"]:
+            logger.debug("{} owner of token".format(client_id))
             logger.warning("Client using token it was not given")
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
 
+        if "grant_types_supported" in _context.cdb[client_id]:
+            grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
+        else:
+            grant_types_supported = _context.provider_info["grant_types_supported"]
         grant = _session_info["grant"]
 
         _based_on = grant.get_token(_access_code)
@@ -162,7 +167,11 @@ class AccessTokenHelper(TokenEndpointHelper):
                 if token.expires_at:
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
-        if issue_refresh and "refresh_token" in _supports_minting:
+        if (
+            issue_refresh
+            and "refresh_token" in _supports_minting
+            and "refresh_token" in grant_types_supported
+        ):
             try:
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
