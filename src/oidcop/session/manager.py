@@ -376,8 +376,9 @@ class SessionManager(Database):
         self.set([_user_id, _client_id], _info.revoke())
 
         # revoked all grants
-        for grant in _info.subordinate:
-            grant.revoke()
+        for gid in _info.subordinate:
+            _grant = self.get([_user_id, _client_id, gid])
+            _grant.revoke()
 
     def client_session_is_revoked(self, session_id: str):
         _user_id, _client_id, _ = self.decrypt_session_id(session_id)
