@@ -495,6 +495,15 @@ class Authorization(Endpoint):
         logger.debug("Login required error: {}".format(_res))
         return _res
 
+    def _sid_from_uid(self, identity):
+        try:  # If identity['uid'] is in fact a base64 encoded JSON string
+            _id = b64d(as_bytes(identity["uid"]))
+        except BadSyntax:
+            return None
+        else:
+            identity = json.loads(as_unicode(_id))
+            return identity.get("sid")
+
     def setup_auth(
             self,
             request: Optional[Union[Message, dict]],
@@ -545,16 +554,12 @@ class Authorization(Endpoint):
             _ts = 0
         else:
             if identity:
-                try:  # If identity['uid'] is in fact a base64 encoded JSON string
-                    _id = b64d(as_bytes(identity["uid"]))
-                except BadSyntax:
-                    pass
-                else:
-                    identity = json.loads(as_unicode(_id))
-
+                _sid = identity.get("sid", self._sid_from_uid(identity))
+                if _sid:
                     try:
-                        _csi = _context.session_manager[identity.get("sid")]
+                        _csi = _context.session_manager[_sid]
                     except Revoked:
+                        logger.debug("Authentication session revoked!!")
                         identity = None
                     else:
                         logger.debug(f"Session info type: {_csi.__class__.__name__}")
