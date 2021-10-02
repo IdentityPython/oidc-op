@@ -158,6 +158,10 @@ class Session(Endpoint):
         _cdb = _context.cdb
         _iss = _context.issuer
         _user_id = _session_info["user_id"]
+        logger.debug(
+            f"(logout_all_clients) user_id={_user_id},  client_id={_session_info['client_id']}, "
+            f"grant_id={_session_info['grant_id']}")
+
         bc_logouts = {}
         fc_iframes = {}
         _rel_sid = []
@@ -172,6 +176,7 @@ class Session(Endpoint):
                         continue
                     idt = grant.last_issued_token_of_type("id_token")
                     if idt:
+                        logger.debug(f"Last issued id_token: {idt}")
                         _rel_sid.append(idt.session_id)
                         _spec = self.do_back_channel_logout(_cdb[_client_id], idt.session_id)
                         if _spec:
@@ -186,6 +191,7 @@ class Session(Endpoint):
                         continue
                     idt = grant.last_issued_token_of_type("id_token")
                     if idt:
+                        logger.debug(f"Last issued id_token: {idt}")
                         _rel_sid.append(idt.session_id)
                         # Construct an IFrame
                         _spec = do_front_channel_logout_iframe(_cdb[_client_id], _iss,
@@ -385,6 +391,7 @@ class Session(Endpoint):
         return request
 
     def do_verified_logout(self, sid, alla=False, **kwargs):
+        logger.debug(f"(do_verified_logout): sid={sid}")
         if alla:
             _res = self.logout_all_clients(sid=sid)
         else:
