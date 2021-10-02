@@ -66,7 +66,7 @@ class UserAuthnMethod(object):
             return None, 0
         else:
             _info = self.cookie_info(cookie, client_id)
-            logger.debug('Cookie info: {}'.format(_info))
+            logger.debug('authenticated_as: cookie info={}'.format(_info))
             if _info:
                 if 'max_age' in kwargs and kwargs["max_age"] != 0:
                     _max_age = kwargs["max_age"]
@@ -102,27 +102,16 @@ class UserAuthnMethod(object):
 
     def cookie_info(self, cookie: List[dict], client_id: str) -> dict:
         _context = self.server_get("endpoint_context")
-        try:
-            logger.debug("parse_cookie@UserAuthnMethod")
-            vals = _context.cookie_handler.parse_cookie(
-                cookies=cookie, name=_context.cookie_handler.name["session"]
-            )
-        except (InvalidCookieSign, AssertionError, AttributeError) as err:
-            logger.warning(err)
-            vals = []
+        logger.debug("Value cookies: {}".format(cookie))
 
-        logger.debug("Value cookies: {}".format(vals))
-
-        logger.debug("Value cookies: {}".format(vals))
-
-        if vals is None:
+        if cookie is None:
             pass
         else:
-            for val in vals:
+            for val in cookie:
                 _info = json.loads(val["value"])
                 _info["timestamp"] = int(val["timestamp"])
                 session_id = _context.session_manager.decrypt_session_id(_info["sid"])
-                logger.debug("session id: {}".format(session_id))
+                logger.debug("cookie_info: session id={}".format(session_id))
                 # _, cid, _ = _context.session_manager.decrypt_session_id(_info["sid"])
                 if session_id[1] != client_id:
                     continue

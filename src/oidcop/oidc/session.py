@@ -51,6 +51,8 @@ def do_front_channel_logout_iframe(cinfo, iss, sid):
     except KeyError:
         flsr = False
 
+    logger.debug(f"frontchannel_logout_uri: {frontchannel_logout_uri}")
+    logger.debug(f"frontchannel_logout_session_required: {flsr}")
     if flsr:
         _query = {"iss": iss, "sid": sid}
         if "?" in frontchannel_logout_uri:
@@ -61,6 +63,7 @@ def do_front_channel_logout_iframe(cinfo, iss, sid):
             _np = p._replace(query="")
             frontchannel_logout_uri = _np.geturl()
 
+        logger.debug(f"IFrame query: {_query}")
         _iframe = '<iframe src="{}?{}">'.format(
             frontchannel_logout_uri, urlencode(_query, doseq=True)
         )
@@ -270,7 +273,7 @@ class Session(Endpoint):
             if _cookie_infos:
                 # value is a JSON document
                 _cookie_info = json.loads(_cookie_infos[0]["value"])
-                logger.debug("Cookie info: {}".format(_cookie_info))
+                logger.debug("process_request: cookie_info={}".format(_cookie_info))
                 try:
                     _session_info = _mngr.get_session_info(_cookie_info["sid"], grant=True)
                 except KeyError:
