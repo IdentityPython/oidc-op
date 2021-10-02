@@ -176,7 +176,7 @@ class Session(Endpoint):
                         continue
                     idt = grant.last_issued_token_of_type("id_token")
                     if idt:
-                        logger.debug(f"Last issued id_token: {idt}")
+                        logger.debug(f"Last issued id_token: {idt.session_id};{idt.value}")
                         _rel_sid.append(idt.session_id)
                         _spec = self.do_back_channel_logout(_cdb[_client_id], idt.session_id)
                         if _spec:
@@ -191,7 +191,7 @@ class Session(Endpoint):
                         continue
                     idt = grant.last_issued_token_of_type("id_token")
                     if idt:
-                        logger.debug(f"Last issued id_token: {idt}")
+                        logger.debug(f"Last issued id_token: {idt.session_id};{idt.value}")
                         _rel_sid.append(idt.session_id)
                         # Construct an IFrame
                         _spec = do_front_channel_logout_iframe(_cdb[_client_id], _iss,
