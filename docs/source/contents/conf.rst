@@ -183,9 +183,9 @@ client_db
 
 If you're running an OP with static client registration you want to keep the
 registered clients in a database separate from the session database since
-it will change independent of the OP process. In this case you need this.
+it will change independent of the OP process. In this case you need *client_db*.
 If you are on the other hand only allowing dynamic client registration then
-keeping registered clients in the session database makes total sense.
+keeping registered clients only in the session database makes total sense.
 
 The class you reference in the specification MUST be a subclass of
 oidcmsg.storage.DictType and have some of the methods a dictionary has.
