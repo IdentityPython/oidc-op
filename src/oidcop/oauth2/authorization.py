@@ -570,8 +570,6 @@ class Authorization(Endpoint):
                         logger.debug(f"Session info type: {_csi.__class__.__name__}")
                         if _csi.is_active() is False:
                             identity = None
-                        if isinstance(_csi, Grant):  # Check if client session is revoked
-                            logger.debug("Check if client session is revoked")
 
         authn_args = authn_args_gather(request, authn_class_ref, cinfo, **kwargs)
         _mngr = _context.session_manager
