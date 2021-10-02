@@ -500,16 +500,14 @@ class Authorization(Endpoint):
         logger.debug("Login required error: {}".format(_res))
         return _res
 
-    def _unwrap_identity(self, identity):
-        if isinstance(identity, dict):
-            try:
-                _id = b64d(as_bytes(identity["uid"]))
-            except BadSyntax:
-                return identity
+    def _sid_from_uid(self, identity):
+        try:  # If identity['uid'] is in fact a base64 encoded JSON string
+            _id = b64d(as_bytes(identity["uid"]))
+        except BadSyntax:
+            return None
         else:
-            _id = b64d(as_bytes(identity))
-
-        return json.loads(as_unicode(_id))
+            identity = json.loads(as_unicode(_id))
+            return identity.get("sid")
 
     def setup_auth(
             self,
@@ -561,8 +559,7 @@ class Authorization(Endpoint):
             _ts = 0
         else:
             if identity:
-                identity = self._unwrap_identity(identity)
-                _sid = identity.get("sid")
+                _sid = identity.get("sid", self._sid_from_uid(identity))
                 if _sid:
                     try:
                         _csi = _context.session_manager[_sid]
