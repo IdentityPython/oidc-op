@@ -339,8 +339,9 @@ An example::
               "client_secret_post",
               "client_secret_basic",
               "client_secret_jwt",
-              "private_key_jwt"
-            ]
+              "private_key_jwt",
+            ],
+            "revoke_refresh_on_issue": True
           }
         },
         "userinfo": {
@@ -754,3 +755,8 @@ allowed_scopes
 
 A list with the scopes that are allowed to be used (defaults to the keys in the
 clients scopes_to_claims).
+
+-----------------------
+revoke_refresh_on_issue
+-----------------------
+Configure whether to revoke the refresh token that was used to issue a new refresh token

@@ -384,6 +384,7 @@ class TestEndpoint(object):
         grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
+        self.token_endpoint.revoke_refresh_on_issue = False
         _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -409,8 +410,7 @@ class TestEndpoint(object):
         _2nd_request = REFRESH_TOKEN_REQ.copy()
         _2nd_request["refresh_token"] = _resp["response_args"]["refresh_token"]
         _2nd_req = self.token_endpoint.parse_request(_request.to_json())
-        _2nd_resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
-
+        _2nd_resp = self.token_endpoint.process_request(request=_2nd_req, issue_refresh=True)
         assert set(_2nd_resp.keys()) == {"cookie", "response_args", "http_headers"}
         assert set(_2nd_resp["response_args"].keys()) == {
             "access_token",
@@ -460,6 +460,82 @@ class TestEndpoint(object):
         assert "refresh_token" in _3rd_resp["response_args"]
 
         assert first_refresh_token != second_refresh_token
+
+    def test_revoke_on_issue_refresh_token(self, conf):
+        self.endpoint_context.cdb["client_1"] = {
+            "client_secret": "hemligt",
+            "redirect_uris": [("https://example.com/cb", None)],
+            "client_salt": "salted",
+            "endpoint_auth_method": "client_secret_post",
+            "response_types": ["code", "token", "code id_token", "id_token"],
+        }
+
+        self.token_endpoint.revoke_refresh_on_issue = True
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["email"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+        assert "refresh_token" in _resp["response_args"]
+        first_refresh_token = _resp["response_args"]["refresh_token"]
+
+        _refresh_request = REFRESH_TOKEN_REQ.copy()
+        _refresh_request["refresh_token"] = first_refresh_token
+        _2nd_req = self.token_endpoint.parse_request(_refresh_request.to_json())
+        _2nd_resp = self.token_endpoint.process_request(request=_2nd_req, issue_refresh=True)
+        assert "refresh_token" in _2nd_resp["response_args"]
+        second_refresh_token = _2nd_resp["response_args"]["refresh_token"]
+
+        assert first_refresh_token != second_refresh_token
+        first_refresh_token = grant.get_token(first_refresh_token)
+        second_refresh_token = grant.get_token(second_refresh_token)
+        assert first_refresh_token.revoked is True
+        assert second_refresh_token.revoked is False
+
+    def test_revoke_on_issue_refresh_token_per_client(self, conf):
+        self.endpoint_context.cdb["client_1"] = {
+            "client_secret": "hemligt",
+            "redirect_uris": [("https://example.com/cb", None)],
+            "client_salt": "salted",
+            "endpoint_auth_method": "client_secret_post",
+            "response_types": ["code", "token", "code id_token", "id_token"],
+        }
+        self.endpoint_context.cdb[AUTH_REQ["client_id"]]["revoke_refresh_on_issue"] = True
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["openid", "offline_access"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+        assert "refresh_token" in _resp["response_args"]
+        first_refresh_token = _resp["response_args"]["refresh_token"]
+
+        _refresh_request = REFRESH_TOKEN_REQ.copy()
+        _refresh_request["refresh_token"] = first_refresh_token
+        _2nd_req = self.token_endpoint.parse_request(_refresh_request.to_json())
+        _2nd_resp = self.token_endpoint.process_request(request=_2nd_req, issue_refresh=True)
+        assert "refresh_token" in _2nd_resp["response_args"]
+        second_refresh_token = _2nd_resp["response_args"]["refresh_token"]
+
+        _2d_refresh_request = REFRESH_TOKEN_REQ.copy()
+        _2d_refresh_request["refresh_token"] = second_refresh_token
+
+        assert first_refresh_token != second_refresh_token
+        first_refresh_token = grant.get_token(first_refresh_token)
+        second_refresh_token = grant.get_token(second_refresh_token)
+        assert first_refresh_token.revoked is True
+        assert second_refresh_token.revoked is False
 
     def test_refresh_scopes(self):
         areq = AUTH_REQ.copy()

@@ -296,6 +296,17 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token.register_usage()
 
+        if ("client_id" in req
+            and req["client_id"] in _context.cdb
+            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+        ):
+            revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
+        else:
+            revoke_refresh = self.endpoint.revoke_refresh_on_issue
+
+        if revoke_refresh:
+            token.revoke()
+
         return _resp
 
     def post_parse_request(
@@ -374,6 +385,7 @@ class Token(Endpoint):
         self.allow_refresh = False
         self.new_refresh_token = new_refresh_token
         self.configure_grant_types(kwargs.get("grant_types_supported"))
+        self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
 
     def configure_grant_types(self, grant_types_supported):
         if grant_types_supported is None:
