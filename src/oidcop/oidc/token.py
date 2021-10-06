@@ -1,22 +1,29 @@
 import logging
 from typing import Optional
 from typing import Union
+from urllib.parse import urlparse
 
+from cryptojwt.exception import JWKESTException
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg import oidc
 from oidcmsg.message import Message
+from oidcmsg.exception import MissingRequiredValue, MissingRequiredAttribute
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
-
+from oidcmsg.oauth2 import (TokenExchangeRequest, ResponseMessage,
+                            TokenExchangeResponse)
 from oidcop import oauth2
 from oidcop import sanitize
+from oidcop.oauth2.authorization import check_unknown_scopes_policy
 from oidcop.oauth2.token import TokenEndpointHelper
 from oidcop.session.grant import AuthorizationCode
 from oidcop.session.grant import RefreshToken
 from oidcop.session.token import MintingNotAllowed
 from oidcop.token.exception import UnknownToken
+from oidcop.exception import UnAuthorizedClientScope, ToOld
+from oidcop.session.token import AccessToken
 
 logger = logging.getLogger(__name__)
 
@@ -376,10 +383,15 @@ class TokenExchangeHelper(TokenEndpointHelper):
     def post_parse_request(self, request, client_id="", **kwargs):
         request = TokenExchangeRequest(**request.to_dict())
 
-        # if "client_id" not in request:
-        #     request["client_id"] = client_id
+        if "client_id" not in request:
+            request["client_id"] = client_id
 
-        keyjar = getattr(self.endpoint_context, "keyjar", "")
+        _context = self.endpoint.server_get("endpoint_context")
+
+        try:
+            keyjar = _context.keyjar
+        except AttributeError:
+            keyjar = ""
 
         try:
             request.verify(keyjar=keyjar, opponent_id=client_id)
@@ -393,12 +405,11 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 error="invalid_request", error_description="%s" % err
             )
 
-
         error = self.check_for_errors(request=request)
         if error is not None:
             return error
 
-        _mngr = self.endpoint_context.session_manager
+        _mngr = _context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["subject_token"], grant=True
@@ -421,13 +432,12 @@ class TokenExchangeHelper(TokenEndpointHelper):
             return self.error_cls(
                 error="invalid_request", error_description="Subject token inactive"
             )
-
         return request
 
     def check_for_errors(self, request):
-        context = self.endpoint.endpoint_context
+        _context = self.endpoint.server_get("endpoint_context")
         if "resource" in request:
-            iss = urlparse(context.issuer)
+            iss = urlparse(_context.issuer)
             if any(
                 urlparse(res).netloc != iss.netloc for res in request["resource"]
             ):
@@ -437,7 +447,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         if "audience" in request:
             if any(
-                aud != context.issuer for aud in request["audience"]
+                aud != _context.issuer for aud in request["audience"]
             ):
                 return TokenErrorResponse(
                     error="invalid_target", error_description="Unknown audience"
@@ -468,7 +478,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
     def token_exchange_response(self, token):
         response_args = {
             "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
-            "token_type": token.type,
+            "token_type": token.token_type,
             "access_token": token.value,
             "scope": token.scope,
             "expires_in": token.usage_rules["expires_in"]
@@ -485,31 +495,61 @@ class TokenExchangeHelper(TokenEndpointHelper):
         #     return TokenErrorResponse(
         #         error="invalid_request", error_description="Not allowed"
         #     )
-        _mngr = self.endpoint_context.session_manager
+        _context = self.endpoint.server_get("endpoint_context")
+        _mngr = _context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
-                request["subject_token"],
-                grant=True,
+                request["subject_token"], grant=True
             )
-        except KeyError:
+        except ToOld:
+            logger.error("Subject token has expired.")
+            return self.error_cls(
+                error="invalid_request",
+                error_description="Subject token has expired"
+            )
+        except (KeyError, UnknownToken):
             logger.error("Subject token invalid.")
             return self.error_cls(
-                error="invalid_grant",
-                error_description="Subject token invalid",
+                error="invalid_request",
+                error_description="Subject token invalid"
             )
 
         token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
+
+        if not isinstance(token, AccessToken):
+            return self.error_cls(
+                error="invalid_request", error_description="Wrong token type"
+            )
+
+        if token.is_active() is False:
+            return self.error_cls(
+                error="invalid_request", error_description="Subject token inactive"
+            )
+
         grant = _session_info["grant"]
 
+        request_info = dict(scope=request.get("scope", []))
         try:
-            new_token = grant.mint_token(
+            check_unknown_scopes_policy(request_info, request["client_id"], _context)
+        except UnAuthorizedClientScope:
+            logger.error("Unauthorized scope requested.")
+            return self.error_cls(
+                error="invalid_grant",
+                error_description="Unauthorized scope requested",
+            )
+
+        try:
+            new_token = self._mint_token(
+                token_class=token.token_class,
+                grant=grant,
                 session_id=_session_info["session_id"],
-                endpoint_context=self.endpoint_context,
-                token_type='access_token',
-                token_handler=_mngr.token_handler["access_token"],
+                client_id=request["client_id"],
                 based_on=token,
-                resources=request.get("resource"),
                 scope=request.get("scope"),
+                token_args={
+                    "resources":request.get("resource"),
+                },
+                token_type=token.token_type
             )
         except MintingNotAllowed:
             logger.error("Minting not allowed for 'access_token'")

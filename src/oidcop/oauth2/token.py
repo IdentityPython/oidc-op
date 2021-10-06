@@ -68,7 +68,7 @@ class TokenEndpointHelper(object):
             token_args = meth(_context, client_id, token_args)
 
         if token_args:
-            _args = {"token_args": token_args}
+            _args = token_args
         else:
             _args = {}
 

@@ -101,14 +101,22 @@ class TestEndpoint(object):
                 },
                 "token": {
                     "path": "token",
-                    "class": 'oidcop.oauth2.token.Token',
+                    "class": 'oidcop.oidc.token.Token',
                     "kwargs": {
                         "client_authn_method": [
                             "client_secret_basic",
                             "client_secret_post",
                             "client_secret_jwt",
                             "private_key_jwt",
-                        ]
+                        ],
+                        "grant_types_supported": {
+                            "urn:ietf:params:oauth:grant-type:token-exchange": {
+                                "class": "oidcop.oidc.token.TokenExchangeHelper"
+                            },
+                            "authorization_code": {
+                                "class": "oidcop.oidc.token.AccessTokenHelper"
+                            }
+                        },
                     },
                 },
                 "introspection": {
@@ -133,11 +141,11 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                                "supports_minting": ["access_token", "refresh_token" ],
                                 "max_usage": 1,
                             },
                             "access_token": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token"],
+                                "supports_minting": ["access_token", "refresh_token"],
                                 "expires_in": 600,
                             },
                             "refresh_token": {
@@ -166,8 +174,8 @@ class TestEndpoint(object):
             },
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        endpoint_context = server.endpoint_context
-        endpoint_context.cdb["client_1"] = {
+        self.endpoint_context = server.endpoint_context
+        self.endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -175,10 +183,10 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile"],
         }
-        endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
+        self.endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.endpoint = server.server_get("endpoint", "token")
         self.introspection_endpoint = server.server_get("endpoint", "introspection")
-        self.session_manager = endpoint_context.session_manager
+        self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
@@ -194,7 +202,7 @@ class TestEndpoint(object):
         )
 
     def _mint_code(self, grant, client_id):
-        session_id = session_key(self.user_id, client_id, grant.id)
+        session_id = self.session_manager.encrypted_session_id(self.user_id, client_id, grant.id)
         usage_rules = grant.usage_rules.get("authorization_code", {})
         _exp_in = usage_rules.get("expires_in")
 
@@ -220,12 +228,11 @@ class TestEndpoint(object):
         """
         areq = AUTH_REQ.copy()
         areq["scope"] = ["openid", "profile"]
-
         session_id = self._create_session(areq)
-        grant = self.endpoint.endpoint_context.authz(session_id, areq)
+        grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq['client_id'])
 
-        _cntx = self.endpoint.endpoint_context
+        _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -246,11 +253,13 @@ class TestEndpoint(object):
 
         _req = self.endpoint.parse_request(
             token_exchange_req.to_json(),
-            auth="Basic {}".format("Y2xpZW50XzE6aGVtbGlndA=="),
+            {
+                "headers": {
+                    "authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")
+                }
+            },
         )
         _resp = self.endpoint.process_request(request=_req)
-
-        assert set(_resp.keys()) == {"response_args", "http_headers"}
         assert set(_resp["response_args"].keys()) == {
             'access_token', 'token_type', 'scope', 'expires_in', 'issued_token_type'
         }
@@ -264,10 +273,10 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint.endpoint_context.authz(session_id, areq)
+        grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq['client_id'])
 
-        _cntx = self.endpoint.endpoint_context
+        _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -289,13 +298,16 @@ class TestEndpoint(object):
 
         _req = self.endpoint.parse_request(
             token_exchange_req.to_json(),
-            auth="Basic {}".format("Y2xpZW50XzE6aGVtbGlndA=="),
+            {
+                "headers": {
+                    "authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")
+                }
+            },
         )
         _resp = self.endpoint.process_request(request=_req)
 
-        assert set(_resp.keys()) == {"response_args", "http_headers"}
         assert set(_resp["response_args"].keys()) == {
-            'access_token', 'token_type', 'expires_in', 'issued_token_type'
+            'access_token', 'token_type', 'expires_in', 'issued_token_type', 'scope'
         }
         msg = self.endpoint.do_response(request=_req, **_resp)
         assert isinstance(msg, dict)
@@ -312,10 +324,10 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint.endpoint_context.authz(session_id, areq)
+        grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq['client_id'])
 
-        _cntx = self.endpoint.endpoint_context
+        _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -333,11 +345,15 @@ class TestEndpoint(object):
             resource=["https://example.com/api"]
         )
 
-        _resp = self.endpoint.parse_request(
+        _req = self.endpoint.parse_request(
             token_exchange_req.to_json(),
-            auth="Basic {}".format("Y2xpZW50XzE6aGVtbGlndA=="),
+            {
+                "headers": {
+                    "authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")
+                }
+            },
         )
-        assert set(_resp.keys()) == {"error", "error_description"}
+        _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert(
             _resp["error_description"]
@@ -354,10 +370,10 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint.endpoint_context.authz(session_id, areq)
+        grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq['client_id'])
 
-        _cntx = self.endpoint.endpoint_context
+        _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -377,7 +393,11 @@ class TestEndpoint(object):
 
         _req = self.endpoint.parse_request(
             token_exchange_req.to_json(),
-            auth="Basic {}".format("Y2xpZW50XzE6aGVtbGlndA=="),
+            {
+                "headers": {
+                    "authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")
+                }
+            },
         )
         _resp = self.endpoint.process_request(request=_req)
         assert set(_resp.keys()) == {"error", "error_description"}
@@ -394,14 +414,10 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint.endpoint_context.authz(session_id, areq)
+        grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq['client_id'])
 
-        _cntx = self.endpoint.endpoint_context
-        _token = self._mint_access_token(
-            exch_grant, session_id, token_ref=_token, resources=["https://backend.example.com"],
-            scope=_scope
-        )
+        _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -422,7 +438,11 @@ class TestEndpoint(object):
 
         _req = self.endpoint.parse_request(
             token_exchange_req.to_json(),
-            auth="Basic {}".format("Y2xpZW50XzE6aGVtbGlndA=="),
+            {
+                "headers": {
+                    "authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")
+                }
+            },
         )
         _resp = self.endpoint.process_request(request=_req)
         assert set(_resp.keys()) == {"error", "error_description"}
@@ -440,10 +460,10 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint.endpoint_context.authz(session_id, areq)
+        grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq['client_id'])
 
-        _cntx = self.endpoint.endpoint_context
+        _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -466,7 +486,11 @@ class TestEndpoint(object):
 
         _req = self.endpoint.parse_request(
             token_exchange_req.to_json(),
-            auth="Basic {}".format("Y2xpZW50XzE6aGVtbGlndA=="),
+            {
+                "headers": {
+                    "authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")
+                }
+            },
         )
         _resp = self.endpoint.process_request(request=_req)
         assert set(_resp.keys()) == {"error", "error_description"}
@@ -490,10 +514,10 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint.endpoint_context.authz(session_id, areq)
+        grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq['client_id'])
 
-        _cntx = self.endpoint.endpoint_context
+        _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -515,7 +539,11 @@ class TestEndpoint(object):
 
         _req = self.endpoint.parse_request(
             token_exchange_req.to_json(),
-            auth="Basic {}".format("Y2xpZW50XzE6aGVtbGlndA=="),
+            {
+                "headers": {
+                    "authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")
+                }
+            },
         )
         _resp = self.endpoint.process_request(request=_req)
         assert set(_resp.keys()) == {"error", "error_description"}
@@ -539,10 +567,10 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint.endpoint_context.authz(session_id, areq)
+        grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq['client_id'])
 
-        _cntx = self.endpoint.endpoint_context
+        _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -563,7 +591,11 @@ class TestEndpoint(object):
 
         _req = self.endpoint.parse_request(
             token_exchange_req.to_json(),
-            auth="Basic {}".format("Y2xpZW50XzE6aGVtbGlndA=="),
+            {
+                "headers": {
+                    "authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")
+                }
+            },
         )
         _resp = self.endpoint.process_request(request=_req)
         assert set(_resp.keys()) == {"error", "error_description"}
@@ -580,10 +612,10 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint.endpoint_context.authz(session_id, areq)
+        grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq['client_id'])
 
-        _cntx = self.endpoint.endpoint_context
+        _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -603,7 +635,11 @@ class TestEndpoint(object):
 
         _req = self.endpoint.parse_request(
             token_exchange_req.to_json(),
-            auth="Basic {}".format("Y2xpZW50XzE6aGVtbGlndA=="),
+            {
+                "headers": {
+                    "authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")
+                }
+            },
         )
         _resp = self.endpoint.process_request(request=_req)
         assert set(_resp.keys()) == {"error", "error_description"}
@@ -620,10 +656,10 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint.endpoint_context.authz(session_id, areq)
+        grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq['client_id'])
 
-        _cntx = self.endpoint.endpoint_context
+        _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -642,7 +678,11 @@ class TestEndpoint(object):
 
         _req = self.endpoint.parse_request(
             token_exchange_req.to_json(),
-            auth="Basic {}".format("Y2xpZW50XzE6aGVtbGlndA=="),
+            {
+                "headers": {
+                    "authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")
+                }
+            },
         )
         _resp = self.endpoint.process_request(request=_req)
         assert set(_resp.keys()) == {"error", "error_description"}
