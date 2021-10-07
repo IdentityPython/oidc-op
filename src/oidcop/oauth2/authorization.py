@@ -250,14 +250,16 @@ def check_unknown_scopes_policy(request_info, client_id, endpoint_context):
     if not endpoint_context.conf["capabilities"].get("deny_unknown_scopes"):
         return
 
-    allowed_scopes = endpoint_context.scopes_handler.get_allowed_scopes(client_id=client_id)
-
+    scope = request_info["scope"]
+    filtered_scopes = set(
+        endpoint_context.scopes_handler.filter_scopes(scope, client_id=client_id)
+    )
+    scopes = set(scope)
     # this prevents that authz would be released for unavailable scopes
-    for scope in request_info["scope"]:
-        if scope not in allowed_scopes:
-            _msg = "{} requested an unauthorized scope ({})"
-            logger.warning(_msg.format(client_id, scope))
-            raise UnAuthorizedClientScope()
+    if scopes != filtered_scopes:
+        diff = " ".join(scopes - filtered_scopes)
+        logger.warning(f"{client_id} requested unauthorized scopes: {diff}")
+        raise UnAuthorizedClientScope()
 
 
 class Authorization(Endpoint):
