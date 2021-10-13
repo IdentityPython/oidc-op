@@ -4,7 +4,6 @@ from typing import Union
 
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jwt import utc_time_sans_frac
-
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AccessTokenResponse
 from oidcmsg.oauth2 import ResponseMessage
@@ -13,6 +12,7 @@ from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import time_sans_frac
 
 from oidcop import sanitize
+from oidcop.constant import DEFAULT_TOKEN_LIFETIME
 from oidcop.endpoint import Endpoint
 from oidcop.exception import ProcessError
 from oidcop.session.grant import AuthorizationCode
@@ -62,7 +62,7 @@ class TokenEndpointHelper(object):
         if usage_rules:
             _exp_in = usage_rules.get("expires_in")
         else:
-            _exp_in = 0
+            _exp_in = DEFAULT_TOKEN_LIFETIME
 
         token_args = token_args or {}
         for meth in _context.token_args_methods:
@@ -106,9 +106,8 @@ class AccessTokenHelper(TokenEndpointHelper):
         :return:
         """
         _context = self.endpoint.server_get("endpoint_context")
-
         _mngr = _context.session_manager
-        _log_debug = logger.debug
+        logger.debug("Access Token")
 
         if req["grant_type"] != "authorization_code":
             return self.error_cls(error="invalid_request", error_description="Unknown grant_type")
@@ -119,6 +118,16 @@ class AccessTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_request", error_description="Missing code")
 
         _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
+        client_id = _session_info["client_id"]
+        if client_id != req["client_id"]:
+            logger.debug("{} owner of token".format(client_id))
+            logger.warning("Client using token it was not given")
+            return self.error_cls(error="invalid_grant", error_description="Wrong client")
+
+        if "grant_types_supported" in _context.cdb[client_id]:
+            grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
+        else:
+            grant_types_supported = _context.provider_info["grant_types_supported"]
         grant = _session_info["grant"]
 
         _based_on = grant.get_token(_access_code)
@@ -134,7 +143,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                     error="invalid_request", error_description="redirect_uri mismatch"
                 )
 
-        _log_debug("All checks OK")
+        logger.debug("All checks OK")
 
         issue_refresh = kwargs.get("issue_refresh", False)
         _response = {
@@ -158,7 +167,11 @@ class AccessTokenHelper(TokenEndpointHelper):
                 if token.expires_at:
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
-        if issue_refresh and "refresh_token" in _supports_minting:
+        if (
+            issue_refresh
+            and "refresh_token" in _supports_minting
+            and "refresh_token" in grant_types_supported
+        ):
             try:
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
@@ -219,12 +232,20 @@ class RefreshTokenHelper(TokenEndpointHelper):
     def process_request(self, req: Union[Message, dict], **kwargs):
         _context = self.endpoint.server_get("endpoint_context")
         _mngr = _context.session_manager
+        logger.debug("Refresh Token")
 
         if req["grant_type"] != "refresh_token":
             return self.error_cls(error="invalid_request", error_description="Wrong grant_type")
 
         token_value = req["refresh_token"]
         _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+        logger.debug("Session info: {}".format(_session_info))
+
+        if _session_info["client_id"] != req["client_id"]:
+            logger.debug("{} owner of token".format(_session_info["client_id"]))
+            logger.warning("Client using token it was not given")
+            return self.error_cls(error="invalid_grant", error_description="Wrong client")
+
         _grant = _session_info["grant"]
 
         token_type = "Bearer"
@@ -274,6 +295,17 @@ class RefreshTokenHelper(TokenEndpointHelper):
             _resp["refresh_token"] = refresh_token.value
 
         token.register_usage()
+
+        if ("client_id" in req
+            and req["client_id"] in _context.cdb
+            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+        ):
+            revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
+        else:
+            revoke_refresh = self.endpoint.revoke_refresh_on_issue
+
+        if revoke_refresh:
+            token.revoke()
 
         return _resp
 
@@ -353,6 +385,7 @@ class Token(Endpoint):
         self.allow_refresh = False
         self.new_refresh_token = new_refresh_token
         self.configure_grant_types(kwargs.get("grant_types_supported"))
+        self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
 
     def configure_grant_types(self, grant_types_supported):
         if grant_types_supported is None:
@@ -390,13 +423,20 @@ class Token(Endpoint):
     def _post_parse_request(
         self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
-        _helper = self.helper.get(request["grant_type"])
+        grant_type = request["grant_type"]
+        _helper = self.helper.get(grant_type)
+        client = kwargs["endpoint_context"].cdb[client_id]
+        if "grant_types_supported" in client and grant_type not in client["grant_types_supported"]:
+            return self.error_cls(
+                error="invalid_request",
+                error_description=f"Unsupported grant_type: {grant_type}",
+            )
         if _helper:
             return _helper.post_parse_request(request, client_id, **kwargs)
         else:
             return self.error_cls(
                 error="invalid_request",
-                error_description=f"Unsupported grant_type: {request['grant_type']}",
+                error_description=f"Unsupported grant_type: {grant_type}",
             )
 
     def process_request(self, request: Optional[Union[Message, dict]] = None, **kwargs):

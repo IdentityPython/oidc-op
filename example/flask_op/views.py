@@ -78,14 +78,16 @@ def do_response(endpoint, req_args, error='', **args):
     if error:
         if _response_placement == 'body':
             _log.info('Error Response: {}'.format(info['response']))
-            resp = make_response(info['response'], 400)
+            _http_response_code = info.get('response_code', 400)
+            resp = make_response(info['response'], _http_response_code)
         else:  # _response_placement == 'url':
             _log.info('Redirect to: {}'.format(info['response']))
             resp = redirect(info['response'])
     else:
         if _response_placement == 'body':
             _log.info('Response: {}'.format(info['response']))
-            resp = make_response(info['response'], 200)
+            _http_response_code = info.get('response_code', 200)
+            resp = make_response(info['response'], _http_response_code)
         else:  # _response_placement == 'url':
             _log.info('Redirect to: {}'.format(info['response']))
             resp = redirect(info['response'])
@@ -166,10 +168,14 @@ def registration():
         current_app.server.server_get("endpoint", 'registration'))
 
 
-@oidc_op_views.route('/registration_api', methods=['GET'])
+@oidc_op_views.route('/registration_api', methods=['GET', 'DELETE'])
 def registration_api():
-    return service_endpoint(
-        current_app.server.server_get("endpoint", 'registration_read'))
+    if request.method == "DELETE":
+        return service_endpoint(
+            current_app.server.server_get("endpoint", 'registration_delete'))
+    else:
+        return service_endpoint(
+            current_app.server.server_get("endpoint", 'registration_read'))
 
 
 @oidc_op_views.route('/authorization')
@@ -245,10 +251,14 @@ def service_endpoint(endpoint):
             err_msg = ResponseMessage(error='invalid_request', error_description=str(err))
             return make_response(err_msg.to_json(), 400)
 
-    _log.info('request: {}'.format(req_args))
     if isinstance(req_args, ResponseMessage) and 'error' in req_args:
-        return make_response(req_args.to_json(), 400)
+        _log.info('Error response: {}'.format(req_args))
+        _resp = make_response(req_args.to_json(), 400)
+        if request.method == "POST":
+            _resp.headers["Content-type"] = "application/json"
+        return _resp
     try:
+        _log.info('request: {}'.format(req_args))
         if isinstance(endpoint, Token):
             args = endpoint.process_request(AccessTokenRequest(**req_args), http_info=http_info)
         else:

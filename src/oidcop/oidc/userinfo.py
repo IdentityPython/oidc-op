@@ -32,7 +32,7 @@ class UserInfo(Endpoint):
         "userinfo_signing_alg_values_supported": None,
         "userinfo_encryption_alg_values_supported": None,
         "userinfo_encryption_enc_values_supported": None,
-        "client_authn_method": ["bearer_header"],
+        "client_authn_method": ["bearer_header", "bearer_body"],
     }
 
     def __init__(self, server_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs):
@@ -107,7 +107,13 @@ class UserInfo(Endpoint):
 
     def process_request(self, request=None, **kwargs):
         _mngr = self.server_get("endpoint_context").session_manager
-        _session_info = _mngr.get_session_info_by_token(request["access_token"], grant=True)
+        try:
+            _session_info = _mngr.get_session_info_by_token(
+                request["access_token"], grant=True
+            )
+        except (KeyError, ValueError):
+            return self.error_cls(error="invalid_token", error_description="Invalid Token")
+
         _grant = _session_info["grant"]
         token = _grant.get_token(request["access_token"])
         # should be an access token

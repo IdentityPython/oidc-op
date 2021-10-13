@@ -29,6 +29,7 @@ from oidcop.session import MintingNotAllowed
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_info import UserInfo
 from oidcop.util import lv_pack
+from tests.test_24_oauth2_token_endpoint import TestEndpoint as _TestEndpoint
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -116,7 +117,7 @@ def conf():
             },
             "refresh": {
                 "class": "oidcop.token.jwt_token.JWTToken",
-                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"]},
             },
             "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
         },
@@ -183,7 +184,7 @@ def conf():
     }
 
 
-class TestEndpoint(object):
+class TestEndpoint(_TestEndpoint):
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -283,6 +284,7 @@ class TestEndpoint(object):
 
         assert _resp
         assert set(_resp.keys()) == {"cookie", "http_headers", "response_args"}
+        assert "expires_in" in _resp["response_args"]
 
     def test_process_request_using_code_twice(self):
         session_id = self._create_session(AUTH_REQ)
@@ -388,7 +390,7 @@ class TestEndpoint(object):
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
-
+        self.token_endpoint.revoke_refresh_on_issue = False
         _cntx = self.endpoint_context
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -759,6 +761,84 @@ class TestEndpoint(object):
 
         assert first_refresh_token != second_refresh_token
 
+    def test_revoke_on_issue_refresh_token(self, conf):
+        self.endpoint_context.cdb["client_1"] = {
+            "client_secret": "hemligt",
+            "redirect_uris": [("https://example.com/cb", None)],
+            "client_salt": "salted",
+            "endpoint_auth_method": "client_secret_post",
+            "response_types": ["code", "token", "code id_token", "id_token"],
+        }
+        self.token_endpoint.revoke_refresh_on_issue = True
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["openid", "offline_access"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+        assert "refresh_token" in _resp["response_args"]
+        first_refresh_token = _resp["response_args"]["refresh_token"]
+
+        _refresh_request = REFRESH_TOKEN_REQ.copy()
+        _refresh_request["refresh_token"] = first_refresh_token
+        _2nd_req = self.token_endpoint.parse_request(_refresh_request.to_json())
+        _2nd_resp = self.token_endpoint.process_request(request=_2nd_req, issue_refresh=True)
+        assert "refresh_token" in _2nd_resp["response_args"]
+        second_refresh_token = _2nd_resp["response_args"]["refresh_token"]
+
+        _2d_refresh_request = REFRESH_TOKEN_REQ.copy()
+        _2d_refresh_request["refresh_token"] = second_refresh_token
+
+        assert first_refresh_token != second_refresh_token
+        first_refresh_token = grant.get_token(first_refresh_token)
+        second_refresh_token = grant.get_token(second_refresh_token)
+        assert first_refresh_token.revoked is True
+        assert second_refresh_token.revoked is False
+
+    def test_revoke_on_issue_refresh_token_per_client(self, conf):
+        self.endpoint_context.cdb["client_1"] = {
+            "client_secret": "hemligt",
+            "redirect_uris": [("https://example.com/cb", None)],
+            "client_salt": "salted",
+            "endpoint_auth_method": "client_secret_post",
+            "response_types": ["code", "token", "code id_token", "id_token"],
+        }
+        self.endpoint_context.cdb[AUTH_REQ["client_id"]]["revoke_refresh_on_issue"] = True
+        areq = AUTH_REQ.copy()
+        areq["scope"] = ["openid", "offline_access"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
+        assert "refresh_token" in _resp["response_args"]
+        first_refresh_token = _resp["response_args"]["refresh_token"]
+
+        _refresh_request = REFRESH_TOKEN_REQ.copy()
+        _refresh_request["refresh_token"] = first_refresh_token
+        _2nd_req = self.token_endpoint.parse_request(_refresh_request.to_json())
+        _2nd_resp = self.token_endpoint.process_request(request=_2nd_req, issue_refresh=True)
+        assert "refresh_token" in _2nd_resp["response_args"]
+        second_refresh_token = _2nd_resp["response_args"]["refresh_token"]
+
+        _2d_refresh_request = REFRESH_TOKEN_REQ.copy()
+        _2d_refresh_request["refresh_token"] = second_refresh_token
+
+        assert first_refresh_token != second_refresh_token
+        first_refresh_token = grant.get_token(first_refresh_token)
+        second_refresh_token = grant.get_token(second_refresh_token)
+        assert first_refresh_token.revoked is True
+        assert second_refresh_token.revoked is False
+
     def test_do_refresh_access_token_not_allowed(self):
         areq = AUTH_REQ.copy()
         areq["scope"] = ["openid", "offline_access"]
@@ -836,6 +916,55 @@ class TestEndpoint(object):
 
         assert access_token["exp"] - access_token["iat"] == lifetime
 
+    def test_token_request_other_client(self):
+        _context = self.endpoint_context
+        _context.cdb["client_2"] = _context.cdb["client_1"]
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["client_id"] = "client_2"
+        _token_request["code"] = code.value
+
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        assert isinstance(_resp, TokenErrorResponse)
+        assert _resp.to_dict() == {
+            "error": "invalid_grant", "error_description": "Wrong client"
+        }
+
+    def test_refresh_token_request_other_client(self):
+        _context = self.endpoint_context
+        _context.cdb["client_2"] = _context.cdb["client_1"]
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(
+            request=_req, issue_refresh=True
+        )
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["client_id"] = "client_2"
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+
+        _token_value = _resp["response_args"]["refresh_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+        _resp = self.token_endpoint.process_request(request=_req,)
+        assert isinstance(_resp, TokenErrorResponse)
+        assert _resp.to_dict() == {
+            "error": "invalid_grant", "error_description": "Wrong client"
+        }
 
 class TestOldTokens(object):
     @pytest.fixture(autouse=True)
