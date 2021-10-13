@@ -2,10 +2,10 @@ import json
 import os
 import shutil
 
+import pytest
 from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
-import pytest
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
@@ -16,6 +16,7 @@ from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
+from oidcop.scopes import SCOPE2CLAIMS
 from oidcop.server import Server
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcop.user_info import UserInfo
@@ -136,21 +137,17 @@ ENDPOINT_CONTEXT_CONFIG = {
         }
     },
     "template_dir": "template",
-    "add_on": {
-        "custom_scopes": {
-            "function": "oidcop.oidc.add_on.custom_scopes.add_custom_scopes",
-            "kwargs": {
-                "research_and_scholarship": [
-                    "name",
-                    "given_name",
-                    "family_name",
-                    "email",
-                    "email_verified",
-                    "sub",
-                    "eduperson_scoped_affiliation",
-                ]
-            },
-        }
+    "scopes_to_claims": {
+        **SCOPE2CLAIMS,
+        "research_and_scholarship": [
+            "name",
+            "given_name",
+            "family_name",
+            "email",
+            "email_verified",
+            "sub",
+            "eduperson_scoped_affiliation",
+        ],
     },
     "authz": {
         "class": AuthzHandling,
@@ -401,8 +398,8 @@ class TestEndpoint(object):
         _auth_req = AUTH_REQ.copy()
         _auth_req["scope"] = ["openid", "research_and_scholarship"]
 
-        session_id = self._create_session(AUTH_REQ, index=2)
-        grant = self.endpoint[2].server_get("endpoint_context").authz(session_id, AUTH_REQ)
+        session_id = self._create_session(_auth_req, index=2)
+        grant = self.endpoint[2].server_get("endpoint_context").authz(session_id, _auth_req)
 
         self._dump_restore(2, 1)
 

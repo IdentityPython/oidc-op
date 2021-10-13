@@ -128,10 +128,6 @@ class Endpoint(object):
         self.allowed_targets = [self.name]
         self.client_verification_method = []
 
-    def parse_cookies(self, cookies: List[dict], context: EndpointContext, name: str):
-        res = context.cookie_handler.parse_cookie(name, cookies)
-        return res
-
     def parse_request(
         self, request: Union[Message, dict, str], http_info: Optional[dict] = None, **kwargs
     ):
@@ -330,10 +326,9 @@ class Endpoint(object):
         resp = None
         if error:
             _response = ResponseMessage(error=error)
-            try:
-                _response["error_description"] = kwargs["error_description"]
-            except KeyError:
-                pass
+            for attr in ["error_description", "error_uri", "state"]:
+                if attr in kwargs:
+                    _response[attr] = kwargs[attr]
         elif "response_msg" in kwargs:
             resp = kwargs["response_msg"]
             _response_placement = kwargs.get("response_placement")
@@ -402,6 +397,11 @@ class Endpoint(object):
 
         try:
             _resp["cookie"] = kwargs["cookie"]
+        except KeyError:
+            pass
+
+        try:
+            _resp["response_code"] = kwargs["response_code"]
         except KeyError:
             pass
 

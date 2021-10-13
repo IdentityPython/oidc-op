@@ -825,14 +825,18 @@ class TestEndpoint(object):
 
     @pytest.mark.parametrize("exp_in", [360, "360", 0])
     def test_mint_token_exp_at(self, exp_in):
-        grant = Grant()
+        request = AuthorizationRequest(
+            client_id="client_1",
+            response_type=["code"],
+            redirect_uri="https://example.com/cb",
+            state="state",
+            scope="openid",
+        )
+        sid = self._create_session(request)
+        grant = self.session_manager.get_grant(sid)
         grant.usage_rules = {"authorization_code": {"expires_in": exp_in}}
 
-        DUMMY_SESSION_ID = self.session_manager.encrypted_session_id(
-            "user_id", "client_id", "grant.id"
-        )
-
-        code = self.endpoint.mint_token("authorization_code", grant, DUMMY_SESSION_ID)
+        code = self.endpoint.mint_token("authorization_code", grant, sid)
         if exp_in in [360, "360"]:
             assert code.expires_at
         else:
@@ -894,7 +898,7 @@ class TestEndpoint(object):
 
     def test_post_parse_request(self):
         endpoint_context = self.endpoint.server_get("endpoint_context")
-        msg = self.endpoint._post_parse_request(None, "client_1", endpoint_context)
+        msg = self.endpoint._post_parse_request({}, "client_1", endpoint_context)
         assert "error" in msg
 
         request = AuthorizationRequest(
