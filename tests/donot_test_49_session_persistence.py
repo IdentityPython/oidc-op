@@ -90,7 +90,7 @@ CDB = {
         "client_salt": "salted",
         "token_endpoint_auth_method": "client_secret_post",
         "response_types": ["code", "token", "code id_token", "id_token"],
-        "post_logout_redirect_uris": [("{}logout_cb".format(CLI1), "")],
+        "post_logout_redirect_uri": ("{}logout_cb".format(CLI1), ""),
     },
     "client_2": {
         "client_secret": "hemligare",
@@ -98,7 +98,7 @@ CDB = {
         "client_salt": "saltare",
         "token_endpoint_auth_method": "client_secret_post",
         "response_types": ["code", "token", "code id_token", "id_token"],
-        "post_logout_redirect_uris": [("{}logout_cb".format(CLI2), "")],
+        "post_logout_redirect_uri": ("{}logout_cb".format(CLI2), ""),
     },
 }
 

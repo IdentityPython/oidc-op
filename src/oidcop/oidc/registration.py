@@ -92,25 +92,31 @@ def secret(seed: str, sid: str):
 
 
 def comb_uri(args):
-    for param in ["redirect_uris", "post_logout_redirect_uris"]:
-        if param not in args:
-            continue
-
+    redirect_uris = args.get("redirect_uris")
+    if redirect_uris:
         val = []
-        for base, query_dict in args[param]:
+        for base, query_dict in redirect_uris:
             if query_dict:
                 query_string = urlencode(
-                    [
-                        (key, v)
-                        for key in query_dict
-                        for v in query_dict[key]
-                    ]
+                    [(key, v) for key in query_dict for v in query_dict[key]]
                 )
-                val.append("{base}?{query_string}")
+                val.append(f"{base}?{query_string}")
             else:
                 val.append(base)
 
-        args[param] = val
+        args["redirect_uris"] = val
+
+    post_logout_redirect_uri = args.get("post_logout_redirect_uri")
+    if post_logout_redirect_uri:
+        base, query_dict = post_logout_redirect_uri
+        if query_dict:
+            query_string = urlencode(
+                [(key, v) for key in query_dict for v in query_dict[key]]
+            )
+            val = f"{base}?{query_string}"
+        else:
+            val = base
+        args["post_logout_redirect_uri"] = val
 
     request_uris = args.get("request_uris")
     if request_uris:
@@ -179,17 +185,15 @@ class Registration(Endpoint):
             if key not in ignore:
                 _cinfo[key] = val
 
-        if "post_logout_redirect_uris" in request:
-            plruri = []
-            for uri in request["post_logout_redirect_uris"]:
-                if urlparse(uri).fragment:
-                    err = self.error_cls(
-                        error="invalid_configuration_parameter",
-                        error_description="post_logout_redirect_uris contains fragment",
-                    )
-                    return err
-                plruri.append(split_uri(uri))
-            _cinfo["post_logout_redirect_uris"] = plruri
+        _uri = request.get("post_logout_redirect_uri")
+        if _uri:
+            if urlparse(_uri).fragment:
+                err = self.error_cls(
+                    error="invalid_configuration_parameter",
+                    error_description="post_logout_redirect_uri contains fragment",
+                )
+                return err
+            _cinfo["post_logout_redirect_uri"] = split_uri(_uri)
 
         if "redirect_uris" in request:
             try:

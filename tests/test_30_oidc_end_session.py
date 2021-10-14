@@ -201,7 +201,7 @@ class TestEndpoint(object):
                 "client_salt": "salted",
                 "token_endpoint_auth_method": "client_secret_post",
                 "response_types": ["code", "token", "code id_token", "id_token"],
-                "post_logout_redirect_uris": [("{}logout_cb".format(CLI1), "")],
+                "post_logout_redirect_uri": [f"{CLI1}logout_cb", ""],
             },
             "client_2": {
                 "client_secret": "hemligare",
@@ -209,7 +209,7 @@ class TestEndpoint(object):
                 "client_salt": "saltare",
                 "token_endpoint_auth_method": "client_secret_post",
                 "response_types": ["code", "token", "code id_token", "id_token"],
-                "post_logout_redirect_uris": [("{}logout_cb".format(CLI2), "")],
+                "post_logout_redirect_uri": [f"{CLI2}logout_cb", ""],
             },
         }
         self.endpoint_context = endpoint_context
@@ -360,8 +360,7 @@ class TestEndpoint(object):
 
         post_logout_redirect_uri = join_query(
             *self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
-                "post_logout_redirect_uris"
-            ][0]
+                "post_logout_redirect_uri"]
         )
 
         with pytest.raises(InvalidRequest):
