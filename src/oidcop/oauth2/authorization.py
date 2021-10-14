@@ -123,7 +123,10 @@ def verify_uri(
     if client_info is None:
         raise KeyError("No such client")
 
-    redirect_uris = client_info.get(f"{uri_type}s")
+    if uri_type == "post_logout_redirect_uri":
+        redirect_uris = client_info.get(f"{uri_type}")
+    else:
+        redirect_uris = client_info.get(f"{uri_type}s")
 
     if redirect_uris is None:
         raise RedirectURIError(f"No registered {uri_type} for {_cid}")
@@ -500,14 +503,16 @@ class Authorization(Endpoint):
         logger.debug("Login required error: {}".format(_res))
         return _res
 
-    def _sid_from_uid(self, identity):
-        try:  # If identity['uid'] is in fact a base64 encoded JSON string
-            _id = b64d(as_bytes(identity["uid"]))
-        except BadSyntax:
-            return None
+    def _unwrap_identity(self, identity):
+        if isinstance(identity, dict):
+            try:
+                _id = b64d(as_bytes(identity["uid"]))
+            except BadSyntax:
+                return identity
         else:
-            identity = json.loads(as_unicode(_id))
-            return identity.get("sid")
+            _id = b64d(as_bytes(identity))
+
+        return json.loads(as_unicode(_id))
 
     def setup_auth(
             self,
@@ -559,7 +564,8 @@ class Authorization(Endpoint):
             _ts = 0
         else:
             if identity:
-                _sid = identity.get("sid", self._sid_from_uid(identity))
+                identity = self._unwrap_identity(identity)
+                _sid = identity.get("sid")
                 if _sid:
                     try:
                         _csi = _context.session_manager[_sid]

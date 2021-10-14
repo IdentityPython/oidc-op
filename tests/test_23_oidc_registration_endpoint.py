@@ -333,7 +333,7 @@ class TestEndpoint(object):
         _req["initiate_login_uri"] = "http://ilu.example.com"
         _resp = self.endpoint.process_request(request=RegistrationRequest(**_req))
         assert "error" in _resp
-        assert _resp["error"] == "invalid_client_metadata"
+        assert _resp["error"] == "invalid_configuration_request"
 
 
 def test_match_sp_sep():
