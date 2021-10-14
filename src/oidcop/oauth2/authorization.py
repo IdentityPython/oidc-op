@@ -121,10 +121,7 @@ def verify_uri(
     if client_info is None:
         raise KeyError("No such client")
 
-    if uri_type == "post_logout_redirect_uri":
-        redirect_uris = client_info.get(f"{uri_type}")
-    else:
-        redirect_uris = client_info.get(f"{uri_type}s")
+    redirect_uris = client_info.get(f"{uri_type}s")
 
     if redirect_uris is None:
         raise RedirectURIError(f"No registered {uri_type} for {_cid}")
