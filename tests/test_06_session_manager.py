@@ -1,8 +1,8 @@
+from cryptojwt.jws.jws import factory
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import time_sans_frac
 import pytest
 
-from . import full_path
 from oidcop.authn_event import AuthnEvent
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
@@ -10,11 +10,11 @@ from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.token import Token
 from oidcop.server import Server
 from oidcop.session import MintingNotAllowed
-from oidcop.session.grant import Grant
 from oidcop.session.info import ClientSessionInfo
 from oidcop.session.token import AccessToken
 from oidcop.session.token import AuthorizationCode
 from oidcop.session.token import RefreshToken
+from . import full_path
 
 AUTH_REQ = AuthorizationRequest(
     client_id="client_1",
@@ -30,6 +30,8 @@ KEYDEFS = [
 ]
 
 USER_ID = "diana"
+
+CLI1 = "https://client1.example.com/"
 
 
 class TestSessionManager:
@@ -61,7 +63,19 @@ class TestSessionManager:
                 },
                 "refresh": {
                     "class": "oidcop.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
+                },
+                "id_token": {
+                    "class": "oidcop.token.id_token.IDToken",
+                    "kwargs": {
+                        "base_claims": {
+                            "email": {"essential": True},
+                            "email_verified": {"essential": True},
+                        }
+                    },
                 },
             },
             "endpoint": {
@@ -86,6 +100,25 @@ class TestSessionManager:
         server = Server(conf)
         self.server = server
         self.endpoint_context = server.endpoint_context
+        self.endpoint_context.cdb = {
+            "client_1": {
+                "client_secret": "hemligt",
+                "redirect_uris": [("{}cb".format(CLI1), None)],
+                "client_salt": "salted",
+                "token_endpoint_auth_method": "client_secret_post",
+                "response_types": ["code", "token", "code id_token", "id_token"],
+                "post_logout_redirect_uri": (f"{CLI1}logout_cb", ""),
+                "token_usage_rules": {
+                    "authorization_code": {
+                        "supports_minting": ["access_token", "refresh_token", "id_token"]
+                    },
+                    "refresh_token": {
+                        "supports_minting": ["id_token"]
+                    }
+                }
+            }
+        }
+
         self.session_manager = server.endpoint_context.session_manager
         self.authn_event = AuthnEvent(
             uid="uid", valid_until=time_sans_frac() + 1, authn_info="authn_class_ref"
@@ -630,3 +663,36 @@ class TestSessionManager:
         for i in ("not_before", "used"):
             grant_kwargs.pop(i)
         self.session_manager.add_grant("diana", "client_1", **grant_kwargs)
+
+    def test_find_latest_idtoken(self):
+        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        _session_id = self.session_manager.create_session(
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
+            token_usage_rules=token_usage_rules,
+        )
+        grant = self.session_manager[_session_id]
+
+        code = self._mint_token("authorization_code", grant, _session_id)
+        id_token_1 = self._mint_token("id_token", grant, _session_id)
+
+        refresh_token = self._mint_token("refresh_token", grant, _session_id, code)
+        id_token_2 = self._mint_token("id_token", grant, _session_id, code)
+
+        _jwt1 = factory(id_token_1.value)
+        _jwt2 = factory(id_token_2.value)
+        assert _jwt1.jwt.payload()['sid'] == _jwt2.jwt.payload()['sid']
+
+        assert id_token_1.session_id == id_token_2.session_id
+
+        idt = grant.last_issued_token_of_type("id_token")
+
+        assert idt.session_id == id_token_2.session_id
+
+        id_token_3 = self._mint_token("id_token", grant, _session_id, refresh_token)
+
+        idt = grant.last_issued_token_of_type("id_token")
+
+        assert idt.session_id == id_token_3.session_id

@@ -136,8 +136,7 @@ oidc_clients:
     client_secret: '2222222222222222222222222222222222222222'
     redirect_uris:
       - ['https://127.0.0.1:8090/authz_cb/bobcat', '']
-    post_logout_redirect_uris:
-      - ['https://openidconnect.net/', '']
+    post_logout_redirect_uri: ['https://openidconnect.net/', '']
     response_types:
       - code
 """

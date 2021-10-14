@@ -247,6 +247,7 @@ class TestEndpoint(object):
             "scope",
             "client_id",
             "iss",
+            "sid"
         }
 
     def test_id_token_payload_with_code(self):
@@ -272,6 +273,7 @@ class TestEndpoint(object):
             "iss",
             "iat",
             "nonce",
+            "sid"
         }
 
     def test_id_token_payload_with_access_token(self):
@@ -302,6 +304,7 @@ class TestEndpoint(object):
             "iat",
             "nonce",
             "at_hash",
+            "sid"
         }
 
     def test_id_token_payload_with_code_and_access_token(self):
@@ -331,6 +334,7 @@ class TestEndpoint(object):
             "nonce",
             "at_hash",
             "c_hash",
+            "sid"
         }
 
     def test_id_token_payload_with_userinfo(self):
@@ -357,6 +361,7 @@ class TestEndpoint(object):
             "exp",
             "auth_time",
             "sub",
+            "sid"
         }
 
     def test_id_token_payload_many_0(self):
@@ -389,6 +394,7 @@ class TestEndpoint(object):
             "exp",
             "iat",
             "iss",
+            "sid"
         }
 
     def test_sign_encrypt_id_token(self):

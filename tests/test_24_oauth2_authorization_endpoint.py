@@ -407,7 +407,7 @@ class TestEndpoint(object):
         }
 
         request = {"redirect_uri": "https://rp.example.com/cb"}
-        with pytest.raises(ValueError):
+        with pytest.raises(RedirectURIError):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_get_uri(self):
