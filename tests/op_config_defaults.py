@@ -133,7 +133,7 @@ CONFIG = {
             "kwargs": {
                 "lifetime": 3600,
                 "add_claims": ["email", "email_verified", "phone_number", "phone_number_verified",],
-                "add_claim_by_scope": True,
+                "add_claims_by_scope": True,
                 "aud": ["https://example.org/appl"],
             },
         },
