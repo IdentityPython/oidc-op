@@ -571,7 +571,7 @@ An example::
                 "phone_number",
                 "phone_number_verified"
               ],
-              "add_claim_by_scope": true,
+              "add_claims_by_scope": true,
               "aud": ["https://example.org/appl"]
            }
         },
