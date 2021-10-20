@@ -51,7 +51,36 @@ Optional. Salt, value or filename, used in sub_funcs (pairwise, public) for crea
 sub_funcs
 #########
 
-Optional. Functions involved in *sub*ject value creation.
+Optional. Functions involved in subject value creation.
+
+
+scopes_to_claims
+################
+
+A dict defining the scopes that are allowed to be used per client and the claims
+they map to (defaults to the scopes mapping described in the spec). If we want
+to define a scope that doesn't map to claims (e.g. offline_access) then we
+simply map it to an empty list. E.g.::
+
+    {
+        "scope_a": ["claim1", "claim2"],
+        "scope_b": []
+    }
+
+*Note*: For OIDC the `openid` scope must be present in this mapping.
+
+
+allowed_scopes
+##############
+
+A list with the scopes that are allowed to be used (defaults to the keys in scopes_to_claims).
+
+
+scopes_supported
+################
+
+A list with the scopes that will be advertised in the well-known endpoint (defaults to allowed_scopes).
+
 
 ------
 add_on
@@ -67,21 +96,6 @@ An example::
             "code_challenge_method": "S256 S384 S512"
           }
         },
-        "claims": {
-          "function": "oidcop.oidc.add_on.custom_scopes.add_custom_scopes",
-          "kwargs": {
-            "research_and_scholarship": [
-              "name",
-              "given_name",
-              "family_name",
-              "email",
-              "email_verified",
-              "sub",
-              "iss",
-              "eduperson_scoped_affiliation"
-            ]
-          }
-        }
       }
 
 The provided add-ons can be seen in the following sections.
@@ -176,6 +190,8 @@ An example::
       backchannel_logout_supported: True
       backchannel_logout_session_supported: True
       check_session_iframe: https://127.0.0.1:5000/check_session_iframe
+      scopes_supported: ["openid", "profile", "random"]
+      claims_supported: ["sub", "given_name", "birthdate"]
 
 ---------
 client_db
@@ -325,8 +341,9 @@ An example::
               "client_secret_post",
               "client_secret_basic",
               "client_secret_jwt",
-              "private_key_jwt"
-            ]
+              "private_key_jwt",
+            ],
+            "revoke_refresh_on_issue": True
           }
         },
         "userinfo": {
@@ -649,57 +666,14 @@ the following::
 Clients
 =======
 
-In this section there are some client configuration examples.
-
-A common configuration::
-
-    endpoint_context.cdb['jbxedfmfyc'] = {
-        client_id: 'jbxedfmfyc',
-        client_salt: '6flfsj0Z',
-        registration_access_token: 'z3PCMmC1HZ1QmXeXGOQMJpWQNQynM4xY',
-        registration_client_uri: 'https://127.0.0.1:8000/registration_api?client_id=jbxedfmfyc',
-        client_id_issued_at: 1630256902,
-        client_secret: '19cc69b70d0108f630e52f72f7a3bd37ba4e11678ad1a7434e9818e1',
-        client_secret_expires_at: 1929727754,
-        application_type: 'web',
-        contacts: [
-            'rp@example.com'
-        ],
-        token_endpoint_auth_method: 'client_secret_basic',
-        redirect_uris: [
-            [
-                'https://127.0.0.1:8090/authz_cb/satosa',
-                {}
-            ]
-        ],
-        post_logout_redirect_uris: [
-            [
-                'https://127.0.0.1:8090/session_logout/satosa',
-                null
-            ]
-        ],
-        response_types: [
-            'code'
-        ],
-        grant_types: [
-            'authorization_code'
-        ],
-        allowed_scopes: [
-            'openid',
-            'profile',
-            'email',
-            'offline_access'
-        ]
-    }
-
+In this section there are some client configuration examples. That can be used
+to override the global configuration of the OP.
 
 How to configure the release of the user claims per clients::
 
     endpoint_context.cdb["client_1"] = {
         "client_secret": "hemligt",
         "redirect_uris": [("https://example.com/cb", None)],
-        "client_salt": "salted",
-        "token_endpoint_auth_method": "client_secret_post",
         "response_types": ["code", "token", "code id_token", "id_token"],
         "add_claims": {
             "always": {
@@ -713,10 +687,252 @@ How to configure the release of the user claims per clients::
             },
         },
 
-Some of the allowed client configurations are (this is an ongoing work):
+The available configuration options are:
+
+-------------
+client_secret
+-------------
+
+The client secret. This parameter is required.
+
+------------------------
+client_secret_expires_at
+------------------------
+
+When the client_secret expires.
+
+-------------
+redirect_uris
+-------------
+
+The client's redirect uris.
+
+-----------
+auth_method
+-----------
+
+The auth_method that can be used per endpoint.
+E.g::
+
+    {
+        "AccessTokenRequest": "client_secret_basic",
+        ...
+    }
+
+------------
+request_uris
+------------
+
+A list of `request_uris`.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata.
+
+--------------
+response_types
+--------------
+
+The allowed `response_types` for this client.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata.
 
 ---------------------
 grant_types_supported
 ---------------------
 
 Configure the allowed grant types on the token endpoint.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata.
+
+----------------
+scopes_to_claims
+----------------
+
+A dict defining the scopes that are allowed to be used per client and the claims
+they map to (defaults to the scopes mapping described in the spec). If we want
+to define a scope that doesn't map to claims (e.g. offline_access) then we
+simply map it to an empty list. E.g.::
+
+  {
+    "scope_a": ["claim1", "claim2"],
+    "scope_b": []
+  }
+
+--------------
+allowed_scopes
+--------------
+
+A list with the scopes that are allowed to be used (defaults to the keys in the
+clients scopes_to_claims).
+
+-----------------------
+revoke_refresh_on_issue
+-----------------------
+
+Configure whether to revoke the refresh token that was used to issue a new refresh token.
+
+----------
+add_claims
+----------
+
+A dictionary with the following keys
+
+always
+######
+
+A dictionary with the following keys: `userinfo`, `id_token`, `introspection`, `access_token`.
+The keys are used to describe the claims we want to add to the corresponding interface.
+The keys can be a list of claims to be added or a dict in the format described
+in https://openid.net/specs/openid-connect-core-1_0.html#IndividualClaimsRequests
+E.g.::
+
+    {
+        "add_claims": {
+            "always": {
+              "userinfo": ["email", "phone"], # Always add "email" and "phone" in the userinfo response if such claims exists
+              "id_token": {"email": null}, # Always add "email" in the id_token if such a claim exists
+              "introspection": {"email": {"value": "a@a.com"}}, # Add "email" in the introspection response only if its value is "a@a.com"
+            }
+        }
+    }
+
+by_scope
+########
+
+A dictionary with the following keys: `userinfo`, `id_token`, `introspection`, `access_token`.
+The keys are boolean values that describe whether the scopes should be mapped
+to claims and added to the response.
+E.g.::
+
+    {
+        "add_claims": {
+            "by_scope": {
+                id_token: True, # Map the requested scopes to claims and add them to the id token
+    }
+
+-----------------
+token_usage_rules
+-----------------
+
+The usage rules for each token type. E.g.::
+
+    {
+        "usage_rules": {
+            "authorization_code": {
+                "expires_in": 3600,
+                "supports_minting": [
+                    "access_token",
+                    "id_token",
+                ],
+                "max_usage": 1,
+            },
+            "access_token": {
+                "expires_in": self.params["access_token_lifetime"],
+            },
+        }
+    }
+
+--------------
+pkce_essential
+--------------
+
+Whether pkce is essential for this client.
+
+------------------------
+post_logout_redirect_uri
+------------------------
+
+The client's post logout redirect uris.
+
+See https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout.
+
+----------------------
+backchannel_logout_uri
+----------------------
+
+The client's `backchannel_logout_uri`.
+
+See https://openid.net/specs/openid-connect-backchannel-1_0.html#BCRegistration
+
+-----------------------
+frontchannel_logout_uri
+-----------------------
+
+The client's `frontchannel_logout_uri`.
+
+See https://openid.net/specs/openid-connect-frontchannel-1_0.html#RPLogout
+
+--------------------------
+request_object_signing_alg
+--------------------------
+
+A list with the allowed algorithms for signing the request object.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
+
+-----------------------------
+request_object_encryption_alg
+-----------------------------
+
+A list with the allowed alg algorithms for encrypting the request object.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
+
+-----------------------------
+request_object_encryption_enc
+-----------------------------
+
+A list with the allowed enc algorithms for signing the request object.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
+
+----------------------------
+userinfo_signed_response_alg
+----------------------------
+
+JWS alg algorithm [JWA] REQUIRED for signing UserInfo Responses.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
+
+-------------------------------
+userinfo_encrypted_response_enc
+-------------------------------
+
+The alg algorithm [JWA] REQUIRED for encrypting UserInfo Responses.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
+
+-------------------------------
+userinfo_encrypted_response_alg
+-------------------------------
+
+JWE enc algorithm [JWA] REQUIRED for encrypting UserInfo Responses.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
+
+----------------------------
+id_token_signed_response_alg
+----------------------------
+
+JWS alg algorithm [JWA] REQUIRED for signing ID Token issued to this Client.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
+
+-------------------------------
+id_token_encrypted_response_enc
+-------------------------------
+
+The alg algorithm [JWA] REQUIRED for encrypting ID Token issued to this Client.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
+
+-------------------------------
+id_token_encrypted_response_alg
+-------------------------------
+
+JWE enc algorithm [JWA] REQUIRED for encrypting ID Token issued to this Client.
+
+See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
+
+--------
+dpop_jkt
+--------

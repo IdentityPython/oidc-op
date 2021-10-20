@@ -45,11 +45,16 @@ class AccessTokenHelper(TokenEndpointHelper):
         _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
         logger.debug(f"Session info: {_session_info}")
 
-        if _session_info["client_id"] != req["client_id"]:
-            logger.debug("{} owner of token".format(_session_info["client_id"]))
+        client_id = _session_info["client_id"]
+        if client_id != req["client_id"]:
+            logger.debug("{} owner of token".format(client_id))
             logger.warning("{} using token it was not given".format(req["client_id"]))
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
 
+        if "grant_types_supported" in _context.cdb[client_id]:
+            grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
+        else:
+            grant_types_supported = _context.provider_info["grant_types_supported"]
         grant = _session_info["grant"]
 
         token_type = "Bearer"
@@ -81,12 +86,10 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         logger.debug("All checks OK")
 
-        issue_refresh = False
-        if "issue_refresh" in kwargs:
-            issue_refresh = kwargs["issue_refresh"]
-        else:
-            if "offline_access" in grant.scope:
-                issue_refresh = True
+        issue_refresh = kwargs.get("issue_refresh", None)
+        # The existence of offline_access scope overwrites issue_refresh
+        if issue_refresh is None and "offline_access" in grant.scope:
+            issue_refresh = True
 
         _response = {
             "token_type": token_type,
@@ -110,7 +113,11 @@ class AccessTokenHelper(TokenEndpointHelper):
                 if token.expires_at:
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
-        if issue_refresh and "refresh_token" in _supports_minting:
+        if (
+            issue_refresh
+            and "refresh_token" in _supports_minting
+            and "refresh_token" in grant_types_supported
+        ):
             try:
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
@@ -242,12 +249,12 @@ class RefreshTokenHelper(TokenEndpointHelper):
             _resp["expires_in"] = access_token.expires_at - utc_time_sans_frac()
 
         _mints = token.usage_rules.get("supports_minting")
-        issue_refresh = False
-        if "issue_refresh" in kwargs:
-            issue_refresh = kwargs["issue_refresh"]
-        else:
-            if "offline_access" in scope:
-                issue_refresh = True
+
+        issue_refresh = kwargs.get("issue_refresh", None)
+        # The existence of offline_access scope overwrites issue_refresh
+        if issue_refresh is None and "offline_access" in scope:
+            issue_refresh = True
+
         if "refresh_token" in _mints and issue_refresh:
             refresh_token = self._mint_token(
                 token_class="refresh_token",
@@ -280,6 +287,17 @@ class RefreshTokenHelper(TokenEndpointHelper):
             _resp["id_token"] = _idtoken.value
 
         token.register_usage()
+
+        if ("client_id" in req
+            and req["client_id"] in _context.cdb
+            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+        ):
+            revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
+        else:
+            revoke_refresh = revoke_refresh = self.endpoint.revoke_refresh_on_issue
+
+        if revoke_refresh:
+            token.revoke()
 
         return _resp
 

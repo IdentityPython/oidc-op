@@ -10,6 +10,7 @@ from typing import Optional
 from typing import Union
 
 from oidcop.logging import configure_logging
+from oidcop.scopes import SCOPE2CLAIMS
 from oidcop.utils import load_yaml_config
 
 DEFAULT_FILE_ATTRIBUTE_NAMES = [
@@ -78,6 +79,7 @@ OP_DEFAULT_CONFIG = {
         "refresh": {"class": "oidcop.token.jwt_token.JWTToken", "kwargs": {"lifetime": 86400}, },
         "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
     },
+    "scopes_to_claims": SCOPE2CLAIMS,
 }
 
 AS_DEFAULT_CONFIG = copy.deepcopy(OP_DEFAULT_CONFIG)
@@ -274,12 +276,35 @@ class OPConfiguration(EntityConfiguration):
     "Provider configuration"
     default_config = OP_DEFAULT_CONFIG
     parameter = EntityConfiguration.parameter.copy()
-    parameter.update({
-        "id_token": None,
-        "login_hint2acrs": {},
-        "login_hint_lookup": None,
-        "sub_func": {}
-    })
+    parameter.update(
+        {
+            "id_token": None,
+            "login_hint2acrs": {},
+            "login_hint_lookup": None,
+            "sub_func": {},
+            "scopes_to_claims": {},
+        }
+    )
+
+    def __init__(
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
+    ):
+        super().__init__(
+            conf=conf,
+            base_path=base_path,
+            entity_conf=entity_conf,
+            domain=domain,
+            port=port,
+            file_attributes=file_attributes,
+        )
+        scopes_to_claims = self.scopes_to_claims
+
 
 class ASConfiguration(EntityConfiguration):
     "Authorization server configuration"

@@ -118,11 +118,16 @@ class AccessTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_request", error_description="Missing code")
 
         _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
-        if _session_info["client_id"] != req["client_id"]:
-            logger.debug("{} owner of token".format(_session_info["client_id"]))
+        client_id = _session_info["client_id"]
+        if client_id != req["client_id"]:
+            logger.debug("{} owner of token".format(client_id))
             logger.warning("Client using token it was not given")
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
 
+        if "grant_types_supported" in _context.cdb[client_id]:
+            grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
+        else:
+            grant_types_supported = _context.provider_info["grant_types_supported"]
         grant = _session_info["grant"]
 
         _based_on = grant.get_token(_access_code)
@@ -162,7 +167,11 @@ class AccessTokenHelper(TokenEndpointHelper):
                 if token.expires_at:
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
-        if issue_refresh and "refresh_token" in _supports_minting:
+        if (
+            issue_refresh
+            and "refresh_token" in _supports_minting
+            and "refresh_token" in grant_types_supported
+        ):
             try:
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
@@ -287,6 +296,17 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token.register_usage()
 
+        if ("client_id" in req
+            and req["client_id"] in _context.cdb
+            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+        ):
+            revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
+        else:
+            revoke_refresh = self.endpoint.revoke_refresh_on_issue
+
+        if revoke_refresh:
+            token.revoke()
+
         return _resp
 
     def post_parse_request(
@@ -365,6 +385,7 @@ class Token(Endpoint):
         self.allow_refresh = False
         self.new_refresh_token = new_refresh_token
         self.configure_grant_types(kwargs.get("grant_types_supported"))
+        self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
 
     def configure_grant_types(self, grant_types_supported):
         if grant_types_supported is None:
