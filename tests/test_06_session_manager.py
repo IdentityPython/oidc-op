@@ -56,7 +56,7 @@ class TestSessionManager:
                     "kwargs": {
                         "lifetime": 3600,
                         "add_claims": True,
-                        "add_claim_by_scope": True,
+                        "add_claims_by_scope": True,
                         "aud": ["https://example.org/appl"],
                     },
                 },
