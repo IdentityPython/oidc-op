@@ -24,6 +24,7 @@ from oidcop.session.token import MintingNotAllowed
 from oidcop.token.exception import UnknownToken
 from oidcop.exception import UnAuthorizedClientScope, ToOld
 from oidcop.session.token import AccessToken
+from oidcop.authn_event import create_authn_event
 
 logger = logging.getLogger(__name__)
 
@@ -207,7 +208,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
 
 class RefreshTokenHelper(TokenEndpointHelper):
-    def process_request(self, req: Union[Message, dict], **kwargs):
+    def process_request(self, req: Union[Message, dict], **kwargs): 
         _context = self.endpoint.server_get("endpoint_context")
         _mngr = _context.session_manager
 
@@ -216,6 +217,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token_value = req["refresh_token"]
         _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+        grant = _session_info["grant"]
+        audience = grant.authorization_request.get("audience", {})
         if _session_info["client_id"] != req["client_id"]:
             logger.debug("{} owner of token".format(_session_info["client_id"]))
             logger.warning("{} using token it was not given".format(req["client_id"]))
@@ -377,7 +380,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
             "urn:ietf:params:oauth:token-type:access_token",
             "urn:ietf:params:oauth:token-type:jwt",
             # "urn:ietf:params:oauth:token-type:id_token",
-            # "urn:ietf:params:oauth:token-type:refresh_token",
+            "urn:ietf:params:oauth:token-type:refresh_token",
         ]
 
     def post_parse_request(self, request, client_id="", **kwargs):
@@ -423,7 +426,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
 
-        if not isinstance(token, AccessToken):
+        if not isinstance(token, (AccessToken, RefreshToken)):
             return self.error_cls(
                 error="invalid_request", error_description="Wrong token type"
             )
@@ -436,6 +439,14 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
     def check_for_errors(self, request):
         _context = self.endpoint.server_get("endpoint_context")
+
+        #TODO: also check if the (valid) subject_token matches subject_token_type
+        if request["subject_token_type"] not in self.token_types_allowed:
+            return TokenErrorResponse(
+                error="invalid_request",
+                error_description="Unsupported subject token type",
+            )
+
         if "resource" in request:
             iss = urlparse(_context.issuer)
             if any(
@@ -446,9 +457,13 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 )
 
         if "audience" in request:
-            if any(
-                aud != _context.issuer for aud in request["audience"]
-            ):
+            if request["subject_token_type"] == "urn:ietf:params:oauth:token-type:refresh_token":
+                return TokenErrorResponse(
+                    error="invalid_target", error_description="Refresh token has single owner"
+            )
+            _token_usage_rules = _context.authz.usage_rules(request["client_id"])
+            audience = _token_usage_rules["refresh_token"].get("audience", {})
+            if (not len(set(request["audience"]).intersection(set(audience)))):
                 return TokenErrorResponse(
                     error="invalid_target", error_description="Unknown audience"
                 )
@@ -468,21 +483,18 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 error="invalid_request", error_description="Actor token not supported"
             )
 
-        # TODO: also check if the (valid) subject_token matches subject_token_type
-        if request["subject_token_type"] not in self.token_types_allowed:
-            return TokenErrorResponse(
-                error="invalid_request",
-                error_description="Unsupported subject token type",
-            )
-
-    def token_exchange_response(self, token):
-        response_args = {
-            "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
-            "token_type": token.token_type,
-            "access_token": token.value,
-            "scope": token.scope,
-            "expires_in": token.usage_rules["expires_in"]
-        }
+    def token_exchange_response(self, access_token, refresh_token=None):
+        response_args = {}
+        response_args["access_token"] = access_token.value
+        response_args["scope"] = access_token.scope
+        if refresh_token is None:
+            response_args["issued_token_type"] = "urn:ietf:params:oauth:token-type:access_token"
+            response_args["token_type"] = access_token.token_type
+            response_args["expires_in"] = access_token.usage_rules["expires_in"]
+        else:
+            response_args["issued_token_type"] = "urn:ietf:params:oauth:token-type:refresh_token"
+            response_args["refresh_token"] = refresh_token.value
+            response_args["expires_in"] = refresh_token.usage_rules["expires_in"]
         return TokenExchangeResponse(**response_args)
 
     def process_request(self, request, **kwargs):
@@ -516,7 +528,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
 
-        if not isinstance(token, AccessToken):
+        if not isinstance(token, (AccessToken, RefreshToken)):
             return self.error_cls(
                 error="invalid_request", error_description="Wrong token type"
             )
@@ -538,27 +550,96 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 error_description="Unauthorized scope requested",
             )
 
-        try:
-            new_token = self._mint_token(
-                token_class=token.token_class,
-                grant=grant,
-                session_id=_session_info["session_id"],
+        _requested_token_type = request.get("requested_token_type",
+                                           "urn:ietf:params:oauth:token-type:access_token")
+        if (
+            _requested_token_type == "urn:ietf:params:oauth:token-type:access_token"
+            or _requested_token_type == "urn:ietf:params:oauth:token-type:id_token"
+           ):
+            _token_class = _requested_token_type.split(":")[-1]
+            _token_type = token.token_type
+
+            try:
+                new_token = self._mint_token(
+                    token_class=_token_class,
+                    grant=grant,
+                    session_id=_session_info["session_id"],
+                    client_id=request["client_id"],
+                    based_on=token,
+                    scope=request.get("scope"),
+                    token_args={
+                        "resources":request.get("resource"),
+                    },
+                    token_type=_token_type
+                )
+            except MintingNotAllowed:
+                logger.error(f"Minting not allowed for {_token_class}")
+                return self.error_cls(
+                    error="invalid_grant",
+                    error_description="Token Exchange not allowed with that token",
+                )
+
+            return self.token_exchange_response(access_token=new_token)
+
+        elif _requested_token_type == "urn:ietf:params:oauth:token-type:refresh_token":
+            _token_class = "refresh_token"
+            _token_type = None
+            authn_event = create_authn_event(_session_info["user_id"])
+            _token_usage_rules = _context.authz.usage_rules(request["client_id"])
+            _exp_in = _token_usage_rules["refresh_token"].get("expires_in")
+            if _exp_in and "valid_until" in authn_event:
+                authn_event["valid_until"] = utc_time_sans_frac() + _exp_in
+
+            sid = _mngr.create_session(
+                authn_event=authn_event,
+                auth_req=request,
+                user_id=_session_info["user_id"],
                 client_id=request["client_id"],
-                based_on=token,
-                scope=request.get("scope"),
-                token_args={
-                    "resources":request.get("resource"),
-                },
-                token_type=token.token_type
-            )
-        except MintingNotAllowed:
-            logger.error("Minting not allowed for 'access_token'")
-            return self.error_cls(
-                error="invalid_grant",
-                error_description="Token Exchange not allowed with that token",
+                token_usage_rules=_token_usage_rules,
             )
 
-        return self.token_exchange_response(token=new_token)
+            try:
+                new_token = self._mint_token(
+                    token_class="access_token",
+                    grant=_mngr.get_grant(sid),
+                    session_id=sid,
+                    client_id=request["client_id"],
+                    based_on=token,
+                    scope=request.get("scope"),
+                    token_args={
+                        "resources":request.get("resource"),
+                    },
+                    token_type=_token_type
+                )
+            except MintingNotAllowed:
+                logger.error("Minting not allowed for 'access_token'")
+                return self.error_cls(
+                    error="invalid_grant",
+                    error_description="Token Exchange not allowed with that token",
+                )
+
+            try:
+                refresh_token = self._mint_token(
+                    token_class=_token_class,
+                    grant=_mngr.get_grant(sid),
+                    session_id=sid,
+                    client_id=request["client_id"],
+                    based_on=token,
+                    scope=request.get("scope"),
+                    token_args={
+                        "resources":request.get("resource"),
+                    },
+                    token_type=_token_type
+                )
+            except MintingNotAllowed:
+                logger.error("Minting not allowed for 'refresh_token'")
+                return self.error_cls(
+                    error="invalid_grant",
+                    error_description="Token Exchange not allowed with that token",
+                )
+
+            return self.token_exchange_response(access_token=new_token,
+                                                refresh_token=refresh_token)
 
 class Token(oauth2.token.Token):
     request_cls = Message

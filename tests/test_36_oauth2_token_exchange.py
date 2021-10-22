@@ -5,6 +5,7 @@ from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oauth2 import TokenExchangeRequest
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.oidc import RefreshAccessTokenRequest
 import pytest
 
 
@@ -49,6 +50,7 @@ CAPABILITIES = {
         "authorization_code",
         "implicit",
         "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        "urn:ietf:params:oauth:grant-type:token-exchange",
         "refresh_token",
     ],
 }
@@ -67,6 +69,10 @@ TOKEN_REQ = AccessTokenRequest(
     state="STATE",
     grant_type="authorization_code",
     client_secret="hemligt",
+)
+
+REFRESH_TOKEN_REQ = RefreshAccessTokenRequest(
+    grant_type="refresh_token", client_id="https://example2.com/", client_secret="hemligt"
 )
 
 TOKEN_REQ_DICT = TOKEN_REQ.to_dict()
@@ -109,14 +115,6 @@ class TestEndpoint(object):
                             "client_secret_jwt",
                             "private_key_jwt",
                         ],
-                        "grant_types_supported": {
-                            "urn:ietf:params:oauth:grant-type:token-exchange": {
-                                "class": "oidcop.oidc.token.TokenExchangeHelper"
-                            },
-                            "authorization_code": {
-                                "class": "oidcop.oidc.token.AccessTokenHelper"
-                            }
-                        },
                     },
                 },
                 "introspection": {
@@ -150,6 +148,8 @@ class TestEndpoint(object):
                             },
                             "refresh_token": {
                                 "supports_minting": ["access_token", "refresh_token"],
+                                "audience": ["https://example.com/", "https://example2.com/"],
+                                "expires_in": 43200
                             },
                         },
                         "expires_in": 43200,
@@ -181,7 +181,15 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile"],
+            "allowed_scopes": ["openid", "profile", "offline_access"],
+        }
+        self.endpoint_context.cdb["https://example2.com/"] = {
+            "client_secret": "hemligt",
+            "redirect_uris": [("https://example.com/cb", None)],
+            "client_salt": "salted",
+            "token_endpoint_auth_method": "client_secret_post",
+            "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "offline_access"],
         }
         self.endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.endpoint = server.server_get("endpoint", "token")
@@ -305,7 +313,6 @@ class TestEndpoint(object):
             },
         )
         _resp = self.endpoint.process_request(request=_req)
-
         assert set(_resp["response_args"].keys()) == {
             'access_token', 'token_type', 'expires_in', 'issued_token_type', 'scope'
         }
@@ -408,8 +415,8 @@ class TestEndpoint(object):
         """
         Test that requesting a token for an unknown audience fails.
 
-        We currently only allow audience that match the issuer.
-        TODO: Should we do this?
+        We currently only allow audience that matches the owner of the subject_token or 
+        the allowed audience as configured in authz/grant_config
         """
         areq = AUTH_REQ.copy()
 
@@ -448,6 +455,59 @@ class TestEndpoint(object):
         assert set(_resp.keys()) == {"error", "error_description"}
         assert _resp["error"] == "invalid_target"
         assert _resp["error_description"] == "Unknown audience"
+
+    @pytest.mark.parametrize("aud", [
+        "https://example.com/",
+    ])
+    def test_exchanged_refresh_token_wrong_audience(self, aud):
+        """
+        Test that requesting a token for an unknown audience fails.
+
+        We currently only allow audience that matches the owner of the subject_token or 
+        the allowed audience as configured in authz/grant_config
+        """
+        areq = AUTH_REQ.copy()
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq['client_id'])
+
+        _cntx = self.endpoint_context
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.endpoint.parse_request(_token_request)
+        _resp = self.endpoint.process_request(request=_req)
+
+        _token_value = _resp["response_args"]["access_token"]
+        _session_info = self.session_manager.get_session_info_by_token(_token_value)
+        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+
+        token_exchange_req = TokenExchangeRequest(
+            grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+            subject_token=_token_value,
+            subject_token_type="urn:ietf:params:oauth:token-type:access_token",
+            requested_token_type="urn:ietf:params:oauth:token-type:refresh_token",
+            audience=aud
+        )
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_json(),
+            {
+                "headers": {
+                    "authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")
+                }
+            },
+        )
+        _resp = self.endpoint.process_request(request=_req)
+
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = _resp["response_args"]["refresh_token"]
+        _req = self.endpoint.parse_request(_request.to_json())
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp.keys()) == {"error", "error_description"}
+        assert _resp["error"] == "invalid_grant"
+        assert _resp["error_description"] == "Wrong client"
 
     @pytest.mark.parametrize("missing_attribute", [
         "subject_token_type",
@@ -502,7 +562,6 @@ class TestEndpoint(object):
 
     @pytest.mark.parametrize("unsupported_type", [
         "unknown",
-        "urn:ietf:params:oauth:token-type:refresh_token",
         "urn:ietf:params:oauth:token-type:id_token",
         "urn:ietf:params:oauth:token-type:saml2",
         "urn:ietf:params:oauth:token-type:saml1",
@@ -555,7 +614,6 @@ class TestEndpoint(object):
 
     @pytest.mark.parametrize("unsupported_type", [
         "unknown",
-        "urn:ietf:params:oauth:token-type:refresh_token",
         "urn:ietf:params:oauth:token-type:id_token",
         "urn:ietf:params:oauth:token-type:saml2",
         "urn:ietf:params:oauth:token-type:saml1",
@@ -691,3 +749,4 @@ class TestEndpoint(object):
             _resp["error_description"]
             == "Subject token invalid"
         )
+

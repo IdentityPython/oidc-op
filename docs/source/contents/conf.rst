@@ -178,6 +178,7 @@ An example::
         - implicit
         - urn:ietf:params:oauth:grant-type:jwt-bearer
         - refresh_token
+        - urn:ietf:params:oauth:grant-type:token-exchange
       claim_types_supported:
         - normal
         - aggregated
@@ -486,7 +487,8 @@ An example::
                         "supports_minting": ["access_token", "refresh_token"]
                     }
                 },
-                "expires_in": 43200
+                "expires_in": 43200,
+                "audience": ['https://www.example.com']
             }
         }
       },
