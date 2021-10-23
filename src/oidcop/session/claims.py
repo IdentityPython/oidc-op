@@ -68,6 +68,7 @@ class ClaimsInterface:
             secondary_identifier: str = ""
             ) -> dict:
         _context = self.server_get("endpoint_context")
+
     def _client_claims(self,
                        client_id: str,
                        module: object,
