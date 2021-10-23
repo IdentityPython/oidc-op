@@ -59,10 +59,19 @@ class ClaimsInterface:
 
         return module
 
-    def get_default_claims(self, session_id: str, endpoint_context, release_identifier, client_id):
+    def get_claims_from_request(
+            self,
+            auth_req: dict,
+            claims_release_point: str,
+            scopes: str = None,
+            client_id: str = None,
+            secondary_identifier: str = ""
+            ) -> dict:
+        _context = self.server_get("endpoint_context")
         # which endpoint module configuration to get the base claims from
-        module = self._get_module(release_identifier, endpoint_context)
+        module = self._get_module(claims_release_point, _context)
 
+        # claims that are always returned to any client.
         if module:
             base_claims = module.kwargs.get("base_claims", {}).copy()
         else:
@@ -71,11 +80,27 @@ class ClaimsInterface:
         if not client_id:
             client_id = auth_req.get("client_id")
 
+        if not client_id:
+            client_id = auth_req.get("client_id")
+
         # If specific client configuration exists overwrite add_claims_by_scope
         if module.kwargs.get("enable_claims_per_client") and client_id in _context.cdb:
-            _claims_by_scope, _always_add = self._client_claims(client_id, module,
-                                                                claims_release_point,
-                                                                secondary_identifier)
+            add_claims_by_scope = _context.cdb[client_id].get("add_claims", {}).get("by_scope", {})
+            if add_claims_by_scope:
+                _claims_by_scope = add_claims_by_scope.get(claims_release_point, False)
+                if not _claims_by_scope and secondary_identifier:
+                    _claims_by_scope = add_claims_by_scope.get(secondary_identifier, False)
+
+                if not _claims_by_scope:
+                    _claims_by_scope = module.kwargs.get("add_claims_by_scope", {})
+            else:
+                _claims_by_scope = module.kwargs.get("add_claims_by_scope", {})
+
+            add_claims_always = _context.cdb[client_id].get("add_claims", {}).get("always", {})
+            _always_add = add_claims_always.get(claims_release_point, [])
+            if secondary_identifier:
+                _always_2 = add_claims_always.get(secondary_identifier, [])
+                _always_add.extend(_always_2)
         else:
             _claims_by_scope = module.kwargs.get("add_claims_by_scope")
             _always_add = module.kwargs.get("always_add_claims", {})
