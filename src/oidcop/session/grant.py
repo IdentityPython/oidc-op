@@ -313,8 +313,7 @@ class Grant(Item):
             if token_handler is None:
                 token_handler = endpoint_context.session_manager.token_handler.handler[token_class]
 
-            # Only access_token and id_token can give rise to claims release
-            if token_class in ["access_token", "id_token"]:
+            if token_class in endpoint_context.claims_interface.claims_release_points:
                 claims_release_point = token_class
             else:
                 claims_release_point = ""
