@@ -162,26 +162,6 @@ class TestEndpoint(object):
         assert set(claims.keys()) == {"name", "email", "email_verified"}
 
     @pytest.mark.parametrize("usage", ["id_token", "userinfo", "introspection", "token"])
-    def test_get_client_claims_0(self, usage):
-        claims = self.claims_interface._get_client_claims("client_1", usage)
-        assert claims == {}
-
-    def test_get_client_claims_id_token_1(self):
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = ["name", "email"]
-        claims = self.claims_interface._get_client_claims("client_1", "id_token")
-        assert set(claims.keys()) == {"name", "email"}
-
-    def test_get_client_claims_userinfo_1(self):
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = ["email", "address"]
-        claims = self.claims_interface._get_client_claims("client_1", "userinfo")
-        assert set(claims.keys()) == {"address", "email"}
-
-    def test_get_client_claims_introspection_1(self):
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["introspection"] = ["email"]
-        claims = self.claims_interface._get_client_claims("client_1", "introspection")
-        assert set(claims.keys()) == {"email"}
-
-    @pytest.mark.parametrize("usage", ["id_token", "userinfo", "introspection", "token"])
     def test_get_claims(self, usage):
         session_id = self._create_session(AREQ)
         claims = self.claims_interface.get_claims(session_id, [], usage)

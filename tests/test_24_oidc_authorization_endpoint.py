@@ -876,29 +876,22 @@ class TestEndpoint(object):
 
         assert self.endpoint.verify_response_type(request, client_info) is True
 
-    @pytest.mark.parametrize("exp_in", [360, "360", 0])
-    def test_mint_token_exp_at(self, exp_in):
-        request = AuthorizationRequest(
-            client_id="client_1",
-            response_type=["code"],
-            redirect_uri="https://example.com/cb",
-            state="state",
-            scope="openid",
-        )
-        sid = self._create_session(request)
-        grant = self.session_manager.get_grant(sid)
-        grant.usage_rules = {"authorization_code": {"expires_in": exp_in}}
-
-        DUMMY_SESSION_ID = self.session_manager.encrypted_session_id(
-            "user_id", "client_id", "grant.id"
-        )
-        self.session_manager.set(["user_id", "client_id", "grant.id"], grant)
-
-        code = self.endpoint.mint_token("authorization_code", grant, DUMMY_SESSION_ID)
-        if exp_in in [360, "360"]:
-            assert code.expires_at
-        else:
-            assert code.expires_at == 0
+    # @pytest.mark.parametrize("exp_in", [360, "360", 0])
+    # def test_mint_token_exp_at(self, exp_in):
+    #     request = AuthorizationRequest(
+    #         client_id="client_1",
+    #         response_type=["code"],
+    #         redirect_uri="https://example.com/cb",
+    #         state="state",
+    #         scope="openid",
+    #     )
+    #     self.session_manager.set(["user_id", "client_id", "grant.id"], grant)
+    #
+    #     code = self.endpoint.mint_token("authorization_code", grant, sid)
+    #     if exp_in in [360, "360"]:
+    #         assert code.expires_at
+    #     else:
+    #         assert code.expires_at == 0
 
     def test_do_request_uri(self):
         request = AuthorizationRequest(
