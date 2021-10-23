@@ -15,7 +15,6 @@ from oidcop import rndstr
 from oidcop.configure import OPConfiguration
 from oidcop.scopes import SCOPE2CLAIMS
 from oidcop.scopes import Scopes
-from oidcop.session.claims import STANDARD_CLAIMS
 from oidcop.session.manager import SessionManager
 from oidcop.template_handler import Jinja2TemplateHandler
 from oidcop.util import get_http_params
@@ -75,13 +74,13 @@ def get_token_handler_args(conf: dict) -> dict:
             {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"},
             {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "token"},
             {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "refresh"},
-        ]
+            ]
 
         jwks_def = {
             "private_path": "private/token_jwks.json",
             "key_defs": keydef,
             "read_only": False,
-        }
+            }
         th_args = {"jwks_def": jwks_def}
         for typ, tid in [("code", 600), ("token", 3600), ("refresh", 86400)]:
             th_args[typ] = {"lifetime": tid}
@@ -117,17 +116,17 @@ class EndpointContext(OidcContext):
         "symkey": "",
         "token_args_methods": [],
         # "userinfo": UserInfo,
-    }
+        }
 
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration],
-        server_get: Callable,
-        keyjar: Optional[KeyJar] = None,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
-    ):
+            self,
+            conf: Union[dict, OPConfiguration],
+            server_get: Callable,
+            keyjar: Optional[KeyJar] = None,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
+            ):
         OidcContext.__init__(self, conf, keyjar, entity_id=conf.get("issuer", ""))
         self.conf = conf
         self.server_get = server_get
@@ -176,7 +175,7 @@ class EndpointContext(OidcContext):
             "symkey",
             "client_authn",
             # "id_token_schema",
-        ]:
+            ]:
             try:
                 setattr(self, param, conf[param])
             except KeyError:
@@ -217,7 +216,7 @@ class EndpointContext(OidcContext):
             "authentication",
             "id_token",
             "scope2claims",
-        ]:
+            ]:
             _func = getattr(self, "do_{}".format(item), None)
             if _func:
                 _func()
@@ -244,7 +243,7 @@ class EndpointContext(OidcContext):
     def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
         cookie_cont = self.cookie_handler.make_cookie_content(
             name=name, value=json.dumps(kwargs), max_age=max_age
-        )
+            )
         return cookie_cont
 
     def set_scopes_handler(self):
@@ -258,7 +257,7 @@ class EndpointContext(OidcContext):
                 self.server_get,
                 allowed_scopes=self.conf.get("allowed_scopes"),
                 scopes_to_claims=self.conf.get("scopes_to_claims"),
-            )
+                )
 
     def do_add_on(self, endpoints):
         _add_on_conf = self.conf.get("add_on")
@@ -336,6 +335,6 @@ class EndpointContext(OidcContext):
         if "claims_supported" not in _provider_info:
             _provider_info["claims_supported"] = list(
                 self.scopes_handler.scopes_to_claims(_provider_info["scopes_supported"]).keys()
-            )
+                )
 
         return _provider_info
