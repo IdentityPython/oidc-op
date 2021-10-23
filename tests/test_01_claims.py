@@ -160,7 +160,7 @@ class TestEndpoint(object):
         claims = self.claims_interface.authorization_request_claims(AREQ_3, "userinfo")
         assert set(claims.keys()) == {"name", "email", "email_verified"}
 
-    @pytest.mark.parametrize("usage", ["id_token", "userinfo", "introspection", "access_token"])
+    @pytest.mark.parametrize("usage", ["id_token", "userinfo", "introspection", "token"])
     def test_get_claims(self, usage):
         session_id = self._create_session(AREQ)
         claims = self.claims_interface.get_claims(session_id, [], usage)
