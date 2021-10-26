@@ -203,7 +203,7 @@ class EntityConfiguration(Base):
         "httpc_params": {},
         "issuer": "",
         "keys": None,
-        "session_key": None,
+        "session_params": None,
         "template_dir": None,
         "token_handler_args": {},
         "userinfo": None,

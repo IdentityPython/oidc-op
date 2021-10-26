@@ -73,6 +73,10 @@ class TestSessionManager:
                 },
                 "token_endpoint": {"path": "{}/token", "class": Token, "kwargs": {}},
             },
+            "session_params": {
+              "password": "ses_key",
+              "salt": "ses_salt"
+            },
             "template_dir": "template",
             "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
             "userinfo": {
@@ -103,6 +107,11 @@ class TestSessionManager:
         return self.server.endpoint_context.session_manager.create_session(
             ae, authz_req, USER_ID, client_id=client_id, sub_type=sub_type
         )
+
+    def test_session_manager_salt_key(self):
+        sman = self.session_manager
+        assert sman.key == "ses_key"
+        assert sman.salt == "ses_salt"
 
     @pytest.mark.parametrize(
         "sub_type, sector_identifier",
