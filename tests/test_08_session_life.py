@@ -267,7 +267,7 @@ class TestSessionJWTToken:
                             "phone_number",
                             "phone_number_verified",
                         ],
-                        "add_claim_by_scope": True,
+                        "add_claims_by_scope": True,
                         "aud": ["https://example.org/appl"],
                     },
                 },
