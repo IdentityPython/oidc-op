@@ -243,8 +243,15 @@ class EntityConfiguration(Base):
                     self.format(_val, base_path=base_path, file_attributes=file_attributes,
                                 domain=domain, port=port)
                 else:
-                    logger.warning(
-                        f"{key} is not a valid configuration parameter"
+                    continue
+
+            if key not in DEFAULT_EXTENDED_CONF:
+                logger.warning(
+                    f"{key} not seems to be a valid configuration parameter"
+                )
+            elif not _val:
+                logger.warning(
+                        f"{key} not configured, using default configuration values"
                     )
 
             if key == "template_dir":
@@ -589,4 +596,23 @@ DEFAULT_EXTENDED_CONF = {
         },
     },
     "userinfo": {"class": "oidcop.user_info.UserInfo", "kwargs": {"db_file": "users.json"}, },
+    "scopes_to_claims": SCOPE2CLAIMS,
+    "session_params": {
+      "password": "ses_key",
+      "salt": "ses_salt",
+      "sub_func": {
+        "public": {
+          "class": "oidcop.session.manager.PublicID",
+          "kwargs": {
+            "salt": "mysalt"
+          }
+        },
+        "pairwise": {
+          "class": "oidcop.session.manager.PairWiseID",
+          "kwargs": {
+            "salt": "mysalt"
+          }
+        }
+     }
+    },
 }
