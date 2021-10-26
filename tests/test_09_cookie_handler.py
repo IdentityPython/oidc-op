@@ -249,7 +249,7 @@ def test_compute_session_state():
 #
 # conf = {
 #     "issuer": "https://example.com/",
-#     "password": "mycket hemligt",
+#     "httpc_params": {"verify": False, "timeout": 1},
 #     "token_expires_in": 600,
 #     "grant_expires_in": 300,
 #     "refresh_token_expires_in": 86400,

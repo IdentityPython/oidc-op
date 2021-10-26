@@ -64,8 +64,7 @@ AREQRC = AuthorizationRequest(
 
 conf = {
     "issuer": "https://example.com/",
-    "password": "mycket hemligt",
-    "verify_ssl": False,
+    "httpc_params": {"verify": False, "timeout": 1},
     "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
     "token_handler_args": {
         "jwks_def": {

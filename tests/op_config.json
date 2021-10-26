@@ -216,6 +216,7 @@
       }
     }
   },
+  "stupid_fake_thing": "asdasd",
   "httpc_params": {
     "verify": false
   },

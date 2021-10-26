@@ -30,9 +30,8 @@ class TestUserAuthn(object):
     def create_endpoint_context(self):
         conf = {
             "issuer": "https://example.com/",
-            "password": "mycket hemligt",
+            "httpc_params": {"verify": False, "timeout": 1},
             "grant_expires_in": 300,
-            "verify_ssl": False,
             "endpoint": {
                 "authorization": {
                     "path": "{}/authorization",

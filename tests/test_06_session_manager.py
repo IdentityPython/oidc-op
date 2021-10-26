@@ -37,11 +37,10 @@ class TestSessionManager:
     def create_session_manager(self):
         conf = {
             "issuer": "https://example.com/",
-            "password": "mycket hemligt",
+            "httpc_params": {"verify": False, "timeout": 1},
             "token_expires_in": 600,
             "grant_expires_in": 300,
             "refresh_token_expires_in": 86400,
-            "verify_ssl": False,
             "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
             "jwks_uri": "https://example.com/jwks.json",
             "token_handler_args": {

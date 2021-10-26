@@ -99,8 +99,7 @@ class TestEndpoint(object):
     def create_endpoint(self):
         conf = {
             "issuer": ISSUER,
-            "password": "mycket hemligt",
-            "verify_ssl": False,
+            "httpc_params": {"verify": False, "timeout": 1},
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {

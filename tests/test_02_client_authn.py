@@ -36,9 +36,10 @@ KEYJAR = build_keyjar(KEYDEFS)
 
 CONF = {
     "issuer": "https://example.com/",
-    "password": "mycket hemligt",
     "grant_expires_in": 300,
-    "verify_ssl": False,
+    "httpc_params": {
+        "verify": False
+    },
     "endpoint": {
         "token": {
             "path": "token",
