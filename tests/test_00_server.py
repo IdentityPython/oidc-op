@@ -36,8 +36,7 @@ KEYJAR = build_keyjar(KEYDEFS)
 
 CONF = {
     "issuer": "https://example.com/",
-    "password": "mycket hemligt",
-    "verify_ssl": False,
+    "httpc_params": {"verify": False, "timeout": 1},
     "capabilities": {},
     "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS, "read_only": True},
     "endpoint": {

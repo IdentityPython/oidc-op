@@ -13,6 +13,9 @@ from oidcop.logging import configure_logging
 from oidcop.scopes import SCOPE2CLAIMS
 from oidcop.utils import load_yaml_config
 
+logger = logging.getLogger(__name__)
+
+
 DEFAULT_FILE_ATTRIBUTE_NAMES = [
     "server_key",
     "server_cert",
@@ -84,7 +87,8 @@ OP_DEFAULT_CONFIG = {
 
 AS_DEFAULT_CONFIG = copy.deepcopy(OP_DEFAULT_CONFIG)
 AS_DEFAULT_CONFIG["claims_interface"] = {
-    "class": "oidcop.session.claims.OAuth2ClaimsInterface", "kwargs": {}}
+    "class": "oidcop.session.claims.OAuth2ClaimsInterface", "kwargs": {}
+}
 
 
 def add_base_path(conf: Union[dict, str], base_path: str, file_attributes: List[str]):
@@ -203,12 +207,10 @@ class EntityConfiguration(Base):
         "httpc_params": {},
         "issuer": "",
         "keys": None,
-        "session_key": None,
+        "session_params": None,
         "template_dir": None,
         "token_handler_args": {},
         "userinfo": None,
-        "password": None,
-        "salt": None,
     }
 
     def __init__(
@@ -242,6 +244,15 @@ class EntityConfiguration(Base):
                                 domain=domain, port=port)
                 else:
                     continue
+
+            if key not in DEFAULT_EXTENDED_CONF:
+                logger.warning(
+                    f"{key} not seems to be a valid configuration parameter"
+                )
+            elif not _val:
+                logger.warning(
+                        f"{key} not configured, using default configuration values"
+                    )
 
             if key == "template_dir":
                 _val = os.path.abspath(_val)
@@ -585,4 +596,23 @@ DEFAULT_EXTENDED_CONF = {
         },
     },
     "userinfo": {"class": "oidcop.user_info.UserInfo", "kwargs": {"db_file": "users.json"}, },
+    "scopes_to_claims": SCOPE2CLAIMS,
+    "session_params": {
+      "password": "ses_key",
+      "salt": "ses_salt",
+      "sub_func": {
+        "public": {
+          "class": "oidcop.session.manager.PublicID",
+          "kwargs": {
+            "salt": "mysalt"
+          }
+        },
+        "pairwise": {
+          "class": "oidcop.session.manager.PairWiseID",
+          "kwargs": {
+            "salt": "mysalt"
+          }
+        }
+     }
+    },
 }

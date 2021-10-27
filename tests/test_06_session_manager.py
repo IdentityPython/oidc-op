@@ -37,11 +37,10 @@ class TestSessionManager:
     def create_session_manager(self):
         conf = {
             "issuer": "https://example.com/",
-            "password": "mycket hemligt",
+            "httpc_params": {"verify": False, "timeout": 1},
             "token_expires_in": 600,
             "grant_expires_in": 300,
             "refresh_token_expires_in": 86400,
-            "verify_ssl": False,
             "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
             "jwks_uri": "https://example.com/jwks.json",
             "token_handler_args": {
@@ -56,7 +55,7 @@ class TestSessionManager:
                     "kwargs": {
                         "lifetime": 3600,
                         "add_claims": True,
-                        "add_claim_by_scope": True,
+                        "add_claims_by_scope": True,
                         "aud": ["https://example.org/appl"],
                     },
                 },
@@ -72,6 +71,10 @@ class TestSessionManager:
                     "kwargs": {},
                 },
                 "token_endpoint": {"path": "{}/token", "class": Token, "kwargs": {}},
+            },
+            "session_params": {
+              "password": "ses_key",
+              "salt": "ses_salt"
             },
             "template_dir": "template",
             "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
@@ -103,6 +106,11 @@ class TestSessionManager:
         return self.server.endpoint_context.session_manager.create_session(
             ae, authz_req, USER_ID, client_id=client_id, sub_type=sub_type
         )
+
+    def test_session_manager_salt_key(self):
+        sman = self.session_manager
+        assert sman.key == "ses_key"
+        assert sman.salt == "ses_salt"
 
     @pytest.mark.parametrize(
         "sub_type, sector_identifier",

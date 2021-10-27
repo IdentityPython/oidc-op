@@ -37,6 +37,8 @@ def test_op_configure():
     args = dict(configuration.items())
     assert "add_on" in args
 
+    assert "session_params" in configuration
+
 
 def test_op_configure_from_file():
     configuration = create_from_config_file(

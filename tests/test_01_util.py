@@ -12,11 +12,10 @@ KEYDEFS = [
 
 conf = {
     "issuer": "https://example.com/",
-    "password": "mycket hemligt",
+    "httpc_params": {"verify": False, "timeout": 1},
     "token_expires_in": 600,
     "grant_expires_in": 300,
     "refresh_token_expires_in": 86400,
-    "verify_ssl": False,
     "capabilities": {},
     "jwks_uri": "https://example.com/jwks.json",
     "keys": {"private_path": "own/jwks.json", "key_defs": KEYDEFS, "uri_path": "static/jwks.json",},

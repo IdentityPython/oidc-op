@@ -21,11 +21,10 @@ class TestEndpoint(object):
     def create_endpoint(self):
         conf = {
             "issuer": "https://example.com/",
-            "password": "mycket hemligt",
             "token_expires_in": 600,
             "grant_expires_in": 300,
             "refresh_token_expires_in": 86400,
-            "verify_ssl": False,
+            "httpc_params": {"verify": False, "timeout": 1},
             "endpoint": {
                 "webfinger": {
                     "path": ".well-known/webfinger",

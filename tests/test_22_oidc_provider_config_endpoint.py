@@ -54,8 +54,9 @@ class TestEndpoint(object):
     def conf(self):
         return {
             "issuer": "https://example.com/",
-            "password": "mycket hemligt",
-            "verify_ssl": False,
+            "httpc_params": {
+              "verify": False
+            },
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "endpoint": {

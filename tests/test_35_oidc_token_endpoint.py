@@ -100,8 +100,7 @@ USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
 def conf():
     return {
         "issuer": "https://example.com/",
-        "password": "mycket hemligt",
-        "verify_ssl": False,
+        "httpc_params": {"verify": False, "timeout": 1},
         "capabilities": CAPABILITIES,
         "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
         "token_handler_args": {

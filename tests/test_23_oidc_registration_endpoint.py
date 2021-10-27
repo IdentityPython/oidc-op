@@ -76,8 +76,7 @@ class TestEndpoint(object):
     def create_endpoint(self):
         conf = {
             "issuer": "https://example.com/",
-            "password": "mycket hemligt",
-            "verify_ssl": False,
+            "httpc_params": {"verify": False, "timeout": 1},
             "capabilities": {
                 "subject_types_supported": ["public", "pairwise", "ephemeral"],
                 "grant_types_supported": [
