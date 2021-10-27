@@ -2,6 +2,8 @@
 
 ![CI build](https://github.com/IdentityPython/oidc-op/workflows/oidc-op/badge.svg)
 ![pypi](https://img.shields.io/pypi/v/oidcop.svg)
+[![Downloads total](https://pepy.tech/badge/oidcop)](https://pepy.tech/project/oidcop)
+[![Downloads week](https://pepy.tech/badge/oidcop/week)](https://pepy.tech/project/oidcop)
 ![License](https://img.shields.io/badge/license-Apache%202-blue.svg)
 ![Documentation Status](https://readthedocs.org/projects/oidcop/badge/?version=latest)
 ![Python version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue.svg)
