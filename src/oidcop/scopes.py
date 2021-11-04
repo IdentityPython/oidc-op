@@ -97,3 +97,6 @@ class Scopes:
         scopes = self.filter_scopes(scopes, client_id)
 
         return convert_scopes2claims(scopes, scope2claim_map=scopes_to_claims)
+
+    def set_scopes_mapping(self, scopes_to_claims):
+        self._scopes_to_claims = scopes_to_claims
