@@ -25,6 +25,14 @@ from ..token.handler import TokenHandler
 logger = logging.getLogger(__name__)
 
 
+class RawID(object):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __call__(self, uid, *args, **kwargs):
+        return uid
+
+
 def pairwise_id(uid, sector_identifier, salt="", **kwargs):
     return hashlib.sha256(
         ("{}{}{}".format(uid, sector_identifier, salt)).encode("utf-8")
