@@ -10,7 +10,7 @@ from oidcmsg.message import Message
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import verified_claim_name
 from oidcmsg.oidc import verify_id_token
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 import pytest
 import responses
 
@@ -278,7 +278,7 @@ class TestEndpoint(object):
             endpoint_context=self.endpoint_context,
             token_class=token_class,
             token_handler=self.session_manager.token_handler[token_class],
-            expires_at=time_sans_frac() + 900,  # 15 minutes from now
+            expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
             based_on=token_ref,  # Means the token (tok) was used to mint this token
         )
 

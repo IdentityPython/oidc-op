@@ -2,7 +2,7 @@ import base64
 import logging
 from typing import Optional
 
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop import rndstr
 from oidcop.token.exception import UnknownToken
@@ -28,7 +28,7 @@ def is_expired(exp, when=0):
         return False
 
     if not when:
-        when = time_sans_frac()
+        when = utc_time_sans_frac()
     return when > exp
 
 
@@ -95,7 +95,7 @@ class DefaultToken(Token):
             token_class = "authorization_code"
 
         if self.lifetime >= 0:
-            exp = str(time_sans_frac() + self.lifetime)
+            exp = str(utc_time_sans_frac() + self.lifetime)
         else:
             exp = "-1"  # Live for ever
 

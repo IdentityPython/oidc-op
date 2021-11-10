@@ -2,7 +2,7 @@ from typing import Optional
 from uuid import uuid1
 
 from oidcmsg.impexp import ImpExp
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 
 class MintingNotAllowed(Exception):
@@ -30,7 +30,7 @@ class Item(ImpExp):
             used: int = 0,
     ):
         ImpExp.__init__(self)
-        self.issued_at = issued_at or time_sans_frac()
+        self.issued_at = issued_at or utc_time_sans_frac()
         self.not_before = not_before
         if expires_at == 0 and expires_in != 0:
             self.set_expires_at(expires_in)
@@ -42,7 +42,7 @@ class Item(ImpExp):
         self.usage_rules = usage_rules or {}
 
     def set_expires_at(self, expires_in):
-        self.expires_at = time_sans_frac() + expires_in
+        self.expires_at = utc_time_sans_frac() + expires_in
 
     def max_usage_reached(self):
         if "max_usage" in self.usage_rules:
@@ -58,7 +58,7 @@ class Item(ImpExp):
             return False
 
         if now == 0:
-            now = time_sans_frac()
+            now = utc_time_sans_frac()
 
         if self.not_before:
             if now < self.not_before:

@@ -6,7 +6,7 @@ from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jws.jws import factory
 from oidcmsg.oidc import AuthorizationRequest
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop.authn_event import create_authn_event
 from oidcop.client_authn import verify_client
@@ -201,7 +201,7 @@ class TestEndpoint(object):
             endpoint_context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
-            expires_at=time_sans_frac() + 300,  # 5 minutes from now
+            expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
         )
 
     def _mint_access_token(self, grant, session_id, token_ref):
@@ -210,7 +210,7 @@ class TestEndpoint(object):
             endpoint_context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
-            expires_at=time_sans_frac() + 900,  # 15 minutes from now
+            expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
             based_on=token_ref,  # Means the token (tok) was used to mint this token
         )
         return access_token
@@ -221,7 +221,7 @@ class TestEndpoint(object):
             endpoint_context=self.endpoint_context,
             token_class="id_token",
             token_handler=self.session_manager.token_handler["id_token"],
-            expires_at=time_sans_frac() + 900,  # 15 minutes from now
+            expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
             based_on=token_ref,  # Means the token (tok) was used to mint this token
             code=code,
             access_token=access_token,

@@ -1,6 +1,6 @@
 from cryptojwt.jws.jws import factory
 from oidcmsg.oidc import AuthorizationRequest
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 import pytest
 
 from oidcop.authn_event import AuthnEvent
@@ -121,7 +121,7 @@ class TestSessionManager:
 
         self.session_manager = server.endpoint_context.session_manager
         self.authn_event = AuthnEvent(
-            uid="uid", valid_until=time_sans_frac() + 1, authn_info="authn_class_ref"
+            uid="uid", valid_until=utc_time_sans_frac() + 1, authn_info="authn_class_ref"
         )
         self.dummy_session_id = self.session_manager.encrypted_session_id(
             "user_id", "client_id", "grant.id"
@@ -236,7 +236,7 @@ class TestSessionManager:
             endpoint_context=self.endpoint_context,
             token_class=token_class,
             token_handler=self.session_manager.token_handler.handler[token_class],
-            expires_at=time_sans_frac() + 300,  # 5 minutes from now
+            expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
             based_on=based_on,
         )
 

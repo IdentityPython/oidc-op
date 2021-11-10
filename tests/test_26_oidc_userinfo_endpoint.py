@@ -5,7 +5,7 @@ import pytest
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
@@ -195,7 +195,7 @@ class TestEndpoint(object):
             endpoint_context=self.endpoint.server_get("endpoint_context"),
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
-            expires_at=time_sans_frac() + 300,  # 5 minutes from now
+            expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
         )
 
     def _mint_token(self, token_class, grant, session_id, token_ref=None):
@@ -205,7 +205,7 @@ class TestEndpoint(object):
             endpoint_context=self.endpoint.server_get("endpoint_context"),
             token_class=token_class,
             token_handler=self.session_manager.token_handler[token_class],
-            expires_at=time_sans_frac() + 900,  # 15 minutes from now
+            expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
             based_on=token_ref,  # Means the token (tok) was used to mint this token
         )
 
@@ -476,7 +476,7 @@ class TestEndpoint(object):
         http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
         _req = self.endpoint.parse_request({}, http_info=http_info)
 
-        access_token.expires_at = time_sans_frac() - 10
+        access_token.expires_at = utc_time_sans_frac() - 10
         args = self.endpoint.process_request(_req)
 
         assert isinstance(args, ResponseMessage)
@@ -509,9 +509,9 @@ class TestEndpoint(object):
         http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
 
         def mock():
-            return time_sans_frac() + access_token.expires_at + 1
+            return utc_time_sans_frac() + access_token.expires_at + 1
 
-        monkeypatch.setattr("oidcop.token.time_sans_frac", mock)
+        monkeypatch.setattr("oidcop.token.utc_time_sans_frac", mock)
 
         _req = self.endpoint.parse_request({}, http_info=http_info)
 

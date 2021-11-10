@@ -9,7 +9,7 @@ from oidcmsg.oauth2 import AccessTokenResponse
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop import sanitize
 from oidcop.constant import DEFAULT_TOKEN_LIFETIME
@@ -90,7 +90,7 @@ class TokenEndpointHelper(object):
                 _exp_in = int(_exp_in)
 
             if _exp_in:
-                token.expires_at = time_sans_frac() + _exp_in
+                token.expires_at = utc_time_sans_frac() + _exp_in
 
         _context.session_manager.set(_context.session_manager.unpack_session_key(session_id), grant)
 

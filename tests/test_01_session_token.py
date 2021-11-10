@@ -1,4 +1,4 @@
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop.session.token import AccessToken
 from oidcop.session.token import AuthorizationCode
@@ -103,5 +103,5 @@ def test_is_active_revoke():
 
 def test_is_active_expired():
     token = AccessToken(usage_rules={"max_usage": 2})
-    token.expires_at = time_sans_frac() - 60
+    token.expires_at = utc_time_sans_frac() - 60
     assert token.is_active() is False

@@ -75,7 +75,7 @@ class UserAuthnMethod(object):
                         logger.debug(
                             "Too old by {} seconds".format(_now - (_info["timestamp"] + _max_age)))
                         return None, 0
-            return _info, time.time()
+            return _info, utc_time_sans_frac()
 
     def verify(self, *args, **kwargs):
         """
@@ -230,7 +230,7 @@ class BasicAuthn(UserAuthnMethod):
         res = {"uid": user}
         if cookie:
             res.update(self.cookie_info(cookie, client_id))
-        return res, time.time()
+        return res, utc_time_sans_frac()
 
 
 class SymKeyAuthn(UserAuthnMethod):
@@ -264,7 +264,7 @@ class SymKeyAuthn(UserAuthnMethod):
         if cookie:
             res.update(self.cookie_info(cookie, client_id))
 
-        return res, time.time()
+        return res, utc_time_sans_frac()
 
 
 class NoAuthn(UserAuthnMethod):
@@ -290,7 +290,7 @@ class NoAuthn(UserAuthnMethod):
         if cookie:
             res.update(self.cookie_info(cookie, client_id))
 
-        return res, time.time()
+        return res, utc_time_sans_frac()
 
 
 def factory(cls, **kwargs):
