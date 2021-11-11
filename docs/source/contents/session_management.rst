@@ -481,7 +481,7 @@ add_grant
 +++++++++
 .. _add_grant:
 
-    add_grant(self, user_id, client_id, **kwargs)
+    add_grant(self, user_id, client_id, \*\*kwargs)
 
 find_token
 ++++++++++

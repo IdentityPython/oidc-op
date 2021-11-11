@@ -1,6 +1,10 @@
 Welcome to Idpy OIDC-op Documentation
 ======================================
 
+.. image:: _images/oid-l-certification-mark-l-rgb-150dpi-90mm-300x157.png
+  :width: 300
+  :alt: OIDC Certified
+
 This project is a Python implementation of an **OIDC Provider** on top of `jwtconnect.io <https://jwtconnect.io/>`_
 that shows you how to 'build' an OP using the classes and functions provided by oidc-op.
 
@@ -65,6 +69,12 @@ under the `Apache 2.0 <https://en.wikipedia.org/wiki/Apache_License>`_.
    :caption: Developer's
 
    contents/developers.md
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Client database
+
+   contents/clients.rst
 
 .. toctree::
    :maxdepth: 2
