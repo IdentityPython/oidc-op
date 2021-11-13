@@ -37,6 +37,9 @@ The entire project code is open sourced and therefore licensed under the [Apache
 
 For any futher information please read the [Official Documentation](https://oidcop.readthedocs.io/en/latest/).
 
+# Certifications
+[![OIDC Certification](https://openid.net/wordpress-content/uploads/2016/04/oid-l-certification-mark-l-rgb-150dpi-90mm-300x157.png)](https://www.certification.openid.net/plan-detail.html?public=true&plan=7p3iPQmff6Ohv)
+
 
 # Contribute
 
