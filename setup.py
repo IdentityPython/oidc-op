@@ -72,7 +72,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        "oidcmsg==1.4.0",
+        "oidcmsg==1.5.0",
         "cryptojwt==1.5.2",
         "pyyaml",
         "jinja2>=2.11.3",

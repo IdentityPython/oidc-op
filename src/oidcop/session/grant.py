@@ -1,3 +1,4 @@
+import logging
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -18,6 +19,8 @@ from oidcop.session.token import RefreshToken
 from oidcop.session.token import SessionToken
 from oidcop.token import Token as TokenHandler
 from oidcop.util import importer
+
+logger = logging.getLogger(__name__)
 
 
 class GrantMessage(ImpExp):
@@ -196,14 +199,17 @@ class Grant(Item):
             claims_release_point: str,
             scope: Optional[dict] = None,
             extra_payload: Optional[dict] = None,
+            secondary_identifier: str = ''
     ) -> dict:
         """
 
-        :param session_id:
-        :param endpoint_context:
+        :param session_id: Session ID
+        :param endpoint_context: EndPoint Context
         :param claims_release_point: One of "userinfo", "introspection", "id_token", "access_token"
-        :param scope:
+        :param scope: scope from the request
         :param extra_payload:
+        :param secondary_identifier: Used if the claims returned are also based on rules for
+            another release_point
         :return: dictionary containing information to place in a token value
         """
         if scope is None:
@@ -224,7 +230,8 @@ class Grant(Item):
                 payload.update({"client_id": client_id, "sub": client_id})
 
         _claims_restriction = endpoint_context.claims_interface.get_claims(
-            session_id, scopes=scope, claims_release_point=claims_release_point
+            session_id, scopes=scope, claims_release_point=claims_release_point,
+            secondary_identifier=secondary_identifier
         )
         user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
         user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
@@ -232,6 +239,8 @@ class Grant(Item):
 
         # Should I add the acr value
         if self.add_acr_value(claims_release_point):
+            payload["acr"] = self.authentication_event["authn_info"]
+        elif self.add_acr_value(secondary_identifier):
             payload["acr"] = self.authentication_event["authn_info"]
 
         return payload
@@ -277,7 +286,8 @@ class Grant(Item):
 
         _class = self.token_map.get(token_class)
         if token_class == "id_token":
-            class_args = {k: v for k, v in kwargs.items() if k not in ["code", "access_token"]}
+            class_args = {k: v for k, v in kwargs.items() if
+                          k not in ["code", "access_token", "as_if"]}
             handler_args = {k: v for k, v in kwargs.items() if k in ["code", "access_token"]}
         else:
             class_args = kwargs
@@ -303,11 +313,18 @@ class Grant(Item):
             if token_handler is None:
                 token_handler = endpoint_context.session_manager.token_handler.handler[token_class]
 
-            # Only access_token and id_token can give rise to claims release
-            if token_class in ["access_token", "id_token"]:
+            if token_class in endpoint_context.claims_interface.claims_release_points:
                 claims_release_point = token_class
             else:
                 claims_release_point = ""
+
+            _secondary_identifier = kwargs.get("as_if")
+            logger.debug(
+                f"claims_release_point: {claims_release_point}, secondary_identifier: "
+                f"{_secondary_identifier}")
+
+            if token_class == "id_token":
+                item.session_id = session_id
 
             token_payload = self.payload_arguments(
                 session_id,
@@ -315,7 +332,11 @@ class Grant(Item):
                 claims_release_point=claims_release_point,
                 scope=scope,
                 extra_payload=handler_args,
+                secondary_identifier=_secondary_identifier
             )
+
+            logger.debug(f"token_payload: {token_payload}")
+
             item.value = token_handler(
                 session_id=session_id, usage_rules=usage_rules, **token_payload
             )
@@ -338,7 +359,7 @@ class Grant(Item):
             value: Optional[str] = "",
             based_on: Optional[str] = "",
             recursive: bool = True
-        ):
+    ):
         for t in self.issued_token:
             if not value and not based_on:
                 t.revoked = True
@@ -367,6 +388,16 @@ class Grant(Item):
                 _val = getattr(self, attr)
                 if _val:
                     res[attr] = _val
+        return res
+
+    def last_issued_token_of_type(self, token_class):
+        res = None
+        for t in self.issued_token:
+            if t.token_class == token_class:
+                if res is None:
+                    res = t
+                elif t.issued_at > res.issued_at:
+                    res = t
         return res
 
 

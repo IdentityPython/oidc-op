@@ -13,7 +13,6 @@ from cryptojwt.utils import as_bytes
 from oidcmsg.oauth2 import TokenIntrospectionRequest
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
-from oidcmsg.time_util import time_sans_frac
 from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop.authn_event import create_authn_event
@@ -225,7 +224,7 @@ class TestEndpoint:
             endpoint_context=self.token_endpoint.server_get("endpoint_context"),
             token_class=token_class,
             token_handler=self.session_manager.token_handler.handler[token_class],
-            expires_at=time_sans_frac() + 300,  # 5 minutes from now
+            expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
             based_on=based_on,
             **kwargs
         )

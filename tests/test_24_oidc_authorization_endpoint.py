@@ -4,14 +4,9 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
-from cryptojwt.jws.jws import factory
-
-from oidcop.configure import OPConfiguration
-import pytest
-import responses
-import yaml
 from cryptojwt import JWT
 from cryptojwt import KeyJar
+from cryptojwt.jws.jws import factory
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 from oidcmsg.exception import ParameterError
@@ -22,9 +17,13 @@ from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import verified_claim_name
 from oidcmsg.oidc import verify_id_token
+import pytest
+import responses
+import yaml
 
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
+from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
 from oidcop.endpoint_context import init_service
 from oidcop.endpoint_context import init_user_info
@@ -137,8 +136,7 @@ oidc_clients:
     client_secret: '2222222222222222222222222222222222222222'
     redirect_uris:
       - ['https://127.0.0.1:8090/authz_cb/bobcat', '']
-    post_logout_redirect_uris:
-      - ['https://openidconnect.net/', '']
+    post_logout_redirect_uri: ['https://openidconnect.net/', '']
     response_types:
       - code
 """
@@ -166,7 +164,7 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "oidcop.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
                     "class": "oidcop.token.id_token.IDToken",
@@ -186,7 +184,7 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {},},
+                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {}, },
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
@@ -215,7 +213,8 @@ class TestEndpoint(object):
                     "class": userinfo.UserInfo,
                     "kwargs": {
                         "db_file": "users.json",
-                        "claim_types_supported": ["normal", "aggregated", "distributed",],
+                        "claim_types_supported": ["normal", "aggregated", "distributed"],
+                        "add_claims_by_scope": True
                     },
                 },
             },
@@ -234,7 +233,7 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token",],
+                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -271,6 +270,7 @@ class TestEndpoint(object):
         endpoint_context.keyjar.import_jwks(
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
+        self.endpoint_context = endpoint_context
         self.endpoint = server.server_get("endpoint", "authorization")
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
@@ -401,7 +401,7 @@ class TestEndpoint(object):
     def test_id_token_claims(self):
         _req = AUTH_REQ_DICT.copy()
         _req["claims"] = CLAIMS
-        _req["response_type"] = "code id_token token"
+        _req["response_type"] = "id_token"
         _req["nonce"] = "rnd_nonce"
         _pr_resp = self.endpoint.parse_request(_req)
         _resp = self.endpoint.process_request(_pr_resp)
@@ -562,14 +562,14 @@ class TestEndpoint(object):
         with pytest.raises(ParameterError):
             get_uri(_ec, request, "redirect_uri")
 
-    def test_create_authn_response(self):
+    def test_create_authn_response_id_token(self):
         request = AuthorizationRequest(
             client_id="client_id",
             redirect_uri="https://rp.example.com/cb",
             response_type=["id_token"],
             state="state",
             nonce="nonce",
-            scope="openid",
+            scope=["openid", "profile"],
         )
 
         _ec = self.endpoint.server_get("endpoint_context")
@@ -583,6 +583,37 @@ class TestEndpoint(object):
 
         resp = self.endpoint.create_authn_response(request, session_id)
         assert isinstance(resp["response_args"], AuthorizationResponse)
+
+        _jws = factory(resp["response_args"]["id_token"])
+        _payload = _jws.jwt.payload()
+        assert "given_name" in _payload
+
+    def test_create_authn_response_id_token_request_claims(self):
+        request = AuthorizationRequest(
+            client_id="client_id",
+            redirect_uri="https://rp.example.com/cb",
+            response_type=["id_token"],
+            claims={"id_token": {"name": {"essential": True}}},
+            state="state",
+            nonce="nonce",
+            scope=["openid"],
+        )
+
+        _ec = self.endpoint.server_get("endpoint_context")
+        _ec.cdb["client_id"] = {
+            "client_id": "client_id",
+            "redirect_uris": [("https://rp.example.com/cb", {})],
+            "id_token_signed_response_alg": "ES256",
+        }
+
+        session_id = self._create_session(request)
+
+        resp = self.endpoint.create_authn_response(request, session_id)
+        assert isinstance(resp["response_args"], AuthorizationResponse)
+
+        _jws = factory(resp["response_args"]["id_token"])
+        _payload = _jws.jwt.payload()
+        assert "name" in _payload
 
     def test_setup_auth(self):
         request = AuthorizationRequest(
@@ -599,12 +630,18 @@ class TestEndpoint(object):
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "RS256",
         }
+        session_id = self._create_session(request)
 
         kaka = self.endpoint.server_get("endpoint_context").cookie_handler.make_cookie_content(
-            "value", "sso"
+            value=json.dumps({'sid': session_id, 'state': request.get("state")}),
+            name=self.endpoint_context.cookie_handler.name["session"]
         )
 
-        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, [kaka])
+        # Parsed once before setup_auth
+        kakor = self.endpoint_context.cookie_handler.parse_cookie(
+            cookies=[kaka], name=self.endpoint_context.cookie_handler.name["session"])
+
+        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, kakor)
         assert set(res.keys()) == {"session_id", "identity", "user"}
 
     def test_setup_auth_error(self):
@@ -636,21 +673,16 @@ class TestEndpoint(object):
 
         item["method"].file = ""
 
-    def test_setup_auth_user(self):
+    def test_setup_auth_user_form_post(self):
         request = AuthorizationRequest(
-            client_id="client_id",
-            redirect_uri="https://rp.example.com/cb",
-            response_type=["id_token"],
+            client_id="client_1",
+            redirect_uri="https://example.com/cb",
+            response_type=["code"],
+            response_mode="form_post",
             state="state",
             nonce="nonce",
             scope="openid",
         )
-        redirect_uri = request["redirect_uri"]
-        cinfo = {
-            "client_id": "client_id",
-            "redirect_uris": [("https://rp.example.com/cb", {})],
-            "id_token_signed_response_alg": "RS256",
-        }
         _ec = self.endpoint.server_get("endpoint_context")
 
         session_id = self._create_session(request)
@@ -658,9 +690,30 @@ class TestEndpoint(object):
         item = _ec.authn_broker.db["anon"]
         item["method"].user = b64e(as_bytes(json.dumps({"uid": "krall", "sid": session_id})))
 
-        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
-        assert set(res.keys()) == {"session_id", "identity", "user"}
-        assert res["identity"]["uid"] == "krall"
+        res = self.endpoint.process_request(request)
+        assert set(res.keys()) == {'content_type', 'cookie', 'response_msg', 'response_placement',
+                                   'session_id'}
+
+    def test_setup_auth_error_form_post(self):
+        request = AuthorizationRequest(
+            client_id="client_1",
+            redirect_uri="https://example.com/cb",
+            response_type=["code"],
+            response_mode="form_post",
+            prompt="none",
+            state="state",
+            nonce="nonce",
+            scope=["openid"],
+        )
+
+        item = self.endpoint.server_get("endpoint_context").authn_broker.db["anon"]
+        item["method"].fail = NoSuchAuthentication
+
+        res = self.endpoint.process_request(request)
+        assert set(res.keys()) == {'content_type', 'response_msg', 'response_placement'}
+        assert res["response_placement"] == "body"
+        assert res["content_type"] == "text/html"
+        assert "Submit This Form" in res["response_msg"]
 
     def test_setup_auth_session_revoked(self):
         request = AuthorizationRequest(
@@ -823,24 +876,22 @@ class TestEndpoint(object):
 
         assert self.endpoint.verify_response_type(request, client_info) is True
 
-    @pytest.mark.parametrize("exp_in", [360, "360", 0])
-    def test_mint_token_exp_at(self, exp_in):
-        request = AuthorizationRequest(
-            client_id="client_1",
-            response_type=["code"],
-            redirect_uri="https://example.com/cb",
-            state="state",
-            scope="openid",
-        )
-        sid = self._create_session(request)
-        grant = self.session_manager.get_grant(sid)
-        grant.usage_rules = {"authorization_code": {"expires_in": exp_in}}
-
-        code = self.endpoint.mint_token("authorization_code", grant, sid)
-        if exp_in in [360, "360"]:
-            assert code.expires_at
-        else:
-            assert code.expires_at == 0
+    # @pytest.mark.parametrize("exp_in", [360, "360", 0])
+    # def test_mint_token_exp_at(self, exp_in):
+    #     request = AuthorizationRequest(
+    #         client_id="client_1",
+    #         response_type=["code"],
+    #         redirect_uri="https://example.com/cb",
+    #         state="state",
+    #         scope="openid",
+    #     )
+    #     self.session_manager.set(["user_id", "client_id", "grant.id"], grant)
+    #
+    #     code = self.endpoint.mint_token("authorization_code", grant, sid)
+    #     if exp_in in [360, "360"]:
+    #         assert code.expires_at
+    #     else:
+    #         assert code.expires_at == 0
 
     def test_do_request_uri(self):
         request = AuthorizationRequest(
@@ -984,7 +1035,8 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.server_get("endpoint_context")
         # userinfo
         _userinfo = init_user_info(
-            {"class": "oidcop.user_info.UserInfo", "kwargs": {"db_file": full_path("users.json")},},
+            {"class": "oidcop.user_info.UserInfo",
+             "kwargs": {"db_file": full_path("users.json")}, },
             "",
         )
         # login_hint
@@ -995,6 +1047,7 @@ class TestEndpoint(object):
 
         # With login_hint and login_hint_lookup
         assert self.endpoint.do_request_user(request) == {"req_user": "diana"}
+
 
 class TestACR(object):
     @pytest.fixture(autouse=True)
@@ -1226,7 +1279,6 @@ class TestUserAuthn(object):
     def create_endpoint_context(self):
         conf = {
             "issuer": "https://example.com/",
-            "httpc_params": {"verify": False, "timeout": 1},
             "token_expires_in": 600,
             "grant_expires_in": 300,
             "refresh_token_expires_in": 86400,
@@ -1257,7 +1309,7 @@ class TestUserAuthn(object):
                         "passwd_label": "Secret sauce",
                     },
                 },
-                "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"},},
+                "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"}, },
             },
             "cookie_handler": {
                 "class": "oidcop.cookie_handler.CookieHandler",
@@ -1290,5 +1342,9 @@ class TestUserAuthn(object):
             client_id=authn_req["client_id"],
         )
 
-        _info, _time_stamp = method.authenticated_as(client_id="client 12345", cookie=[_cookie])
+        # Parsed once before setup_auth
+        kakor = self.endpoint_context.cookie_handler.parse_cookie(
+            cookies=[_cookie], name=self.endpoint_context.cookie_handler.name["session"])
+
+        _info, _time_stamp = method.authenticated_as(client_id="client 12345", cookie=kakor)
         assert _info["sub"] == "diana"

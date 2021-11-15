@@ -372,7 +372,18 @@ class SessionManager(Database):
             raise ValueError("Invalid session ID")
 
         _info = self.get([_user_id, _client_id])
+        logger.debug(f"revoke_client_session: {_user_id}:{_client_id}")
         self.set([_user_id, _client_id], _info.revoke())
+
+        # revoked all grants
+        for gid in _info.subordinate:
+            _grant = self.get([_user_id, _client_id, gid])
+            _grant.revoke()
+
+    def client_session_is_revoked(self, session_id: str):
+        _user_id, _client_id, _ = self.decrypt_session_id(session_id)
+        _client_inst = self.get([_user_id, _client_id])
+        return _client_inst.revoked
 
     def revoke_grant(self, session_id: str):
         """

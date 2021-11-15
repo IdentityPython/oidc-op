@@ -37,6 +37,7 @@ from oidcop.exception import ToOld
 from oidcop.exception import UnAuthorizedClientScope
 from oidcop.exception import UnknownClient
 from oidcop.session import Revoked
+from oidcop.session.grant import Grant
 from oidcop.token.exception import UnknownToken
 from oidcop.user_authn.authn_context import pick_auth
 from oidcop.util import split_uri
@@ -116,20 +117,25 @@ def verify_uri(
         raise URIError("Contains fragment")
 
     (_base, _query) = split_uri(_redirect_uri)
-    # if _query:
-    #     _query = parse_qs(_query)
 
     # Get the clients registered redirect uris
     client_info = endpoint_context.cdb.get(_cid)
     if client_info is None:
         raise KeyError("No such client")
 
-    redirect_uris = client_info.get("{}s".format(uri_type))
+    redirect_uris = client_info.get(f"{uri_type}s")
+
     if redirect_uris is None:
-        raise ValueError(f"No registered {uri_type} for {_cid}")
+        raise RedirectURIError(f"No registered {uri_type} for {_cid}")
     else:
         match = False
-        for regbase, rquery in redirect_uris:
+        for _item in redirect_uris:
+            if isinstance(_item, str):
+                regbase = _item
+                rquery = {}
+            else:
+                regbase, rquery = _item
+
             # The URI MUST exactly match one of the Redirection URI
             if _base == regbase:
                 # every registered query component must exist in the uri
@@ -494,6 +500,17 @@ class Authorization(Endpoint):
         logger.debug("Login required error: {}".format(_res))
         return _res
 
+    def _unwrap_identity(self, identity):
+        if isinstance(identity, dict):
+            try:
+                _id = b64d(as_bytes(identity["uid"]))
+            except BadSyntax:
+                return identity
+        else:
+            _id = b64d(as_bytes(identity))
+
+        return json.loads(as_unicode(_id))
+
     def setup_auth(
             self,
             request: Optional[Union[Message, dict]],
@@ -502,7 +519,7 @@ class Authorization(Endpoint):
             cookie: List[dict] = None,
             acr: str = None,
             **kwargs,
-    ):
+    ) -> dict:
         """
 
         :param request: The authorization/authentication request
@@ -544,18 +561,16 @@ class Authorization(Endpoint):
             _ts = 0
         else:
             if identity:
-                try:  # If identity['uid'] is in fact a base64 encoded JSON string
-                    _id = b64d(as_bytes(identity["uid"]))
-                except BadSyntax:
-                    pass
-                else:
-                    identity = json.loads(as_unicode(_id))
-
+                identity = self._unwrap_identity(identity)
+                _sid = identity.get("sid")
+                if _sid:
                     try:
-                        _csi = _context.session_manager[identity.get("sid")]
+                        _csi = _context.session_manager[_sid]
                     except Revoked:
+                        logger.debug("Authentication session revoked!!")
                         identity = None
                     else:
+                        logger.debug(f"Session info type: {_csi.__class__.__name__}")
                         if _csi.is_active() is False:
                             identity = None
 
@@ -574,7 +589,7 @@ class Authorization(Endpoint):
             else:
                 return {"function": authn, "args": authn_args}
         else:
-            logger.info("Active authentication")
+            logger.info(f"Active authentication: {identity}")
             if re_authenticate(request, authn):
                 # demand re-authentication
                 return {"function": authn, "args": authn_args}
@@ -628,7 +643,7 @@ class Authorization(Endpoint):
     def response_mode(
             self,
             request: Union[dict, AuthorizationRequest],
-            response_args: Optional[AuthorizationResponse] = None,
+            response_args: Optional[Union[dict, AuthorizationResponse]] = None,
             return_uri: Optional[str] = "",
             fragment_enc: Optional[bool] = None,
             **kwargs,
@@ -639,7 +654,15 @@ class Authorization(Endpoint):
                 _args = response_args.to_dict()
             else:
                 _args = response_args
-            msg = FORM_POST.format(inputs=inputs(_args), action=return_uri, )
+
+            if "error" in _args:
+                if not return_uri:
+                    return_uri = _args["return_uri"]
+                    del _args["return_uri"]
+                if "return_type" in _args:
+                    del _args["return_type"]
+
+            msg = FORM_POST.format(inputs=inputs(_args), action=return_uri)
             kwargs.update(
                 {"response_msg": msg, "content_type": "text/html", "response_placement": "body", }
             )
@@ -666,6 +689,13 @@ class Authorization(Endpoint):
                                                   error=error,
                                                   error_description=str(error_description))
         response_info["response_args"] = resp
+        return response_info
+
+    def error_by_response_mode(self, response_info, request, error, error_description):
+        response_info = self.error_response(response_info, request, error, error_description)
+        if 'return_uri' not in response_info:
+            response_info["return_uri"] = request["redirect_uri"]
+        response_info = self.response_mode(request, **response_info)
         return response_info
 
     def create_authn_response(self, request: Union[dict, Message], sid: str) -> dict:
@@ -730,11 +760,15 @@ class Authorization(Endpoint):
                 elif {"id_token", "token"}.issubset(rtype):
                     kwargs = {"access_token": _access_token.value}
 
+                if request["response_type"] == ["id_token"]:
+                    kwargs["as_if"] = "userinfo"
+
                 try:
                     id_token = self.mint_token(
                         token_class="id_token",
                         grant=grant,
                         session_id=_sinfo["session_id"],
+                        scope=request["scope"],
                         **kwargs,
                     )
                     # id_token = _context.idtoken.make(sid, **kwargs)
@@ -837,20 +871,22 @@ class Authorization(Endpoint):
         try:
             resp_info = self.post_authentication(request, session_id, **kwargs)
         except Exception as err:
-            return self.error_response({}, request, "server_error", err)
+            return self.error_by_response_mode({}, request, "server_error", err)
 
         _context = self.server_get("endpoint_context")
+
+        logger.debug(f"resp_info: {resp_info}")
 
         if "check_session_iframe" in _context.provider_info:
             salt = rndstr()
             try:
                 authn_event = _context.session_manager.get_authentication_event(session_id)
             except KeyError:
-                return self.error_response({}, request, "server_error", "No such session")
+                return self.error_by_response_mode({}, request, "server_error", "No such session")
             else:
                 if authn_event.is_valid() is False:
-                    return self.error_response({}, request, "server_error",
-                                               "Authentication has timed out")
+                    return self.error_by_response_mode({}, request, "server_error",
+                                                       "Authentication has timed out")
 
             _state = b64e(as_bytes(json.dumps({"authn_time": authn_event["authn_time"]})))
 
@@ -860,16 +896,21 @@ class Authorization(Endpoint):
 
             opbs_value = _session_cookie_content["value"]
 
+            if "return_uri" in resp_info:
+                re_uri = resp_info["return_uri"]
+            else:
+                re_uri = request["redirect_uri"]
+
             logger.debug(
                 "compute_session_state: client_id=%s, origin=%s, opbs=%s, salt=%s",
                 request["client_id"],
-                resp_info["return_uri"],
+                re_uri,
                 opbs_value,
                 salt,
             )
 
             _session_state = compute_session_state(
-                opbs_value, salt, request["client_id"], resp_info["return_uri"]
+                opbs_value, salt, request["client_id"], re_uri
             )
 
             if _session_cookie_content:
@@ -878,7 +919,8 @@ class Authorization(Endpoint):
                 else:
                     resp_info["cookie"] = [_session_cookie_content]
 
-            resp_info["response_args"]["session_state"] = _session_state
+            if "response_args" in resp_info:
+                resp_info["response_args"]["session_state"] = _session_state
 
         # Mix-Up mitigation
         if "response_args" in resp_info:
@@ -930,7 +972,10 @@ class Authorization(Endpoint):
         info = self.setup_auth(request, request["redirect_uri"], cinfo, _my_cookies, **kwargs)
 
         if "error" in info:
-            return info
+            if "response_mode" in request:
+                return self.response_mode(request, info)
+            else:
+                return info
 
         _function = info.get("function")
         if not _function:
