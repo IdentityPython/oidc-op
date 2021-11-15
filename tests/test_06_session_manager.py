@@ -240,18 +240,6 @@ class TestSessionManager:
             based_on=based_on,
         )
 
-    def test_grant(self):
-        sid = self._create_session(AUTH_REQ)
-        grant = self.session_manager.get_grant(sid)
-        assert grant.issued_token == []
-        assert grant.is_active() is True
-
-        code = self._mint_token("authorization_code", grant, sid)
-        assert isinstance(code, AuthorizationCode)
-        assert code.is_active()
-        assert len(grant.issued_token) == 1
-        assert code.max_usage_reached() is False
-
     def test_code_usage(self):
         session_id = self._create_session(AUTH_REQ)
         session_info = self.endpoint_context.session_manager.get_session_info(
