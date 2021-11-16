@@ -129,8 +129,7 @@
           "HS512",
           "PS256",
           "PS384",
-          "PS512",
-          "none"
+          "PS512"
         ]
       },
       "cookie_handler": {
