@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 from typing import Callable
 from typing import Optional
 from typing import Union
@@ -127,12 +128,11 @@ class UserInfo(Endpoint):
         allowed = True
         _auth_event = _grant.authentication_event
         # if the authenticate is still active or offline_access is granted.
-        if _auth_event["valid_until"] > utc_time_sans_frac():
-            pass
-        else:
+        if not _auth_event["valid_until"] >= utc_time_sans_frac():
             logger.debug(
                 "authentication not valid: {} > {}".format(
-                    _auth_event["valid_until"], utc_time_sans_frac()
+                    datetime.fromtimestamp(_auth_event["valid_until"]),
+                    datetime.fromtimestamp(utc_time_sans_frac())
                 )
             )
             allowed = False
