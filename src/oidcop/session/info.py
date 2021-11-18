@@ -43,7 +43,9 @@ class SessionInfo(ImpExp):
 class UserSessionInfo(SessionInfo):
     parameter = SessionInfo.parameter.copy()
     parameter.update(
-        {"user_id": "",}
+        {
+            "user_id": "",
+        }
     )
 
     def __init__(self, **kwargs):

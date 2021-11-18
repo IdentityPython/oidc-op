@@ -19,7 +19,7 @@ ALT_TOKEN_NAME = {
     "authorization_code": "A",
     "access_token": "T",
     "refresh_token": "R",
-    "id_token": "I"
+    "id_token": "I",
 }
 
 
@@ -81,8 +81,9 @@ class DefaultToken(Token):
         self.crypt = Crypt(password)
         self.token_type = token_type
 
-    def __call__(self, session_id: Optional[str] = "", token_class: Optional[str] = "",
-                 **payload) -> str:
+    def __call__(
+        self, session_id: Optional[str] = "", token_class: Optional[str] = "", **payload
+    ) -> str:
         """
         Return a token.
 

@@ -1,6 +1,5 @@
 import logging
 from typing import Callable
-from typing import List
 from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
@@ -194,7 +193,7 @@ class Endpoint(object):
             _error = "invalid_request"
             if isinstance(err, ValueError) and self.request_cls == RegistrationRequest:
                 if len(err.args) > 1:
-                    if err.args[1] == 'initiate_login_uri':
+                    if err.args[1] == "initiate_login_uri":
                         _error = "invalid_client_metadata"
 
             return self.error_cls(error=_error, error_description="%s" % err)
@@ -202,8 +201,9 @@ class Endpoint(object):
         LOGGER.info("Parsed and verified request: %s" % sanitize(req))
 
         # Do any endpoint specific parsing
-        return self.do_post_parse_request(request=req, client_id=_client_id, http_info=http_info,
-                                          **kwargs)
+        return self.do_post_parse_request(
+            request=req, client_id=_client_id, http_info=http_info, **kwargs
+        )
 
     def get_client_id_from_token(
         self,

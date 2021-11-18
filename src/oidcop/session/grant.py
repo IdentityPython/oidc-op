@@ -32,11 +32,11 @@ class GrantMessage(ImpExp):
     }
 
     def __init__(
-            self,
-            scope: Optional[str] = "",
-            authorization_details: Optional[dict] = None,
-            claims: Optional[list] = None,
-            resources: Optional[list] = None,
+        self,
+        scope: Optional[str] = "",
+        authorization_details: Optional[dict] = None,
+        claims: Optional[list] = None,
+        resources: Optional[list] = None,
     ):
         ImpExp.__init__(self)
         self.scope = scope
@@ -61,7 +61,7 @@ TOKEN_MAP = {
 
 
 def qualified_name(cls):
-    """ Does both classes and class instances
+    """Does both classes and class instances
 
     :param cls: The item, class or class instance
     :return: fully qualified class name
@@ -122,22 +122,22 @@ class Grant(Item):
     }
 
     def __init__(
-            self,
-            scope: Optional[list] = None,
-            claims: Optional[dict] = None,
-            resources: Optional[list] = None,
-            authorization_details: Optional[dict] = None,
-            authorization_request: Optional[Message] = None,
-            authentication_event: Optional[AuthnEvent] = None,
-            issued_token: Optional[list] = None,
-            usage_rules: Optional[dict] = None,
-            issued_at: int = 0,
-            expires_in: int = 0,
-            expires_at: int = 0,
-            revoked: bool = False,
-            token_map: Optional[dict] = None,
-            sub: Optional[str] = "",
-            extra: Optional[Dict[str, str]] = None
+        self,
+        scope: Optional[list] = None,
+        claims: Optional[dict] = None,
+        resources: Optional[list] = None,
+        authorization_details: Optional[dict] = None,
+        authorization_request: Optional[Message] = None,
+        authentication_event: Optional[AuthnEvent] = None,
+        issued_token: Optional[list] = None,
+        usage_rules: Optional[dict] = None,
+        issued_at: int = 0,
+        expires_in: int = 0,
+        expires_at: int = 0,
+        revoked: bool = False,
+        token_map: Optional[dict] = None,
+        sub: Optional[str] = "",
+        extra: Optional[Dict[str, str]] = None,
     ):
         Item.__init__(
             self,
@@ -193,13 +193,13 @@ class Grant(Item):
         return False
 
     def payload_arguments(
-            self,
-            session_id: str,
-            endpoint_context,
-            claims_release_point: str,
-            scope: Optional[dict] = None,
-            extra_payload: Optional[dict] = None,
-            secondary_identifier: str = ''
+        self,
+        session_id: str,
+        endpoint_context,
+        claims_release_point: str,
+        scope: Optional[dict] = None,
+        extra_payload: Optional[dict] = None,
+        secondary_identifier: str = "",
     ) -> dict:
         """
 
@@ -230,8 +230,10 @@ class Grant(Item):
                 payload.update({"client_id": client_id, "sub": client_id})
 
         _claims_restriction = endpoint_context.claims_interface.get_claims(
-            session_id, scopes=scope, claims_release_point=claims_release_point,
-            secondary_identifier=secondary_identifier
+            session_id,
+            scopes=scope,
+            claims_release_point=claims_release_point,
+            secondary_identifier=secondary_identifier,
         )
         user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
         user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
@@ -246,16 +248,16 @@ class Grant(Item):
         return payload
 
     def mint_token(
-            self,
-            session_id: str,
-            endpoint_context: object,
-            token_class: str,
-            token_handler: TokenHandler = None,
-            based_on: Optional[SessionToken] = None,
-            usage_rules: Optional[dict] = None,
-            scope: Optional[list] = None,
-            token_type: Optional[str] = "",
-            **kwargs,
+        self,
+        session_id: str,
+        endpoint_context: object,
+        token_class: str,
+        token_handler: TokenHandler = None,
+        based_on: Optional[SessionToken] = None,
+        usage_rules: Optional[dict] = None,
+        scope: Optional[list] = None,
+        token_type: Optional[str] = "",
+        **kwargs,
     ) -> Optional[SessionToken]:
         """
 
@@ -286,8 +288,9 @@ class Grant(Item):
 
         _class = self.token_map.get(token_class)
         if token_class == "id_token":
-            class_args = {k: v for k, v in kwargs.items() if
-                          k not in ["code", "access_token", "as_if"]}
+            class_args = {
+                k: v for k, v in kwargs.items() if k not in ["code", "access_token", "as_if"]
+            }
             handler_args = {k: v for k, v in kwargs.items() if k in ["code", "access_token"]}
         else:
             class_args = kwargs
@@ -321,7 +324,8 @@ class Grant(Item):
             _secondary_identifier = kwargs.get("as_if")
             logger.debug(
                 f"claims_release_point: {claims_release_point}, secondary_identifier: "
-                f"{_secondary_identifier}")
+                f"{_secondary_identifier}"
+            )
 
             if token_class == "id_token":
                 item.session_id = session_id
@@ -332,7 +336,7 @@ class Grant(Item):
                 claims_release_point=claims_release_point,
                 scope=scope,
                 extra_payload=handler_args,
-                secondary_identifier=_secondary_identifier
+                secondary_identifier=_secondary_identifier,
             )
 
             logger.debug(f"token_payload: {token_payload}")
@@ -355,10 +359,7 @@ class Grant(Item):
         return None
 
     def revoke_token(
-            self,
-            value: Optional[str] = "",
-            based_on: Optional[str] = "",
-            recursive: bool = True
+        self, value: Optional[str] = "", based_on: Optional[str] = "", recursive: bool = True
     ):
         for t in self.issued_token:
             if not value and not based_on:
@@ -441,19 +442,19 @@ class ExchangeGrant(Grant):
     type = "exchange_grant"
 
     def __init__(
-            self,
-            scope: Optional[list] = None,
-            claims: Optional[dict] = None,
-            resources: Optional[list] = None,
-            authorization_details: Optional[dict] = None,
-            issued_token: Optional[list] = None,
-            usage_rules: Optional[dict] = None,
-            issued_at: int = 0,
-            expires_in: int = 0,
-            expires_at: int = 0,
-            revoked: bool = False,
-            token_map: Optional[dict] = None,
-            users: list = None,
+        self,
+        scope: Optional[list] = None,
+        claims: Optional[dict] = None,
+        resources: Optional[list] = None,
+        authorization_details: Optional[dict] = None,
+        issued_token: Optional[list] = None,
+        usage_rules: Optional[dict] = None,
+        issued_at: int = 0,
+        expires_in: int = 0,
+        expires_at: int = 0,
+        revoked: bool = False,
+        token_map: Optional[dict] = None,
+        users: list = None,
     ):
         Grant.__init__(
             self,

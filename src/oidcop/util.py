@@ -136,7 +136,7 @@ def lv_unpack(txt):
     while txt:
         l, v = txt.split(":", 1)
         res.append(v[: int(l)])
-        txt = v[int(l) :]
+        txt = v[int(l):]
     return res
 
 

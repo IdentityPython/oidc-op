@@ -3,7 +3,6 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt.jwe.exception import JWEException
-from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AccessTokenResponse
 from oidcmsg.oauth2 import ResponseMessage
@@ -54,7 +53,7 @@ class TokenEndpointHelper(object):
         based_on: Optional[SessionToken] = None,
         scope: Optional[list] = None,
         token_args: Optional[dict] = None,
-        token_type: Optional[str] = ""
+        token_type: Optional[str] = "",
     ) -> SessionToken:
         _context = self.endpoint.server_get("endpoint_context")
         _mngr = _context.session_manager
@@ -296,7 +295,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token.register_usage()
 
-        if ("client_id" in req
+        if (
+            "client_id" in req
             and req["client_id"] in _context.cdb
             and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
         ):
@@ -477,7 +477,9 @@ class Token(Endpoint):
             name=_context.cookie_handler.name["session"],
             sub=_session_info["grant"].sub,
             sid=_context.session_manager.session_key(
-                _session_info["user_id"], _session_info["user_id"], _session_info["grant"].id,
+                _session_info["user_id"],
+                _session_info["user_id"],
+                _session_info["grant"].id,
             ),
         )
 

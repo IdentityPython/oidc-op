@@ -43,12 +43,11 @@ def post_authn_parse(request, client_id, endpoint_context, **kwargs):
     if "pkce_essential" in client:
         essential = client["pkce_essential"]
     else:
-        essential = endpoint_context.args["pkce"].get(
-            "essential", False
-        )
+        essential = endpoint_context.args["pkce"].get("essential", False)
     if essential and "code_challenge" not in request:
         return AuthorizationErrorResponse(
-            error="invalid_request", error_description="Missing required code_challenge",
+            error="invalid_request",
+            error_description="Missing required code_challenge",
         )
 
     if "code_challenge_method" not in request:
@@ -93,7 +92,8 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
     :return:
     """
     if isinstance(
-        request, (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest),
+        request,
+        (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest),
     ):
         return request
 
@@ -109,13 +109,16 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
     if "code_challenge" in _authn_req:
         if "code_verifier" not in request:
             return TokenErrorResponse(
-                error="invalid_grant", error_description="Missing code_verifier",
+                error="invalid_grant",
+                error_description="Missing code_verifier",
             )
 
         _method = _authn_req["code_challenge_method"]
 
         if not verify_code_challenge(
-            request["code_verifier"], _authn_req["code_challenge"], _method,
+            request["code_verifier"],
+            _authn_req["code_challenge"],
+            _method,
         ):
             return TokenErrorResponse(error="invalid_grant", error_description="PKCE check failed")
 

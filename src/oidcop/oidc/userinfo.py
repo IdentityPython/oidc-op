@@ -11,7 +11,6 @@ from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg import oidc
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
-from oidcop.session.claims import claims_match
 
 from oidcop.endpoint import Endpoint
 from oidcop.token.exception import UnknownToken
@@ -38,7 +37,10 @@ class UserInfo(Endpoint):
 
     def __init__(self, server_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs):
         Endpoint.__init__(
-            self, server_get, add_claims_by_scope=add_claims_by_scope, **kwargs,
+            self,
+            server_get,
+            add_claims_by_scope=add_claims_by_scope,
+            **kwargs,
         )
         # Add the issuer ID as an allowed JWT target
         self.allowed_targets.append("")
@@ -109,9 +111,7 @@ class UserInfo(Endpoint):
     def process_request(self, request=None, **kwargs):
         _mngr = self.server_get("endpoint_context").session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(
-                request["access_token"], grant=True
-            )
+            _session_info = _mngr.get_session_info_by_token(request["access_token"], grant=True)
         except (KeyError, ValueError):
             return self.error_cls(error="invalid_token", error_description="Invalid Token")
 
@@ -132,7 +132,7 @@ class UserInfo(Endpoint):
             logger.debug(
                 "authentication not valid: {} > {}".format(
                     datetime.fromtimestamp(_auth_event["valid_until"]),
-                    datetime.fromtimestamp(utc_time_sans_frac())
+                    datetime.fromtimestamp(utc_time_sans_frac()),
                 )
             )
             allowed = False

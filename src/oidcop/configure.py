@@ -24,7 +24,7 @@ DEFAULT_FILE_ATTRIBUTE_NAMES = [
     "private_path",
     "public_path",
     "db_file",
-    "jwks_file"
+    "jwks_file",
 ]
 
 OP_DEFAULT_CONFIG = {
@@ -48,8 +48,11 @@ OP_DEFAULT_CONFIG = {
                 ],
                 "read_only": False,
             },
-            "name": {"session": "oidc_op", "register": "oidc_op_rp",
-                     "session_management": "sman", },
+            "name": {
+                "session": "oidc_op",
+                "register": "oidc_op_rp",
+                "session_management": "sman",
+            },
         },
     },
     "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
@@ -59,13 +62,17 @@ OP_DEFAULT_CONFIG = {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                        "supports_minting": [
+                            "access_token",
+                            "refresh_token",
+                            "id_token",
+                        ],
                         "max_usage": 1,
                     },
                     "access_token": {},
                     "refresh_token": {
                         "supports_minting": ["access_token", "refresh_token"],
-                        "expires_in": -1
+                        "expires_in": -1,
                     },
                 },
                 "expires_in": 43200,
@@ -78,8 +85,14 @@ OP_DEFAULT_CONFIG = {
     "token_handler_args": {
         "jwks_file": "private/token_jwks.json",
         "code": {"kwargs": {"lifetime": 600}},
-        "token": {"class": "oidcop.token.jwt_token.JWTToken", "kwargs": {"lifetime": 3600}, },
-        "refresh": {"class": "oidcop.token.jwt_token.JWTToken", "kwargs": {"lifetime": 86400}, },
+        "token": {
+            "class": "oidcop.token.jwt_token.JWTToken",
+            "kwargs": {"lifetime": 3600},
+        },
+        "refresh": {
+            "class": "oidcop.token.jwt_token.JWTToken",
+            "kwargs": {"lifetime": 86400},
+        },
         "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
     },
     "scopes_to_claims": SCOPE2CLAIMS,
@@ -87,7 +100,8 @@ OP_DEFAULT_CONFIG = {
 
 AS_DEFAULT_CONFIG = copy.deepcopy(OP_DEFAULT_CONFIG)
 AS_DEFAULT_CONFIG["claims_interface"] = {
-    "class": "oidcop.session.claims.OAuth2ClaimsInterface", "kwargs": {}
+    "class": "oidcop.session.claims.OAuth2ClaimsInterface",
+    "kwargs": {},
 }
 
 
@@ -128,13 +142,13 @@ def set_domain_and_port(conf: dict, uris: List[str], domain: str, port: int):
 
 
 def create_from_config_file(
-        cls,
-        filename: str,
-        base_path: str = "",
-        entity_conf: Optional[List[dict]] = None,
-        file_attributes: Optional[List[str]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
+    cls,
+    filename: str,
+    base_path: str = "",
+    entity_conf: Optional[List[dict]] = None,
+    file_attributes: Optional[List[str]] = None,
+    domain: Optional[str] = "",
+    port: Optional[int] = 0,
 ):
     if filename.endswith(".yaml"):
         """Load configuration as YAML"""
@@ -166,7 +180,10 @@ class Base(dict):
     parameter = {}
 
     def __init__(
-            self, conf: Dict, base_path: str = "", file_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: str = "",
+        file_attributes: Optional[List[str]] = None,
     ):
         dict.__init__(self)
 
@@ -182,12 +199,12 @@ class Base(dict):
 
     def __setattr__(self, key, value):
         if key in self:
-            raise KeyError('{} has already been set'.format(key))
+            raise KeyError("{} has already been set".format(key))
         super(Base, self).__setitem__(key, value)
 
     def __setitem__(self, key, value):
         if key in self:
-            raise KeyError('{} has already been set'.format(key))
+            raise KeyError("{} has already been set".format(key))
         super(Base, self).__setitem__(key, value)
 
 
@@ -214,13 +231,13 @@ class EntityConfiguration(Base):
     }
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
     ):
 
         conf = copy.deepcopy(conf)
@@ -240,19 +257,20 @@ class EntityConfiguration(Base):
             if not _val:
                 if key in self.default_config:
                     _val = copy.deepcopy(self.default_config[key])
-                    self.format(_val, base_path=base_path, file_attributes=file_attributes,
-                                domain=domain, port=port)
+                    self.format(
+                        _val,
+                        base_path=base_path,
+                        file_attributes=file_attributes,
+                        domain=domain,
+                        port=port,
+                    )
                 else:
                     continue
 
             if key not in DEFAULT_EXTENDED_CONF:
-                logger.warning(
-                    f"{key} not seems to be a valid configuration parameter"
-                )
+                logger.warning(f"{key} not seems to be a valid configuration parameter")
             elif not _val:
-                logger.warning(
-                        f"{key} not configured, using default configuration values"
-                    )
+                logger.warning(f"{key} not configured, using default configuration values")
 
             if key == "template_dir":
                 _val = os.path.abspath(_val)
@@ -314,38 +332,45 @@ class OPConfiguration(EntityConfiguration):
             port=port,
             file_attributes=file_attributes,
         )
-        scopes_to_claims = self.scopes_to_claims
+        self.scopes_to_claims
 
 
 class ASConfiguration(EntityConfiguration):
     "Authorization server configuration"
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
     ):
-        EntityConfiguration.__init__(self, conf=conf, base_path=base_path,
-                                     entity_conf=entity_conf, domain=domain, port=port,
-                                     file_attributes=file_attributes)
+        EntityConfiguration.__init__(
+            self,
+            conf=conf,
+            base_path=base_path,
+            entity_conf=entity_conf,
+            domain=domain,
+            port=port,
+            file_attributes=file_attributes,
+        )
 
 
 class Configuration(Base):
     """Server Configuration"""
+
     uris = ["issuer", "base_url"]
 
     def __init__(
-            self,
-            conf: Dict,
-            entity_conf: Optional[List[dict]] = None,
-            base_path: str = "",
-            file_attributes: Optional[List[str]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
+        self,
+        conf: Dict,
+        entity_conf: Optional[List[dict]] = None,
+        base_path: str = "",
+        file_attributes: Optional[List[str]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
     ):
         Base.__init__(self, conf, base_path, file_attributes)
 
@@ -415,13 +440,17 @@ DEFAULT_EXTENDED_CONF = {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                        "supports_minting": [
+                            "access_token",
+                            "refresh_token",
+                            "id_token",
+                        ],
                         "max_usage": 1,
                     },
                     "access_token": {},
                     "refresh_token": {
                         "supports_minting": ["access_token", "refresh_token"],
-                        "expires_in": -1
+                        "expires_in": -1,
                     },
                 },
                 "expires_in": 43200,
@@ -435,7 +464,10 @@ DEFAULT_EXTENDED_CONF = {
             "kwargs": {
                 "verify_endpoint": "verify/user",
                 "template": "user_pass.jinja2",
-                "db": {"class": "oidcop.util.JSONDictDB", "kwargs": {"filename": "passwd.json"}, },
+                "db": {
+                    "class": "oidcop.util.JSONDictDB",
+                    "kwargs": {"filename": "passwd.json"},
+                },
                 "page_header": "Testing log in",
                 "submit_btn": "Get me in!",
                 "user_label": "Nickname",
@@ -463,8 +495,11 @@ DEFAULT_EXTENDED_CONF = {
                 ],
                 "read_only": False,
             },
-            "name": {"session": "oidc_op", "register": "oidc_op_rp",
-                     "session_management": "sman", },
+            "name": {
+                "session": "oidc_op",
+                "register": "oidc_op_rp",
+                "session_management": "sman",
+            },
         },
     },
     "endpoint": {
@@ -481,7 +516,10 @@ DEFAULT_EXTENDED_CONF = {
         "registration": {
             "path": "registration",
             "class": "oidcop.oidc.registration.Registration",
-            "kwargs": {"client_authn_method": None, "client_secret_expiration_time": 432000, },
+            "kwargs": {
+                "client_authn_method": None,
+                "client_secret_expiration_time": 432000,
+            },
         },
         "registration_api": {
             "path": "registration_api",
@@ -491,7 +529,10 @@ DEFAULT_EXTENDED_CONF = {
         "introspection": {
             "path": "introspection",
             "class": "oidcop.oauth2.introspection.Introspection",
-            "kwargs": {"client_authn_method": ["client_secret_post"], "release": ["username"], },
+            "kwargs": {
+                "client_authn_method": ["client_secret_post"],
+                "release": ["username"],
+            },
         },
         "authorization": {
             "path": "authorization",
@@ -562,7 +603,8 @@ DEFAULT_EXTENDED_CONF = {
         "class": "oidcop.login_hint.LoginHint2Acrs",
         "kwargs": {
             "scheme_map": {
-                "email": ["urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"]}
+                "email": ["urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"]
+            }
         },
     },
     "template_dir": "templates",
@@ -583,7 +625,10 @@ DEFAULT_EXTENDED_CONF = {
         },
         "refresh": {
             "class": "oidcop.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+            "kwargs": {
+                "lifetime": 3600,
+                "aud": ["https://example.org/appl"],
+            },
         },
         "id_token": {
             "class": "oidcop.token.id_token.IDToken",
@@ -595,24 +640,20 @@ DEFAULT_EXTENDED_CONF = {
             },
         },
     },
-    "userinfo": {"class": "oidcop.user_info.UserInfo", "kwargs": {"db_file": "users.json"}, },
+    "userinfo": {
+        "class": "oidcop.user_info.UserInfo",
+        "kwargs": {"db_file": "users.json"},
+    },
     "scopes_to_claims": SCOPE2CLAIMS,
     "session_params": {
-      "password": "ses_key",
-      "salt": "ses_salt",
-      "sub_func": {
-        "public": {
-          "class": "oidcop.session.manager.PublicID",
-          "kwargs": {
-            "salt": "mysalt"
-          }
+        "password": "ses_key",
+        "salt": "ses_salt",
+        "sub_func": {
+            "public": {"class": "oidcop.session.manager.PublicID", "kwargs": {"salt": "mysalt"}},
+            "pairwise": {
+                "class": "oidcop.session.manager.PairWiseID",
+                "kwargs": {"salt": "mysalt"},
+            },
         },
-        "pairwise": {
-          "class": "oidcop.session.manager.PairWiseID",
-          "kwargs": {
-            "salt": "mysalt"
-          }
-        }
-     }
     },
 }

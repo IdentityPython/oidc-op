@@ -3,7 +3,6 @@ import hmac
 import json
 import logging
 import secrets
-import time
 from typing import List
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -97,9 +96,7 @@ def comb_uri(args):
         val = []
         for base, query_dict in redirect_uris:
             if query_dict:
-                query_string = urlencode(
-                    [(key, v) for key in query_dict for v in query_dict[key]]
-                )
+                query_string = urlencode([(key, v) for key in query_dict for v in query_dict[key]])
                 val.append(f"{base}?{query_string}")
             else:
                 val.append(base)
@@ -110,9 +107,7 @@ def comb_uri(args):
     if post_logout_redirect_uri:
         base, query_dict = post_logout_redirect_uri
         if query_dict:
-            query_string = urlencode(
-                [(key, v) for key in query_dict for v in query_dict[key]]
-            )
+            query_string = urlencode([(key, v) for key in query_dict for v in query_dict[key]])
             val = f"{base}?{query_string}"
         else:
             val = base
@@ -221,9 +216,10 @@ class Registration(Endpoint):
 
         if "sector_identifier_uri" in request:
             try:
-                (_cinfo["si_redirects"], _cinfo["sector_id"],) = self._verify_sector_identifier(
-                    request
-                )
+                (
+                    _cinfo["si_redirects"],
+                    _cinfo["sector_id"],
+                ) = self._verify_sector_identifier(request)
             except InvalidSectorIdentifier as err:
                 return ResponseMessage(
                     error="invalid_configuration_parameter", error_description=str(err)
@@ -296,7 +292,9 @@ class Registration(Endpoint):
                     pass
                 else:
                     logger.error(
-                        "InvalidRedirectURI: scheme:%s, hostname:%s", p.scheme, p.hostname,
+                        "InvalidRedirectURI: scheme:%s, hostname:%s",
+                        p.scheme,
+                        p.hostname,
                     )
                     raise InvalidRedirectURIError(
                         "Redirect_uri must use custom " "scheme or http and localhost"
@@ -391,7 +389,7 @@ class Registration(Endpoint):
             logger.error("request.verify() error on %s", request)
             _error = "invalid_configuration_request"
             if len(err.args) > 1:
-                if err.args[1] == 'initiate_login_uri':
+                if err.args[1] == "initiate_login_uri":
                     _error = "invalid_client_metadata"
 
             return ResponseMessage(error=_error, error_description="%s" % err)
@@ -401,7 +399,8 @@ class Registration(Endpoint):
             self.match_client_request(request)
         except CapabilitiesMisMatch as err:
             return ResponseMessage(
-                error="invalid_request", error_description="Don't support proposed %s" % err,
+                error="invalid_request",
+                error_description="Don't support proposed %s" % err,
             )
 
         _context = self.server_get("endpoint_context")
@@ -436,7 +435,9 @@ class Registration(Endpoint):
 
         _context.cdb[client_id] = _cinfo
         _cinfo = self.do_client_registration(
-            request, client_id, ignore=["redirect_uris", "policy_uri", "logo_uri", "tos_uri"],
+            request,
+            client_id,
+            ignore=["redirect_uris", "policy_uri", "logo_uri", "tos_uri"],
         )
         if isinstance(_cinfo, ResponseMessage):
             return _cinfo
@@ -477,7 +478,8 @@ class Registration(Endpoint):
         else:
             _context = self.server_get("endpoint_context")
             _cookie = _context.new_cookie(
-                name=_context.cookie_handler.name["register"], client_id=reg_resp["client_id"],
+                name=_context.cookie_handler.name["register"],
+                client_id=reg_resp["client_id"],
             )
 
             return {"response_args": reg_resp, "cookie": _cookie, "response_code": 201}
@@ -486,7 +488,7 @@ class Registration(Endpoint):
         _error = "invalid_request"
         if isinstance(exception, ValueError):
             if len(exception.args) > 1:
-                if exception.args[1] == 'initiate_login_uri':
+                if exception.args[1] == "initiate_login_uri":
                     _error = "invalid_client_metadata"
 
         return self.error_cls(error=_error, error_description=f"{exception}")

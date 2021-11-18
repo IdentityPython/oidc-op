@@ -13,7 +13,6 @@ from oidcop.session.claims import claims_match
 from oidcop.token import is_expired
 from oidcop.token.exception import InvalidToken
 
-from ..util import get_logout_id
 from . import Token
 from . import UnknownToken
 
@@ -59,7 +58,7 @@ def include_session_id(endpoint_context, client_id, where):
 
 
 def get_sign_and_encrypt_algorithms(
-        endpoint_context, client_info, payload_type, sign=False, encrypt=False
+    endpoint_context, client_info, payload_type, sign=False, encrypt=False
 ):
     args = {"sign": sign, "encrypt": encrypt}
     if sign:
@@ -118,11 +117,11 @@ class IDToken(Token):
     }
 
     def __init__(
-            self,
-            token_class: Optional[str] = "id_token",
-            lifetime: Optional[int] = 300,
-            server_get: Callable = None,
-            **kwargs
+        self,
+        token_class: Optional[str] = "id_token",
+        lifetime: Optional[int] = 300,
+        server_get: Callable = None,
+        **kwargs,
     ):
         Token.__init__(self, token_class, **kwargs)
         self.lifetime = lifetime
@@ -276,7 +275,7 @@ class IDToken(Token):
 
         # Should I add session ID. This is about Single Logout.
         if include_session_id(_context, client_id, "back") or include_session_id(
-                _context, client_id, "front"
+            _context, client_id, "front"
         ):
 
             xargs = {"sid": session_id}

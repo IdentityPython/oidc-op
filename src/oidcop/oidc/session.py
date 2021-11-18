@@ -160,7 +160,8 @@ class Session(Endpoint):
         _user_id = _session_info["user_id"]
         logger.debug(
             f"(logout_all_clients) user_id={_user_id},  client_id={_session_info['client_id']}, "
-            f"grant_id={_session_info['grant_id']}")
+            f"grant_id={_session_info['grant_id']}"
+        )
 
         bc_logouts = {}
         fc_iframes = {}
@@ -192,8 +193,9 @@ class Session(Endpoint):
                     if idt:
                         _rel_sid.append(idt.session_id)
                         # Construct an IFrame
-                        _spec = do_front_channel_logout_iframe(_cdb[_client_id], _iss,
-                                                               idt.session_id)
+                        _spec = do_front_channel_logout_iframe(
+                            _cdb[_client_id], _iss, idt.session_id
+                        )
                         if _spec:
                             fc_iframes[_client_id] = _spec
                         break
@@ -242,10 +244,10 @@ class Session(Endpoint):
         return res
 
     def process_request(
-            self,
-            request: Optional[Union[Message, dict]] = None,
-            http_info: Optional[dict] = None,
-            **kwargs
+        self,
+        request: Optional[Union[Message, dict]] = None,
+        http_info: Optional[dict] = None,
+        **kwargs,
     ):
         """
         Perform user logout
@@ -316,7 +318,10 @@ class Session(Endpoint):
         else:
             plur = True
             verify_uri(
-                _context, request, "post_logout_redirect_uri", client_id=_session_info["client_id"],
+                _context,
+                request,
+                "post_logout_redirect_uri",
+                client_id=_session_info["client_id"],
             )
 
         payload = {
@@ -381,8 +386,8 @@ class Session(Endpoint):
                 pass
             else:
                 if (
-                        _ith.jws_header["alg"]
-                        not in _context.provider_info["id_token_signing_alg_values_supported"]
+                    _ith.jws_header["alg"]
+                    not in _context.provider_info["id_token_signing_alg_values_supported"]
                 ):
                     raise JWSException("Unsupported signing algorithm")
 
@@ -404,9 +409,10 @@ class Session(Endpoint):
                 logger.info("logging out from {} at {}".format(_cid, _url))
 
                 res = _context.httpc.post(
-                    _url, data="logout_token={}".format(sjwt),
+                    _url,
+                    data="logout_token={}".format(sjwt),
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
-                    **_context.httpc_params
+                    **_context.httpc_params,
                 )
 
                 if res.status_code < 300:

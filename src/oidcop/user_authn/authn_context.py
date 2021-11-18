@@ -114,9 +114,9 @@ def _acr_claim(request):
         _id_token_claim = _claims.get("id_token")
         if _id_token_claim:
             _acr = _id_token_claim.get("acr")
-            if 'value' in _acr:
+            if "value" in _acr:
                 return [_acr["value"]]
-            elif 'values' in _acr:
+            elif "values" in _acr:
                 return _acr["values"]
     return None
 
@@ -154,9 +154,7 @@ def pick_auth(endpoint_context, areq, pick_all=False):
 
     for acr in acrs:
         res = endpoint_context.authn_broker.pick(acr)
-        logger.debug(
-            f"Picked AuthN broker for ACR {str(acr)}: {str(res)}"
-        )
+        logger.debug(f"Picked AuthN broker for ACR {str(acr)}: {str(res)}")
         if res:
             return res if pick_all else res[0]
 
