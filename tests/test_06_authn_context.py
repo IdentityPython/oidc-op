@@ -3,7 +3,7 @@ import os
 
 import pytest
 from cryptojwt.jwk.hmac import SYMKey
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop.authn_event import AuthnEvent
 from oidcop.cookie_handler import CookieHandler
@@ -184,11 +184,11 @@ class TestAuthnBrokerEC:
 
 
 def test_authn_event():
-    an = AuthnEvent(uid="uid", valid_until=time_sans_frac() + 1, authn_info="authn_class_ref",)
+    an = AuthnEvent(uid="uid", valid_until=utc_time_sans_frac() + 1, authn_info="authn_class_ref",)
 
     assert an.is_valid()
 
-    n = time_sans_frac() + 3
+    n = utc_time_sans_frac() + 3
     assert an.is_valid(n) is False
 
     n = an.expires_in()

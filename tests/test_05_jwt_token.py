@@ -5,7 +5,7 @@ from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import init_key_jar
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
@@ -213,7 +213,7 @@ class TestEndpoint(object):
             endpoint_context=self.endpoint_context,
             token_class=token_class,
             token_handler=self.session_manager.token_handler.handler[token_class],
-            expires_at=time_sans_frac() + 300,  # 5 minutes from now
+            expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
             based_on=based_on,
             **kwargs
         )
@@ -274,4 +274,4 @@ class TestEndpoint(object):
 
         assert access_token.is_active()
         # 4000 seconds in the future. Passed the lifetime.
-        assert access_token.is_active(now=time_sans_frac() + 4000) is False
+        assert access_token.is_active(now=utc_time_sans_frac() + 4000) is False

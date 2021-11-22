@@ -6,7 +6,7 @@ from cryptojwt.key_jar import init_key_jar
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import RefreshAccessTokenRequest
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 from . import full_path
 from oidcop import user_info
@@ -76,7 +76,7 @@ class TestSession:
 
         # User info is stored in the Session DB
         authn_event = create_authn_event(
-            user_id, authn_info=INTERNETPROTOCOLPASSWORD, authn_time=time_sans_frac(),
+            user_id, authn_info=INTERNETPROTOCOLPASSWORD, authn_time=utc_time_sans_frac(),
         )
 
         user_info = UserSessionInfo(user_id=user_id)
@@ -107,7 +107,7 @@ class TestSession:
             endpoint_context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
-            expires_at=time_sans_frac() + 300,  # 5 minutes from now
+            expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
         )
 
         # get user info
@@ -153,7 +153,7 @@ class TestSession:
             endpoint_context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
-            expires_at=time_sans_frac() + 900,  # 15 minutes from now
+            expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
             based_on=tok,  # Means the token (tok) was used to mint this token
         )
 
@@ -190,7 +190,7 @@ class TestSession:
             endpoint_context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
-            expires_at=time_sans_frac() + 900,  # 15 minutes from now
+            expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
             based_on=reftok,  # Means the token (tok) was used to mint this token
         )
 
@@ -329,7 +329,7 @@ class TestSessionJWTToken:
 
         # Now for client session information
         authn_event = create_authn_event(
-            user_id, authn_info=INTERNETPROTOCOLPASSWORD, authn_time=time_sans_frac(),
+            user_id, authn_info=INTERNETPROTOCOLPASSWORD, authn_time=utc_time_sans_frac(),
         )
 
         client_id = AUTH_REQ["client_id"]
@@ -355,7 +355,7 @@ class TestSessionJWTToken:
             endpoint_context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
-            expires_at=time_sans_frac() + 300,  # 5 minutes from now
+            expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
         )
         return code
 
@@ -403,7 +403,7 @@ class TestSessionJWTToken:
             endpoint_context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
-            expires_at=time_sans_frac() + 900,  # 15 minutes from now
+            expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
             based_on=tok,  # Means the token (tok) was used to mint this token
         )
 
@@ -449,7 +449,7 @@ class TestSessionJWTToken:
             endpoint_context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
-            expires_at=time_sans_frac() + 900,  # 15 minutes from now
+            expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
             based_on=reftok,  # Means the refresh token (reftok) was used to mint this token
         )
 

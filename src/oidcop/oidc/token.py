@@ -159,7 +159,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def post_parse_request(
-            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to get their access tokens
@@ -280,7 +280,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 resp = self.error_cls(
-                    error="invalid_request", error_description="Could not sign/encrypt id_token",
+                    error="invalid_request",
+                    error_description="Could not sign/encrypt id_token",
                 )
                 return resp
 
@@ -288,7 +289,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token.register_usage()
 
-        if ("client_id" in req
+        if (
+            "client_id" in req
             and req["client_id"] in _context.cdb
             and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
         ):
@@ -302,7 +304,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to refresh their access tokens

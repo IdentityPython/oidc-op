@@ -42,7 +42,7 @@ class Database(ImpExp):
         ImpExp.__init__(self)
         self.db = DLDict()
 
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             setattr(self, k, v)
 
         self.key = key or rndstr(24)

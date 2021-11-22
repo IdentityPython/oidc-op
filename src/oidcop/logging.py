@@ -17,7 +17,9 @@ LOGGING_DEFAULT = {
 
 
 def configure_logging(
-    debug: Optional[bool] = False, config: Optional[dict] = None, filename: Optional[str] = "",
+    debug: Optional[bool] = False,
+    config: Optional[dict] = None,
+    filename: Optional[str] = "",
 ) -> logging.Logger:
     """Configure logging"""
 

@@ -141,8 +141,7 @@ class ClientSecretPost(ClientSecretBasic):
 
 
 class BearerHeader(ClientSecretBasic):
-    """
-    """
+    """"""
 
     tag = "bearer_header"
 
@@ -348,7 +347,7 @@ def verify_client(
         authorization_token = None
 
     auth_info = {}
-    _methods = getattr(endpoint, 'client_authn_method', [])
+    _methods = getattr(endpoint, "client_authn_method", [])
 
     for _method in _methods:
         if _method is None:
@@ -356,7 +355,9 @@ def verify_client(
         if _method.is_usable(request, authorization_token):
             try:
                 auth_info = _method.verify(
-                    request=request, authorization_token=authorization_token, endpoint=endpoint,
+                    request=request,
+                    authorization_token=authorization_token,
+                    endpoint=endpoint,
                 )
             except Exception as err:
                 logger.warning("Verifying auth using {} failed: {}".format(_method.tag, err))

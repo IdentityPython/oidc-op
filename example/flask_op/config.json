@@ -116,6 +116,20 @@
           "implicit",
           "urn:ietf:params:oauth:grant-type:jwt-bearer",
           "refresh_token"
+        ],
+        "request_object_signing_alg_values_supported": [
+          "RS256",
+          "RS384",
+          "RS512",
+          "ES256",
+          "ES384",
+          "ES512",
+          "HS256",
+          "HS384",
+          "HS512",
+          "PS256",
+          "PS384",
+          "PS512"
         ]
       },
       "cookie_handler": {
