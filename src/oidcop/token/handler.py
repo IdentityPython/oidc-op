@@ -24,15 +24,14 @@ class TokenHandler(ImpExp):
     parameter = {"handler": DLDict, "handler_order": [""]}
 
     def __init__(
-            self,
-            access_token: Optional[Token] = None,
-            authorization_code: Optional[Token] = None,
-            refresh_token: Optional[Token] = None,
-            id_token: Optional[Token] = None,
+        self,
+        access_token: Optional[Token] = None,
+        authorization_code: Optional[Token] = None,
+        refresh_token: Optional[Token] = None,
+        id_token: Optional[Token] = None,
     ):
         ImpExp.__init__(self)
-        self.handler = {"authorization_code": authorization_code,
-                        "access_token": access_token}
+        self.handler = {"authorization_code": authorization_code, "access_token": access_token}
 
         self.handler_order = ["authorization_code", "access_token"]
 
@@ -142,13 +141,13 @@ JWKS_FILE = "private/token_jwks.json"
 
 
 def factory(
-        server_get,
-        code: Optional[dict] = None,
-        token: Optional[dict] = None,
-        refresh: Optional[dict] = None,
-        id_token: Optional[dict] = None,
-        jwks_file: Optional[str] = "",
-        **kwargs
+    server_get,
+    code: Optional[dict] = None,
+    token: Optional[dict] = None,
+    refresh: Optional[dict] = None,
+    id_token: Optional[dict] = None,
+    jwks_file: Optional[str] = "",
+    **kwargs
 ) -> TokenHandler:
     """
     Create a token handler
@@ -160,10 +159,12 @@ def factory(
     :return: TokenHandler instance
     """
 
-    token_class_map = {"code": "authorization_code",
-                       "token": "access_token",
-                       "refresh": "refresh_token",
-                       'idtoken': 'id_token'}
+    token_class_map = {
+        "code": "authorization_code",
+        "token": "access_token",
+        "refresh": "refresh_token",
+        "idtoken": "id_token",
+    }
 
     key_defs = []
     read_only = False

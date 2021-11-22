@@ -65,10 +65,7 @@ msg = {
         "https://client.example.org/rf.txt#qpXaRLh_n93TT",
         "https://client.example.org/rf.txt",
     ],
-    "post_logout_redirect_uris": [
-        "https://rp.example.com/pl?foo=bar",
-        "https://rp.example.com/pl",
-    ],
+    "post_logout_redirect_uri": "https://rp.example.com/pl"
 }
 
 CLI_REQ = RegistrationRequest(**msg)

@@ -98,7 +98,11 @@ class TestUserAuthn(object):
             client_id=authn_req["client_id"],
         )
 
-        _info, _time_stamp = method.authenticated_as("client 12345", [_cookie])
+        # Parsed once before authenticated_as
+        kakor = self.endpoint_context.cookie_handler.parse_cookie(
+            cookies=[_cookie], name=self.endpoint_context.cookie_handler.name["session"])
+
+        _info, _time_stamp = method.authenticated_as("client 12345", kakor)
         assert set(_info.keys()) == {'sub', 'uid', 'state', 'grant_id', 'timestamp', 'sid',
                                      'client_id'}
         assert _info["sub"] == "diana"

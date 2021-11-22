@@ -57,7 +57,10 @@ class AuthzHandling(object):
             return {}
 
     def __call__(
-        self, session_id: str, request: Union[dict, Message], resources: Optional[list] = None,
+        self,
+        session_id: str,
+        request: Union[dict, Message],
+        resources: Optional[list] = None,
     ) -> Grant:
         session_info = self.server_get("endpoint_context").session_manager.get_session_info(
             session_id=session_id, grant=True
@@ -93,7 +96,10 @@ class AuthzHandling(object):
 
 class Implicit(AuthzHandling):
     def __call__(
-        self, session_id: str, request: Union[dict, Message], resources: Optional[list] = None,
+        self,
+        session_id: str,
+        request: Union[dict, Message],
+        resources: Optional[list] = None,
     ) -> Grant:
         args = self.grant_config.copy()
         grant = self.server_get("endpoint_context").session_manager.get_grant(session_id=session_id)

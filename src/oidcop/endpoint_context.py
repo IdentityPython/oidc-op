@@ -15,7 +15,6 @@ from oidcop import rndstr
 from oidcop.configure import OPConfiguration
 from oidcop.scopes import SCOPE2CLAIMS
 from oidcop.scopes import Scopes
-from oidcop.session.claims import STANDARD_CLAIMS
 from oidcop.session.manager import SessionManager
 from oidcop.template_handler import Jinja2TemplateHandler
 from oidcop.util import get_http_params

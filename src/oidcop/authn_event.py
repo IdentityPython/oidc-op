@@ -2,7 +2,7 @@ from oidcmsg.message import SINGLE_OPTIONAL_INT
 from oidcmsg.message import SINGLE_OPTIONAL_STRING
 from oidcmsg.message import SINGLE_REQUIRED_STRING
 from oidcmsg.message import Message
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 DEFAULT_AUTHN_EXPIRES_IN = 3600
 
@@ -20,10 +20,10 @@ class AuthnEvent(Message):
         if now:
             return self["valid_until"] > now
         else:
-            return self["valid_until"] > time_sans_frac()
+            return self["valid_until"] > utc_time_sans_frac()
 
     def expires_in(self):
-        return self["valid_until"] - time_sans_frac()
+        return self["valid_until"] - utc_time_sans_frac()
 
 
 def create_authn_event(
@@ -59,7 +59,7 @@ def create_authn_event(
         if _ts:
             args["authn_time"] = _ts
         else:
-            args["authn_time"] = time_sans_frac()
+            args["authn_time"] = utc_time_sans_frac()
 
     if valid_until:
         args["valid_until"] = valid_until

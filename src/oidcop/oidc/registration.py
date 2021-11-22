@@ -3,7 +3,6 @@ import hmac
 import json
 import logging
 import secrets
-import time
 from typing import List
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -86,31 +85,33 @@ def verify_url(url: str, urlset: List[list]) -> bool:
 
 
 def secret(seed: str, sid: str):
-    msg = "{}{}{}".format(time.time(), secrets.token_urlsafe(16), sid).encode("utf-8")
+    msg = "{}{}{}".format(utc_time_sans_frac(), secrets.token_urlsafe(16), sid).encode("utf-8")
     csum = hmac.new(as_bytes(seed), msg, hashlib.sha224)
     return csum.hexdigest()
 
 
 def comb_uri(args):
-    for param in ["redirect_uris", "post_logout_redirect_uris"]:
-        if param not in args:
-            continue
-
+    redirect_uris = args.get("redirect_uris")
+    if redirect_uris:
         val = []
-        for base, query_dict in args[param]:
+        for base, query_dict in redirect_uris:
             if query_dict:
-                query_string = urlencode(
-                    [
-                        (key, v)
-                        for key in query_dict
-                        for v in query_dict[key]
-                    ]
-                )
-                val.append("{base}?{query_string}")
+                query_string = urlencode([(key, v) for key in query_dict for v in query_dict[key]])
+                val.append(f"{base}?{query_string}")
             else:
                 val.append(base)
 
-        args[param] = val
+        args["redirect_uris"] = val
+
+    post_logout_redirect_uri = args.get("post_logout_redirect_uri")
+    if post_logout_redirect_uri:
+        base, query_dict = post_logout_redirect_uri
+        if query_dict:
+            query_string = urlencode([(key, v) for key in query_dict for v in query_dict[key]])
+            val = f"{base}?{query_string}"
+        else:
+            val = base
+        args["post_logout_redirect_uri"] = val
 
     request_uris = args.get("request_uris")
     if request_uris:
@@ -179,17 +180,15 @@ class Registration(Endpoint):
             if key not in ignore:
                 _cinfo[key] = val
 
-        if "post_logout_redirect_uris" in request:
-            plruri = []
-            for uri in request["post_logout_redirect_uris"]:
-                if urlparse(uri).fragment:
-                    err = self.error_cls(
-                        error="invalid_configuration_parameter",
-                        error_description="post_logout_redirect_uris contains fragment",
-                    )
-                    return err
-                plruri.append(split_uri(uri))
-            _cinfo["post_logout_redirect_uris"] = plruri
+        _uri = request.get("post_logout_redirect_uri")
+        if _uri:
+            if urlparse(_uri).fragment:
+                err = self.error_cls(
+                    error="invalid_configuration_parameter",
+                    error_description="post_logout_redirect_uri contains fragment",
+                )
+                return err
+            _cinfo["post_logout_redirect_uri"] = split_uri(_uri)
 
         if "redirect_uris" in request:
             try:
@@ -217,9 +216,10 @@ class Registration(Endpoint):
 
         if "sector_identifier_uri" in request:
             try:
-                (_cinfo["si_redirects"], _cinfo["sector_id"],) = self._verify_sector_identifier(
-                    request
-                )
+                (
+                    _cinfo["si_redirects"],
+                    _cinfo["sector_id"],
+                ) = self._verify_sector_identifier(request)
             except InvalidSectorIdentifier as err:
                 return ResponseMessage(
                     error="invalid_configuration_parameter", error_description=str(err)
@@ -292,7 +292,9 @@ class Registration(Endpoint):
                     pass
                 else:
                     logger.error(
-                        "InvalidRedirectURI: scheme:%s, hostname:%s", p.scheme, p.hostname,
+                        "InvalidRedirectURI: scheme:%s, hostname:%s",
+                        p.scheme,
+                        p.hostname,
                     )
                     raise InvalidRedirectURIError(
                         "Redirect_uri must use custom " "scheme or http and localhost"
@@ -384,17 +386,21 @@ class Registration(Endpoint):
         try:
             request.verify()
         except (MessageException, ValueError) as err:
-            logger.error("request.verify() on %s", request)
-            return ResponseMessage(
-                error="invalid_configuration_request", error_description="%s" % err
-            )
+            logger.error("request.verify() error on %s", request)
+            _error = "invalid_configuration_request"
+            if len(err.args) > 1:
+                if err.args[1] == "initiate_login_uri":
+                    _error = "invalid_client_metadata"
+
+            return ResponseMessage(error=_error, error_description="%s" % err)
 
         request.rm_blanks()
         try:
             self.match_client_request(request)
         except CapabilitiesMisMatch as err:
             return ResponseMessage(
-                error="invalid_request", error_description="Don't support proposed %s" % err,
+                error="invalid_request",
+                error_description="Don't support proposed %s" % err,
             )
 
         _context = self.server_get("endpoint_context")
@@ -429,7 +435,9 @@ class Registration(Endpoint):
 
         _context.cdb[client_id] = _cinfo
         _cinfo = self.do_client_registration(
-            request, client_id, ignore=["redirect_uris", "policy_uri", "logo_uri", "tos_uri"],
+            request,
+            client_id,
+            ignore=["redirect_uris", "policy_uri", "logo_uri", "tos_uri"],
         )
         if isinstance(_cinfo, ResponseMessage):
             return _cinfo
@@ -470,7 +478,17 @@ class Registration(Endpoint):
         else:
             _context = self.server_get("endpoint_context")
             _cookie = _context.new_cookie(
-                name=_context.cookie_handler.name["register"], client_id=reg_resp["client_id"],
+                name=_context.cookie_handler.name["register"],
+                client_id=reg_resp["client_id"],
             )
 
             return {"response_args": reg_resp, "cookie": _cookie, "response_code": 201}
+
+    def process_verify_error(self, exception):
+        _error = "invalid_request"
+        if isinstance(exception, ValueError):
+            if len(exception.args) > 1:
+                if exception.args[1] == "initiate_login_uri":
+                    _error = "invalid_client_metadata"
+
+        return self.error_cls(error=_error, error_description=f"{exception}")

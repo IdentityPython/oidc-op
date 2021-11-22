@@ -304,9 +304,9 @@ def check_session_iframe():
             return 'error'
         return 'OK'
 
-    current_app.logger.debug(
-        'check_session_iframe: {}'.format(req_args))
+    current_app.logger.debug('check_session_iframe: {}'.format(req_args))
     doc = open('templates/check_session_iframe.html').read()
+    current_app.logger.debug(f"check_session_iframe response: {doc}")
     return doc
 
 

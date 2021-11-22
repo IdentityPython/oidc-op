@@ -37,7 +37,7 @@ class CookieHandler:
         keys: Optional[dict] = None,
         sign_alg: [str] = "SHA256",
         name: Optional[dict] = None,
-        **kwargs
+        **kwargs,
     ):
 
         if keys:
@@ -79,12 +79,12 @@ class CookieHandler:
             self.name = name
 
         self.flags = kwargs.get(
-            'flags',
+            "flags",
             {
-              "samesite": "None",
-              "httponly": True,
-              "secure": True,
-            }
+                "samesite": "None",
+                "httponly": True,
+                "secure": True,
+            },
         )
 
     def _sign_enc_payload(self, payload: str, timestamp: Optional[Union[int, str]] = 0):
@@ -153,7 +153,9 @@ class CookieHandler:
             mac = base64.b64decode(b64_mac)
             verifier = HMACSigner(algorithm=self.sign_alg)
             if verifier.verify(
-                payload.encode("utf-8") + timestamp.encode("utf-8"), mac, self.sign_key.key,
+                payload.encode("utf-8") + timestamp.encode("utf-8"),
+                mac,
+                self.sign_key.key,
             ):
                 return payload, timestamp
             else:
@@ -194,7 +196,7 @@ class CookieHandler:
         typ: Optional[str] = "",
         timestamp: Optional[Union[int, str]] = "",
         max_age: Optional[int] = 0,
-        **kwargs
+        **kwargs,
     ) -> dict:
         """
         Create and return information to put in a cookie
@@ -228,7 +230,7 @@ class CookieHandler:
         elif max_age:
             content["max-age"] = epoch_in_a_while(seconds=max_age)
 
-        for k,v in self.flags.items():
+        for k, v in self.flags.items():
             content[k] = v
 
         return content
@@ -253,7 +255,7 @@ class CookieHandler:
         LOGGER.debug("Looking for '{}' cookies".format(name))
         res = []
         for _cookie in cookies:
-            LOGGER.debug('Cookie: {}'.format(_cookie))
+            LOGGER.debug("Cookie: {}".format(_cookie))
             if "name" in _cookie and _cookie["name"] == name:
                 _content = self._ver_dec_content(_cookie["value"].split("|"))
                 if _content:

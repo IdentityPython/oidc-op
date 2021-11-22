@@ -15,17 +15,17 @@ from ..constant import DEFAULT_TOKEN_LIFETIME
 
 class JWTToken(Token):
     def __init__(
-            self,
-            token_class,
-            # keyjar: KeyJar = None,
-            issuer: str = None,
-            aud: Optional[list] = None,
-            alg: str = "ES256",
-            lifetime: int = DEFAULT_TOKEN_LIFETIME,
-            server_get: Callable = None,
-            token_type: str = "Bearer",
-            password: str = "",
-            **kwargs
+        self,
+        token_class,
+        # keyjar: KeyJar = None,
+        issuer: str = None,
+        aud: Optional[list] = None,
+        alg: str = "ES256",
+        lifetime: int = DEFAULT_TOKEN_LIFETIME,
+        server_get: Callable = None,
+        token_type: str = "Bearer",
+        password: str = "",
+        **kwargs
     ):
         Token.__init__(self, token_class, **kwargs)
         self.token_type = token_type
@@ -53,7 +53,6 @@ class JWTToken(Token):
         usage_rules: Optional[dict] = None,
         **payload
     ) -> str:
-
         """
         Return a token.
 

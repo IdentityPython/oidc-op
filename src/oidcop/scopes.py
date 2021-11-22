@@ -36,7 +36,9 @@ def convert_scopes2claims(scopes, allowed_claims=None, scope2claim_map=None):
     else:
         for scope in scopes:
             try:
-                claims = {name: None for name in scope2claim_map.get(scope, []) if name in allowed_claims}
+                claims = {
+                    name: None for name in scope2claim_map.get(scope, []) if name in allowed_claims
+                }
                 res.update(claims)
             except KeyError:
                 continue
@@ -97,3 +99,6 @@ class Scopes:
         scopes = self.filter_scopes(scopes, client_id)
 
         return convert_scopes2claims(scopes, scope2claim_map=scopes_to_claims)
+
+    def set_scopes_mapping(self, scopes_to_claims):
+        self._scopes_to_claims = scopes_to_claims

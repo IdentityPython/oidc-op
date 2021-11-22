@@ -1,6 +1,5 @@
 import logging
 from typing import Callable
-from typing import List
 from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
@@ -9,6 +8,7 @@ from oidcmsg.exception import MissingRequiredAttribute
 from oidcmsg.exception import MissingRequiredValue
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
+from oidcmsg.oidc import RegistrationRequest
 
 from oidcop import sanitize
 from oidcop.client_authn import client_auth_setup
@@ -128,6 +128,10 @@ class Endpoint(object):
         self.allowed_targets = [self.name]
         self.client_verification_method = []
 
+    def process_verify_error(self, exception):
+        _error = "invalid_request"
+        return self.error_cls(error=_error, error_description="%s" % exception)
+
     def parse_request(
         self, request: Union[Message, dict, str], http_info: Optional[dict] = None, **kwargs
     ):
@@ -185,13 +189,21 @@ class Endpoint(object):
         try:
             req.verify(keyjar=keyjar, opponent_id=_client_id)
         except (MissingRequiredAttribute, ValueError, MissingRequiredValue) as err:
-            return self.error_cls(error="invalid_request", error_description="%s" % err)
+            return self.process_verify_error(err)
+            _error = "invalid_request"
+            if isinstance(err, ValueError) and self.request_cls == RegistrationRequest:
+                if len(err.args) > 1:
+                    if err.args[1] == "initiate_login_uri":
+                        _error = "invalid_client_metadata"
+
+            return self.error_cls(error=_error, error_description="%s" % err)
 
         LOGGER.info("Parsed and verified request: %s" % sanitize(req))
 
         # Do any endpoint specific parsing
-        return self.do_post_parse_request(request=req, client_id=_client_id, http_info=http_info,
-                                          **kwargs)
+        return self.do_post_parse_request(
+            request=req, client_id=_client_id, http_info=http_info, **kwargs
+        )
 
     def get_client_id_from_token(
         self,

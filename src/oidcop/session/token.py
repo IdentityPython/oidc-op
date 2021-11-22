@@ -2,7 +2,7 @@ from typing import Optional
 from uuid import uuid1
 
 from oidcmsg.impexp import ImpExp
-from oidcmsg.time_util import time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 
 
 class MintingNotAllowed(Exception):
@@ -20,17 +20,17 @@ class Item(ImpExp):
     }
 
     def __init__(
-            self,
-            usage_rules: Optional[dict] = None,
-            issued_at: int = 0,
-            expires_in: int = 0,
-            expires_at: int = 0,
-            not_before: int = 0,
-            revoked: bool = False,
-            used: int = 0,
+        self,
+        usage_rules: Optional[dict] = None,
+        issued_at: int = 0,
+        expires_in: int = 0,
+        expires_at: int = 0,
+        not_before: int = 0,
+        revoked: bool = False,
+        used: int = 0,
     ):
         ImpExp.__init__(self)
-        self.issued_at = issued_at or time_sans_frac()
+        self.issued_at = issued_at or utc_time_sans_frac()
         self.not_before = not_before
         if expires_at == 0 and expires_in != 0:
             self.set_expires_at(expires_in)
@@ -42,7 +42,7 @@ class Item(ImpExp):
         self.usage_rules = usage_rules or {}
 
     def set_expires_at(self, expires_in):
-        self.expires_at = time_sans_frac() + expires_in
+        self.expires_at = utc_time_sans_frac() + expires_in
 
     def max_usage_reached(self):
         if "max_usage" in self.usage_rules:
@@ -58,7 +58,7 @@ class Item(ImpExp):
             return False
 
         if now == 0:
-            now = time_sans_frac()
+            now = utc_time_sans_frac()
 
         if self.not_before:
             if now < self.not_before:
@@ -92,21 +92,21 @@ class SessionToken(Item):
     )
 
     def __init__(
-            self,
-            token_class: str = "",
-            value: str = "",
-            based_on: Optional[str] = None,
-            usage_rules: Optional[dict] = None,
-            issued_at: int = 0,
-            expires_in: int = 0,
-            expires_at: int = 0,
-            not_before: int = 0,
-            revoked: bool = False,
-            used: int = 0,
-            id: str = "",
-            scope: Optional[list] = None,
-            claims: Optional[dict] = None,
-            resources: Optional[list] = None,
+        self,
+        token_class: str = "",
+        value: str = "",
+        based_on: Optional[str] = None,
+        usage_rules: Optional[dict] = None,
+        issued_at: int = 0,
+        expires_in: int = 0,
+        expires_at: int = 0,
+        not_before: int = 0,
+        revoked: bool = False,
+        used: int = 0,
+        id: str = "",
+        scope: Optional[list] = None,
+        claims: Optional[dict] = None,
+        resources: Optional[list] = None,
     ):
         Item.__init__(
             self,
@@ -148,29 +148,25 @@ class SessionToken(Item):
 
 class AccessToken(SessionToken):
     parameter = SessionToken.parameter.copy()
-    parameter.update(
-        {
-            "token_type": ""
-        }
-    )
+    parameter.update({"token_type": ""})
 
     def __init__(
-            self,
-            token_class: str = "",
-            value: str = "",
-            based_on: Optional[str] = None,
-            usage_rules: Optional[dict] = None,
-            issued_at: int = 0,
-            expires_in: int = 0,
-            expires_at: int = 0,
-            not_before: int = 0,
-            revoked: bool = False,
-            used: int = 0,
-            id: str = "",
-            scope: Optional[list] = None,
-            claims: Optional[dict] = None,
-            resources: Optional[list] = None,
-            token_type: Optional[str] = "bearer"
+        self,
+        token_class: str = "",
+        value: str = "",
+        based_on: Optional[str] = None,
+        usage_rules: Optional[dict] = None,
+        issued_at: int = 0,
+        expires_in: int = 0,
+        expires_at: int = 0,
+        not_before: int = 0,
+        revoked: bool = False,
+        used: int = 0,
+        id: str = "",
+        scope: Optional[list] = None,
+        claims: Optional[dict] = None,
+        resources: Optional[list] = None,
+        token_type: Optional[str] = "bearer",
     ):
         SessionToken.__init__(
             self,
@@ -187,7 +183,7 @@ class AccessToken(SessionToken):
             id=id,
             scope=scope,
             claims=claims,
-            resources=resources
+            resources=resources,
         )
 
         self.token_type = token_type
@@ -212,7 +208,47 @@ class RefreshToken(SessionToken):
 
 
 class IDToken(SessionToken):
-    pass
+    parameter = SessionToken.parameter.copy()
+    parameter.update({"session_id": ""})
+
+    def __init__(
+        self,
+        token_class: str = "",
+        value: str = "",
+        based_on: Optional[str] = None,
+        usage_rules: Optional[dict] = None,
+        issued_at: int = 0,
+        expires_in: int = 0,
+        expires_at: int = 0,
+        not_before: int = 0,
+        revoked: bool = False,
+        used: int = 0,
+        id: str = "",
+        session_id: str = "",
+        scope: Optional[list] = None,
+        claims: Optional[dict] = None,
+        resources: Optional[list] = None,
+        token_type: Optional[str] = "bearer",
+    ):
+        SessionToken.__init__(
+            self,
+            token_class=token_class,
+            value=value,
+            based_on=based_on,
+            usage_rules=usage_rules,
+            issued_at=issued_at,
+            expires_in=expires_in,
+            expires_at=expires_at,
+            not_before=not_before,
+            revoked=revoked,
+            used=used,
+            id=id,
+            scope=scope,
+            claims=claims,
+            resources=resources,
+        )
+
+        self.session_id = session_id
 
 
 SHORT_TYPE_NAME = {"authorization_code": "A", "access_token": "T", "refresh_token": "R"}

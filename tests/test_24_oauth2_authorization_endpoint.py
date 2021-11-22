@@ -237,6 +237,7 @@ class TestEndpoint(object):
         endpoint_context.keyjar.import_jwks(
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
+        self.endpoint_context = endpoint_context
         self.endpoint = server.server_get("endpoint", "authorization")
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
@@ -406,7 +407,7 @@ class TestEndpoint(object):
         }
 
         request = {"redirect_uri": "https://rp.example.com/cb"}
-        with pytest.raises(ValueError):
+        with pytest.raises(RedirectURIError):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_get_uri(self):
@@ -492,7 +493,11 @@ class TestEndpoint(object):
             "value", "sso"
         )
 
-        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, [kaka])
+        # Parsed once before setup_auth
+        kakor = self.endpoint_context.cookie_handler.parse_cookie(
+            cookies=[kaka], name=self.endpoint_context.cookie_handler.name["session"])
+
+        res = self.endpoint.setup_auth(request, redirect_uri, cinfo, kakor)
         assert set(res.keys()) == {"session_id", "identity", "user"}
 
     def test_setup_auth_error(self):

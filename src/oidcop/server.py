@@ -88,7 +88,7 @@ class Server(ImpExp):
             self.server_get,
             self.endpoint_context.th_args,
             sub_func=self.endpoint_context._sub_func,
-            conf=self.conf
+            conf=self.conf,
         )
         self.endpoint_context.do_userinfo()
         # Must be done after userinfo
