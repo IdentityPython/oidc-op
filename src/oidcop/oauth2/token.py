@@ -478,7 +478,7 @@ class Token(Endpoint):
             sub=_session_info["grant"].sub,
             sid=_context.session_manager.session_key(
                 _session_info["user_id"],
-                _session_info["user_id"],
+                _session_info["client_id"],
                 _session_info["grant"].id,
             ),
         )
