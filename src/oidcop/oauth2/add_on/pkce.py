@@ -44,6 +44,7 @@ def post_authn_parse(request, client_id, endpoint_context, **kwargs):
         essential = client["pkce_essential"]
     else:
         essential = endpoint_context.args["pkce"].get("essential", False)
+
     if essential and "code_challenge" not in request:
         return AuthorizationErrorResponse(
             error="invalid_request",
@@ -125,7 +126,7 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
     return request
 
 
-def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
+def add_support(endpoint: Dict[str, Endpoint], **kwargs):
     authn_endpoint = endpoint.get("authorization")
     if authn_endpoint is None:
         LOGGER.warning("No authorization endpoint found, skipping PKCE configuration")

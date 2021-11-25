@@ -10,7 +10,7 @@ import yaml
 
 from oidcop.configure import OPConfiguration
 import oidcop.login_hint
-from oidcop.oidc.add_on.pkce import add_pkce_support
+from oidcop.oauth2.add_on.pkce import add_support
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
@@ -63,7 +63,7 @@ CONF = {
         }
     },
     "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
-    "add_on": {"pkce": {"function": add_pkce_support, "kwargs": {"essential": True}}},
+    "add_on": {"pkce": {"function": add_support, "kwargs": {"essential": True}}},
     "template_dir": "template",
     "login_hint_lookup": {"class": oidcop.login_hint.LoginHintLookup, "kwargs": {}},
 }

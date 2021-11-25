@@ -42,7 +42,7 @@
           "function": "oidcop.oidc.add_on.pkce.add_pkce_support",
           "kwargs": {
             "essential": false,
-            "code_challenge_method": "S256 S384 S512"
+            "code_challenge_methods": ["S256","S384","S512"]
           }
         },
         "claims": {

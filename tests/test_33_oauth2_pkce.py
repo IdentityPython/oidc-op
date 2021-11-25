@@ -4,25 +4,20 @@ import os
 import secrets
 import string
 
-from . import full_path
-from oidcop.configure import ASConfiguration
-
-import pytest
-import yaml
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AuthorizationErrorResponse
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import TokenErrorResponse
+import pytest
+import yaml
 
-import oidcop.oauth2.introspection
 from oidcop.configure import ASConfiguration
 from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
-from oidcop.endpoint import Endpoint
-from oidcop.oidc.add_on.pkce import CC_METHOD
-from oidcop.oidc.add_on.pkce import add_pkce_support
+from oidcop.oauth2.add_on.pkce import CC_METHOD
+from oidcop.oauth2.add_on.pkce import add_support
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.token import Token
 from oidcop.server import Server
@@ -124,7 +119,7 @@ def conf():
         "capabilities": CAPABILITIES,
         "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
         "endpoint": {
-            "authorization": {"path": "{}/authorization", "class": Authorization, "kwargs": {},},
+            "authorization": {"path": "{}/authorization", "class": Authorization, "kwargs": {}, },
             "token": {
                 "path": "{}/token",
                 "class": Token,
@@ -148,7 +143,7 @@ def conf():
         "template_dir": "template",
         "add_on": {
             "pkce": {
-                "function": "oidcop.oidc.add_on.pkce.add_pkce_support",
+                "function": "oidcop.oauth2.add_on.pkce.add_support",
                 "kwargs": {"essential": True},
             }
         },
@@ -408,7 +403,7 @@ def test_missing_authz_endpoint():
     }
     configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     server = Server(configuration)
-    add_pkce_support(server.server_get("endpoints"))
+    add_support(server.server_get("endpoints"))
 
     assert "pkce" not in server.server_get("endpoint_context").args
 
@@ -433,6 +428,6 @@ def test_missing_token_endpoint():
     }
     configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     server = Server(configuration)
-    add_pkce_support(server.server_get("endpoints"))
+    add_support(server.server_get("endpoints"))
 
     assert "pkce" not in server.server_get("endpoint_context").args
