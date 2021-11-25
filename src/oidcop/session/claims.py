@@ -123,7 +123,7 @@ class ClaimsInterface:
             if scopes is None:
                 scopes = auth_req.get("scope")
             if scopes:
-                _claims = _context.scopes_handler.scopes_to_claims(scopes, client_id=client_id)
+                _claims = _context.scopes_handler.fun_scopes_to_claims(scopes, client_id=client_id)
                 base_claims.update(_claims)
 
         # Bring in claims specification from the authorization request

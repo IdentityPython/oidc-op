@@ -92,7 +92,7 @@ class Scopes:
         allowed_scopes = self.get_allowed_scopes(client_id)
         return [s for s in scopes if s in allowed_scopes]
 
-    def scopes_to_claims(self, scopes, scopes_to_claims=None, client_id=None):
+    def fun_scopes_to_claims(self, scopes, scopes_to_claims=None, client_id=None):
         if not scopes_to_claims:
             scopes_to_claims = self.get_scopes_mapping(client_id)
 

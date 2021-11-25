@@ -334,7 +334,7 @@ class EndpointContext(OidcContext):
             _provider_info["scopes_supported"] = self.scopes_handler.get_allowed_scopes()
         if "claims_supported" not in _provider_info:
             _provider_info["claims_supported"] = list(
-                self.scopes_handler.scopes_to_claims(_provider_info["scopes_supported"]).keys()
+                self.scopes_handler.fun_scopes_to_claims(_provider_info["scopes_supported"]).keys()
             )
 
         return _provider_info
