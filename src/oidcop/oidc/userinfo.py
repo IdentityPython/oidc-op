@@ -118,7 +118,7 @@ class UserInfo(Endpoint):
         _grant = _session_info["grant"]
         token = _grant.get_token(request["access_token"])
         # should be an access token
-        if token.token_class != "access_token":
+        if token and token.token_class != "access_token":
             return self.error_cls(error="invalid_token", error_description="Wrong type of token")
 
         # And it should be valid
