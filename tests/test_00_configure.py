@@ -1,11 +1,11 @@
 import json
 import os
 
+from oidcmsg.configure import Configuration
+from oidcmsg.configure import create_from_config_file
 import pytest
 
-from oidcop.configure import Configuration
 from oidcop.configure import OPConfiguration
-from oidcop.configure import create_from_config_file
 from oidcop.logging import configure_logging
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
@@ -76,7 +76,7 @@ def test_op_configure_default():
     id_token_conf = configuration.get("id_token", {})
     assert set(id_token_conf.keys()) == {"kwargs", "class"}
     assert id_token_conf["kwargs"] == {
-        "base_claims": {"email": {"essential": True}, "email_verified": {"essential": True},}
+        "base_claims": {"email": {"essential": True}, "email_verified": {"essential": True}, }
     }
 
 
@@ -95,7 +95,7 @@ def test_op_configure_default_from_file():
     id_token_conf = configuration.get("id_token", {})
     assert set(id_token_conf.keys()) == {"kwargs", "class"}
     assert id_token_conf["kwargs"] == {
-        "base_claims": {"email": {"essential": True}, "email_verified": {"essential": True},}
+        "base_claims": {"email": {"essential": True}, "email_verified": {"essential": True}, }
     }
 
 

@@ -14,6 +14,7 @@ from cryptojwt.jwe.aes import AES_GCMEncrypter
 from cryptojwt.jwe.utils import split_ctx_and_tag
 from cryptojwt.jwk.hmac import SYMKey
 from cryptojwt.jws.hmac import HMACSigner
+from cryptojwt.jwt import utc_time_sans_frac
 from cryptojwt.key_jar import init_key_jar
 from oidcmsg.time_util import epoch_in_a_while
 
@@ -31,13 +32,13 @@ LOGGER = logging.getLogger(__name__)
 
 class CookieHandler:
     def __init__(
-        self,
-        sign_key: Optional[SYMKey] = None,
-        enc_key: Optional[SYMKey] = None,
-        keys: Optional[dict] = None,
-        sign_alg: [str] = "SHA256",
-        name: Optional[dict] = None,
-        **kwargs,
+            self,
+            sign_key: Optional[SYMKey] = None,
+            enc_key: Optional[SYMKey] = None,
+            keys: Optional[dict] = None,
+            sign_alg: [str] = "SHA256",
+            name: Optional[dict] = None,
+            **kwargs,
     ):
 
         if keys:
@@ -101,7 +102,7 @@ class CookieHandler:
         if timestamp:
             timestamp = str(timestamp)
         else:
-            timestamp = str(int(time.time()))
+            timestamp = str(int(utc_time_sans_frac()))
 
         bytes_load = payload.encode("utf-8")
         bytes_timestamp = timestamp.encode("utf-8")
@@ -153,9 +154,9 @@ class CookieHandler:
             mac = base64.b64decode(b64_mac)
             verifier = HMACSigner(algorithm=self.sign_alg)
             if verifier.verify(
-                payload.encode("utf-8") + timestamp.encode("utf-8"),
-                mac,
-                self.sign_key.key,
+                    payload.encode("utf-8") + timestamp.encode("utf-8"),
+                    mac,
+                    self.sign_key.key,
             ):
                 return payload, timestamp
             else:
@@ -178,9 +179,9 @@ class CookieHandler:
             if len(p) == 3:
                 verifier = HMACSigner(algorithm=self.sign_alg)
                 if verifier.verify(
-                    payload.encode("utf-8") + timestamp.encode("utf-8"),
-                    base64.b64decode(p[2]),
-                    self.sign_key.key,
+                        payload.encode("utf-8") + timestamp.encode("utf-8"),
+                        base64.b64decode(p[2]),
+                        self.sign_key.key,
                 ):
                     return payload, timestamp
                 else:
@@ -190,13 +191,13 @@ class CookieHandler:
         return None
 
     def make_cookie_content(
-        self,
-        name: str,
-        value: str,
-        typ: Optional[str] = "",
-        timestamp: Optional[Union[int, str]] = "",
-        max_age: Optional[int] = 0,
-        **kwargs,
+            self,
+            name: str,
+            value: str,
+            typ: Optional[str] = "",
+            timestamp: Optional[Union[int, str]] = "",
+            max_age: Optional[int] = 0,
+            **kwargs,
     ) -> dict:
         """
         Create and return information to put in a cookie
@@ -210,7 +211,7 @@ class CookieHandler:
         """
 
         if not timestamp:
-            timestamp = str(int(time.time()))
+            timestamp = str(int(utc_time_sans_frac()))
 
         # create cookie payload
         if not value and not typ:

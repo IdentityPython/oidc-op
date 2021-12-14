@@ -3,9 +3,8 @@ import hashlib
 import hmac
 import os
 import secrets
-import time
 
-from cryptojwt.jwt import utc_time_sans_frac
+from oidcmsg.time_util import utc_time_sans_frac
 import pytest
 
 from oidcop.configure import OPConfiguration
@@ -105,8 +104,9 @@ class TestDefaultToken(object):
         _token = self.th("another_id")
         assert self.th.is_expired(_token) is False
 
-        when = time.time() + 900
-        assert self.th.is_expired(_token, int(when))
+        when = utc_time_sans_frac()
+        # has it expired 24 hours from now ?
+        assert self.th.is_expired(_token, int(when) + 86400)
 
 
 class TestTokenHandler(object):
