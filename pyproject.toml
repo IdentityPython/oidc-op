@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [metadata]
 name = "oidcop"
-version = "2.3.0"
+version = "2.3.2"
 author = "Roland Hedberg"
 author_email = "roland@catalogix.se"
 description = "Python implementation of an OAuth2 AS and an OIDC Provider"
