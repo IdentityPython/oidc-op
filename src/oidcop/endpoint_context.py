@@ -202,7 +202,7 @@ class EndpointContext(OidcContext):
                 self.template_handler = Jinja2TemplateHandler(_loader)
 
         # self.setup = {}
-        _keys_conf = conf.get("keys")
+        _keys_conf = conf.get("key_conf")
         if _keys_conf:
             jwks_uri_path = _keys_conf["uri_path"]
 
