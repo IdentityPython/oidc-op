@@ -149,6 +149,8 @@ class EntityConfiguration(Base):
 
             if key == "template_dir":
                 _val = os.path.abspath(_val)
+            if key == "keys":
+                key = "key_conf"
 
             setattr(self, key, _val)
 

@@ -51,6 +51,7 @@ def test_op_configure_from_file():
 
     assert configuration
     assert "add_on" in configuration
+    assert "key_conf" in configuration
     authz_conf = configuration["authz"]
     assert set(authz_conf.keys()) == {"kwargs", "class"}
     id_token_conf = configuration.get("id_token")
@@ -111,6 +112,7 @@ def test_server_configure():
     assert "op" in configuration
     op_conf = configuration["op"]
     assert "add_on" in op_conf
+    assert "key_conf" in op_conf
     authz = op_conf["authz"]
     assert set(authz.keys()) == {"kwargs", "class"}
     id_token_conf = op_conf.get("id_token", {})
