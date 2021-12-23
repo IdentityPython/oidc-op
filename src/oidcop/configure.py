@@ -564,7 +564,7 @@ DEFAULT_EXTENDED_CONF = {
                     "client_secret_basic",
                     "client_secret_jwt",
                     "private_key_jwt",
-                ]
+                ],
             },
         },
         "userinfo": {

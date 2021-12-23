@@ -133,9 +133,9 @@ Here an example about how to exchange an access token for a new access token.
 
     import requests
 
-    CLIENT_ID = "DBP60x3KUQfCYWZlqFaS_Q"
-    CLIENT_SECRET="8526270403788522b2444e87ea90c53bcafb984119cec92eeccc12f1"
-    SUBJECT_TOKEN="Z0FBQUFkF3czZRU...BfdTJkQXlCSm55cVpxQ1A0Y0RkWEtQTT0="
+    CLIENT_ID=""
+    CLIENT_SECRET=""
+    SUBJECT_TOKEN=""
     REQUESTED_TOKEN_TYPE="urn:ietf:params:oauth:token-type:access_token"
 
     data = {
@@ -147,7 +147,7 @@ Here an example about how to exchange an access token for a new access token.
     }
     headers = {'Content-Type': "application/x-www-form-urlencoded" }
     response = requests.post(
-        'https://snf-19725.ok-kno.grnetcloud.net/OIDC/token', verify=False, data=data, headers=headers
+        'https://example.com/OIDC/token', verify=False, data=data, headers=headers
     )
 
 oidc-op will return a json response like this::
