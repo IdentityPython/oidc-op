@@ -670,7 +670,7 @@ There are two possible ways to configure Token Exchange in OIDC-OP, globally and
 For the first case the configuration is passed in the Token Exchange handler throught the
 `urn:ietf:params:oauth:grant-type:token-exchange` dictionary in token's `grant_types_supported`.
 
-If present, the token exchange configuration must contain a `policy` object that describes a default
+If present, the token exchange configuration may contain a `policy` object that describes a default
 policy `callable` and its `kwargs` through the `""` key. Different callables can be optionally
 defined for each token type supported.
 

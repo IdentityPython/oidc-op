@@ -449,12 +449,14 @@ class ExchangeGrant(Grant):
         authorization_details: Optional[dict] = None,
         issued_token: Optional[list] = None,
         usage_rules: Optional[dict] = None,
+        exchange_request: str = "",
+        original_session_id: str = "",
         issued_at: int = 0,
         expires_in: int = 0,
         expires_at: int = 0,
         revoked: bool = False,
         token_map: Optional[dict] = None,
-        users: list = None,
+        users: list = None
     ):
         Grant.__init__(
             self,
@@ -475,3 +477,5 @@ class ExchangeGrant(Grant):
         self.usage_rules = {
             "access_token": {"supports_minting": ["access_token"], "expires_in": 60}
         }
+        self.exchange_request=exchange_request
+        self.original_session_id=original_session_id

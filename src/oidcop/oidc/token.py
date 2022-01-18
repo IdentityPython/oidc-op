@@ -381,7 +381,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 ],
                 "policy": {
                     "": {
-                        "callable": "oidcop.oidc.token.default_token_exchange_policy",
+                        "callable": default_token_exchange_policy,
                         "kwargs": {
                             "scope": ["openid"]
                         }
@@ -491,17 +491,16 @@ class TokenExchangeHelper(TokenEndpointHelper):
             )
 
         try:
-            if (
-                "requested_token_type" in request
-                and request["requested_token_type"] in config["policy"]
-            ):
-                callable = config["policy"][request["requested_token_type"]]["callable"]
-                kwargs = config["policy"][request["requested_token_type"]]["kwargs"]
-            else:
-                callable = config["policy"][""]["callable"]
-                kwargs = config["policy"][""]["kwargs"]
+            subject_token_type = request.get("subject_token_type", "")
+            if subject_token_type not in config["policy"]:
+                subject_token_type = ""
+            callable = config["policy"][subject_token_type]["callable"]
+            kwargs = config["policy"][subject_token_type]["kwargs"]
 
-            fn = importer(callable)
+            if isinstance(callable, str):
+                fn = importer(callable)
+            else:
+                fn = callable
             return fn(request, context=_context, subject_token=token, **kwargs)
 
         except Exception:
@@ -515,7 +514,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
         response_args["access_token"] = token.value
         response_args["scope"] = token.scope
         response_args["issued_token_type"] = token.token_class
-        response_args["expires_in"] = token.usage_rules["expires_in"]
+        response_args["expires_in"] = token.usage_rules.get("expires_in", 0)
         response_args["token_type"] = "bearer"
 
         return TokenExchangeResponse(**response_args)
@@ -541,9 +540,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
             )
 
         token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
-
         grant = _session_info["grant"]
-
         _requested_token_type = request.get("requested_token_type",
                                            "urn:ietf:params:oauth:token-type:access_token")
 
@@ -555,24 +552,30 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         sid = _session_info["session_id"]
         if request["client_id"] != _session_info["client_id"]:
-            authn_event = _session_info["grant"].authentication_event
             _token_usage_rules = _context.authz.usage_rules(request["client_id"])
-            _exp_in = _token_usage_rules["refresh_token"].get("expires_in")
-            if _exp_in and "valid_until" in authn_event:
-                authn_event["valid_until"] = utc_time_sans_frac() + _exp_in
 
-            sid = _mngr.create_session(
-                authn_event=authn_event,
-                auth_req=request,
+            sid = _mngr.create_exchange_session(
+                exchange_request=request,
+                original_session_id=sid,
                 user_id=_session_info["user_id"],
                 client_id=request["client_id"],
                 token_usage_rules=_token_usage_rules,
             )
 
+            try:
+                _session_info = _mngr.get_session_info(
+                    session_id=sid, grant=True)
+            except Exception:
+                logger.error("Error retrieving token exchabge session information")
+                return self.error_cls(
+                    error="server_error",
+                    error_description="Internal server error"
+                )
+
         try:
             new_token = self._mint_token(
                 token_class=_token_class,
-                grant=grant,
+                grant=_session_info["grant"],
                 session_id=sid,
                 client_id=request["client_id"],
                 based_on=token,
