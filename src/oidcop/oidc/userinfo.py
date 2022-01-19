@@ -146,8 +146,9 @@ class UserInfo(Endpoint):
             _claims_restriction = _cntxt.claims_interface.get_claims(
                 _session_info["session_id"], scopes=token.scope, claims_release_point="userinfo"
             )
-            info = _cntxt.claims_interface.get_user_claims(_session_info["user_id"],
-                                                           claims_restriction=_claims_restriction)
+            info = _cntxt.claims_interface.get_user_claims(
+                _session_info["user_id"], claims_restriction=_claims_restriction
+            )
             info["sub"] = _grant.sub
             if _grant.add_acr_value("userinfo"):
                 info["acr"] = _grant.authentication_event["authn_info"]

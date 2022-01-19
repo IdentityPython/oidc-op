@@ -1,9 +1,9 @@
 import hashlib
 import logging
 import os
+import uuid
 from typing import List
 from typing import Optional
-import uuid
 
 from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oauth2 import TokenExchangeRequest
@@ -11,18 +11,19 @@ from oidcmsg.oauth2 import TokenExchangeRequest
 from oidcop import rndstr
 from oidcop.authn_event import AuthnEvent
 from oidcop.exception import ConfigurationError
+from oidcop.session.database import NoSuchClientSession
 from oidcop.token import handler
 from oidcop.util import Crypt
-from oidcop.session.database import NoSuchClientSession
-from .database import Database
-from .grant import Grant
-from .grant import ExchangeGrant
-from .grant import SessionToken
-from .info import ClientSessionInfo
-from .info import UserSessionInfo
+
 from ..token import UnknownToken
 from ..token import WrongTokenClass
 from ..token.handler import TokenHandler
+from .database import Database
+from .grant import ExchangeGrant
+from .grant import Grant
+from .grant import SessionToken
+from .info import ClientSessionInfo
+from .info import UserSessionInfo
 
 logger = logging.getLogger(__name__)
 
@@ -217,19 +218,15 @@ class SessionManager(Database):
         :param user_id:
         :param client_id:
         :param sub_type:
-        :param token_usage_rules:
         :return:
         """
-        sector_identifier = exchange_request.get("sector_identifier_uri", "")
-
-        _claims = exchange_request.get("claims", {})
 
         grant = ExchangeGrant(
+            scope=scopes, original_session_id=original_session_id, exchange_request=exchange_request,
+            sub=self.sub_func[sub_type](
+                user_id, salt=self.salt, sector_identifier=""
+            ),
             usage_rules=token_usage_rules,
-            scope=scopes,
-            claims=_claims,
-            original_session_id=original_session_id,
-            exchange_request=exchange_request
         )
         self.set([user_id, client_id, grant.id], grant)
 
@@ -325,7 +322,7 @@ class SessionManager(Database):
 
         return self.create_exchange_grant(
             exchange_request=exchange_request,
-            original_session_id = original_session_id,
+            original_session_id=original_session_id,
             user_id=user_id,
             client_id=client_id,
             sub_type=sub_type,

@@ -670,14 +670,21 @@ There are two possible ways to configure Token Exchange in OIDC-OP, globally and
 For the first case the configuration is passed in the Token Exchange handler throught the
 `urn:ietf:params:oauth:grant-type:token-exchange` dictionary in token's `grant_types_supported`.
 
-If present, the token exchange configuration may contain a `policy` object that describes a default
-policy `callable` and its `kwargs` through the `""` key. Different callables can be optionally
-defined for each token type supported.
+If present, the token exchange configuration may contain a `policy` dictionary 
+that defines the behaviour for each subject token type. Each subject token type
+is mapped to a dictionary with the keys `callable` (mandatory), which must be a 
+python callable or a string that represents the path to a python callable, and 
+`kwargs` (optional), which must be a dict of key-value arguments that will be 
+passed to the callable.
+
+The key `""` represents a fallback policy that will be used if the subject token 
+type can't be found. If a subject token type is defined in the `policy` but is 
+not in the `subject_token_types_supported` list then it is ignored.
 
 ```
 "grant_types_supported":{
   "urn:ietf:params:oauth:grant-type:token-exchange": {
-    "class": "oidcop.oidc.token.TokenExchangeHelper",
+    "class": "oidcop.oauth2.token.TokenExchangeHelper",
     "kwargs": {
       "subject_token_types_supported": [
         "urn:ietf:params:oauth:token-type:access_token",
