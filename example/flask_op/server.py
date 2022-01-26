@@ -4,9 +4,10 @@ import json
 import logging
 import os
 
-from oidcop.configure import Configuration
+from oidcmsg.configure import Configuration
+from oidcmsg.configure import create_from_config_file
+
 from oidcop.configure import OPConfiguration
-from oidcop.configure import create_from_config_file
 from oidcop.utils import create_context
 
 try:
@@ -62,7 +63,7 @@ def main(config_file, args):
     app = oidc_provider_init_app(config.op, 'oidc_op')
     app.logger = config.logger
 
-    web_conf = config.webserver
+    web_conf = config.web_conf
 
     context = create_context(dir_path, web_conf)
 
