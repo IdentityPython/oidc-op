@@ -117,7 +117,10 @@ class ClaimsInterface:
             _always_add = module.kwargs.get("always_add_claims", {})
 
         if _always_add:
-            base_claims.update({k: None for k in _always_add})
+            if isinstance(_always_add, list):
+                base_claims.update({k: None for k in _always_add})
+            else:
+                base_claims.update(_always_add)
 
         if _claims_by_scope:
             if scopes is None:
