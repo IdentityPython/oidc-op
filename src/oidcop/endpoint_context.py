@@ -148,6 +148,7 @@ class EndpointContext(OidcContext):
 
         # Default values, to be changed below depending on configuration
         # arguments for endpoints add-ons
+        self.add_on = {}
         self.args = {}
         self.authn_broker = None
         self.authz = None
