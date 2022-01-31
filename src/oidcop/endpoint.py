@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Callable
 from typing import Optional
@@ -363,7 +364,10 @@ class Endpoint(object):
                 if self.response_placement == "body":
                     if self.response_format == "json":
                         content_type = "application/json; charset=utf-8"
-                        resp = _response.to_json()
+                        if isinstance(_response, Message):
+                            resp = _response.to_json()
+                        else:
+                            resp = json.dumps(_response)
                     elif self.response_format in ["jws", "jwe", "jose"]:
                         content_type = "application/jose; charset=utf-8"
                         resp = _response
