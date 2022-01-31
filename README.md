@@ -31,6 +31,7 @@ It also comes with the following `add_on` modules.
 * [Proof Key for Code Exchange by OAuth Public Clients (PKCE)](https://tools.ietf.org/html/rfc7636)
 * [OAuth2 RAR](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-rar)
 * [OAuth2 DPoP](https://tools.ietf.org/id/draft-fett-oauth-dpop-04.html)
+* [OAuth 2.0 Authorization Server Issuer Identification](https://datatracker.ietf.org/doc/draft-ietf-oauth-iss-auth-resp)
 
 The entire project code is open sourced and therefore licensed under the [Apache 2.0](https://en.wikipedia.org/wiki/Apache_License)
 
