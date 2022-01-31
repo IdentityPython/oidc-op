@@ -227,7 +227,7 @@ class Grant(Item):
         if self.authorization_request:
             client_id = self.authorization_request.get("client_id")
             if client_id:
-                payload.update({"client_id": client_id, "sub": client_id})
+                payload.update({"client_id": client_id, "sub": self.sub})
 
         _claims_restriction = endpoint_context.claims_interface.get_claims(
             session_id,
