@@ -90,10 +90,10 @@ def max_age(request):
 
 
 def verify_uri(
-    endpoint_context: EndpointContext,
-    request: Union[dict, Message],
-    uri_type: str,
-    client_id: Optional[str] = None,
+        endpoint_context: EndpointContext,
+        request: Union[dict, Message],
+        uri_type: str,
+        client_id: Optional[str] = None,
 ):
     """
     A redirect URI
@@ -220,10 +220,10 @@ def get_uri(endpoint_context, request, uri_type):
 
 
 def authn_args_gather(
-    request: Union[AuthorizationRequest, dict],
-    authn_class_ref: str,
-    cinfo: dict,
-    **kwargs,
+        request: Union[AuthorizationRequest, dict],
+        authn_class_ref: str,
+        cinfo: dict,
+        **kwargs,
 ):
     """
     Gather information to be used by the authentication method
@@ -527,13 +527,13 @@ class Authorization(Endpoint):
         return json.loads(as_unicode(_id))
 
     def setup_auth(
-        self,
-        request: Optional[Union[Message, dict]],
-        redirect_uri: str,
-        cinfo: dict,
-        cookie: List[dict] = None,
-        acr: str = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]],
+            redirect_uri: str,
+            cinfo: dict,
+            cookie: List[dict] = None,
+            acr: str = None,
+            **kwargs,
     ) -> dict:
         """
 
@@ -655,15 +655,12 @@ class Authorization(Endpoint):
     def aresp_check(self, aresp, request):
         return ""
 
-    def response_mode(
-        self,
-        request: Union[dict, AuthorizationRequest],
-        response_args: Optional[Union[dict, AuthorizationResponse]] = None,
-        return_uri: Optional[str] = "",
-        fragment_enc: Optional[bool] = None,
-        **kwargs,
-    ) -> dict:
-        resp_mode = request["response_mode"]
+    def verify_response_mode(self,
+                             resp_mode: str,
+                             response_args: Optional[Union[dict, AuthorizationResponse]] = None,
+                             return_uri: Optional[str] = "",
+                             fragment_enc: Optional[bool] = False) -> dict:
+        kwargs = {}
         if resp_mode == "form_post":
             if isinstance(response_args, AuthorizationRequest):
                 _args = response_args.to_dict()
@@ -678,13 +675,11 @@ class Authorization(Endpoint):
                     del _args["return_type"]
 
             msg = FORM_POST.format(inputs=inputs(_args), action=return_uri)
-            kwargs.update(
-                {
-                    "response_msg": msg,
-                    "content_type": "text/html",
-                    "response_placement": "body",
-                }
-            )
+            kwargs = {
+                "response_msg": msg,
+                "content_type": "text/html",
+                "response_placement": "body",
+            }
         elif resp_mode == "fragment":
             if fragment_enc is False:
                 # Can't be done
@@ -697,6 +692,31 @@ class Authorization(Endpoint):
                 raise InvalidRequest("wrong response_mode")
         else:
             raise InvalidRequest("Unknown response_mode")
+
+        return kwargs
+
+    def get_default_reponse_mode(self,
+                                 request: Union[dict, AuthorizationRequest]) -> str:
+        response_type = request['response_type']
+        if response_type == "code":
+            return "query"
+        else:
+            return "fragment"
+
+    def response_mode(
+            self,
+            request: Union[dict, AuthorizationRequest],
+            response_args: Optional[Union[dict, AuthorizationResponse]] = None,
+            return_uri: Optional[str] = "",
+            fragment_enc: Optional[bool] = None,
+            **kwargs,
+    ) -> dict:
+        resp_mode = request.get("response_mode")
+        if resp_mode:
+            kwargs.update(
+                self.verify_response_mode(resp_mode, response_args, return_uri, fragment_enc))
+        else:
+            resp_mode = self.get_default_reponse_mode(request)
 
         if resp_mode in ["fragment", "query"]:
             kwargs.update({"response_args": response_args, "return_uri": return_uri})
@@ -960,10 +980,10 @@ class Authorization(Endpoint):
         return kwargs
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ):
         """The AuthorizationRequest endpoint
 

@@ -191,13 +191,6 @@ class Endpoint(object):
             req.verify(keyjar=keyjar, opponent_id=_client_id)
         except (MissingRequiredAttribute, ValueError, MissingRequiredValue) as err:
             return self.process_verify_error(err)
-            _error = "invalid_request"
-            if isinstance(err, ValueError) and self.request_cls == RegistrationRequest:
-                if len(err.args) > 1:
-                    if err.args[1] == "initiate_login_uri":
-                        _error = "invalid_client_metadata"
-
-            return self.error_cls(error=_error, error_description="%s" % err)
 
         LOGGER.info("Parsed and verified request: %s" % sanitize(req))
 
