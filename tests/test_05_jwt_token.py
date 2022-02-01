@@ -6,6 +6,7 @@ from cryptojwt.key_jar import init_key_jar
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.time_util import utc_time_sans_frac
+from oidcop.scopes import SCOPE2CLAIMS
 
 from oidcop import user_info
 from oidcop.authn_event import create_authn_event
@@ -275,3 +276,157 @@ class TestEndpoint(object):
         assert access_token.is_active()
         # 4000 seconds in the future. Passed the lifetime.
         assert access_token.is_active(now=utc_time_sans_frac() + 4000) is False
+
+
+class TestEndpointWebID(object):
+    @pytest.fixture(autouse=True)
+    def create_endpoint(self):
+        _scope2claims = SCOPE2CLAIMS.copy()
+        _scope2claims.update({"webid": ["webid"]})
+        conf = {
+            "issuer": ISSUER,
+            "httpc_params": {"verify": False, "timeout": 1},
+            "capabilities": CAPABILITIES,
+            "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+            "token_handler_args": {
+                "jwks_file": "private/token_jwks.json",
+                "code": {"lifetime": 600},
+                "token": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "base_claims": {"eduperson_scoped_affiliation": None},
+                        "add_claims_by_scope": True,
+                        "aud": ["https://example.org/appl"],
+                    },
+                },
+                "refresh": {
+                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                },
+                "id_token": {
+                    "class": "oidcop.token.id_token.IDToken",
+                    "kwargs": {
+                        "base_claims": {
+                            "email": {"essential": True},
+                            "email_verified": {"essential": True},
+                        }
+                    },
+                },
+            },
+            "endpoint": {
+                "provider_config": {
+                    "path": "{}/.well-known/openid-configuration",
+                    "class": ProviderConfiguration,
+                    "kwargs": {},
+                },
+                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {}, },
+                "authorization": {
+                    "path": "{}/authorization",
+                    "class": Authorization,
+                    "kwargs": {},
+                },
+                "token": {"path": "{}/token", "class": Token, "kwargs": {}},
+                "session": {"path": "{}/end_session", "class": Session},
+                "introspection": {"path": "{}/introspection", "class": Introspection},
+            },
+            "client_authn": verify_client,
+            "authentication": {
+                "anon": {
+                    "acr": INTERNETPROTOCOLPASSWORD,
+                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "kwargs": {"user": "diana"},
+                }
+            },
+            "template_dir": "template",
+            "userinfo": {
+                "class": user_info.UserInfo,
+                "kwargs": {"db_file": full_path("users.json")},
+            },
+            "authz": {
+                "class": AuthzHandling,
+                "kwargs": {
+                    "grant_config": {
+                        "usage_rules": {
+                            "authorization_code": {
+                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                                "max_usage": 1,
+                            },
+                            "access_token": {},
+                            "refresh_token": {
+                                "supports_minting": ["access_token", "refresh_token"],
+                            },
+                        },
+                        "expires_in": 43200,
+                    }
+                },
+            },
+            "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
+            "scopes_to_claims": _scope2claims,
+        }
+        server = Server(conf, keyjar=KEYJAR)
+        self.endpoint_context = server.endpoint_context
+        self.endpoint_context.cdb["client_1"] = {
+            "client_secret": "hemligt",
+            "redirect_uris": [("https://example.com/cb", None)],
+            "client_salt": "salted",
+            "token_endpoint_auth_method": "client_secret_post",
+            "response_types": ["code", "token", "code id_token", "id_token"],
+            "add_claims": {
+                "always": {},
+                "by_scope": {},
+            },
+        }
+        self.session_manager = self.endpoint_context.session_manager
+        self.user_id = "diana"
+        self.endpoint = server.server_get("endpoint", "session")
+
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
+        if sector_identifier:
+            authz_req = auth_req.copy()
+            authz_req["sector_identifier_uri"] = sector_identifier
+        else:
+            authz_req = auth_req
+        client_id = authz_req["client_id"]
+        ae = create_authn_event(self.user_id)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
+
+    def _mint_token(self, token_class, grant, session_id, based_on=None, **kwargs):
+        # Constructing an authorization code is now done
+        return grant.mint_token(
+            session_id=session_id,
+            endpoint_context=self.endpoint_context,
+            token_class=token_class,
+            token_handler=self.session_manager.token_handler.handler[token_class],
+            expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
+            based_on=based_on,
+            **kwargs
+        )
+
+    def test_parse(self):
+        _auth_req = AuthorizationRequest(
+            client_id="client_1",
+            redirect_uri="https://example.com/cb",
+            scope=["openid", "webid"],
+            state="STATE",
+            response_type="code",
+        )
+
+        session_id = self._create_session(_auth_req)
+        # apply consent
+        grant = self.endpoint_context.authz(session_id=session_id, request=_auth_req)
+        # grant = self.session_manager[session_id]
+        code = self._mint_token("authorization_code", grant, session_id)
+        access_token = self._mint_token(
+            "access_token", grant, session_id, code, resources=[_auth_req["client_id"]]
+        )
+
+        _verifier = JWT(self.endpoint_context.keyjar)
+        _info = _verifier.unpack(access_token.value)
+
+        assert _info["token_class"] == "access_token"
+        # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
+        assert set(_info["aud"]) == {"client_1"}
+        assert "webid" in _info
