@@ -119,13 +119,13 @@ class EndpointContext(OidcContext):
     }
 
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration],
-        server_get: Callable,
-        keyjar: Optional[KeyJar] = None,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
+            self,
+            conf: Union[dict, OPConfiguration],
+            server_get: Callable,
+            keyjar: Optional[KeyJar] = None,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
     ):
         OidcContext.__init__(self, conf, keyjar, entity_id=conf.get("issuer", ""))
         self.conf = conf
@@ -148,6 +148,7 @@ class EndpointContext(OidcContext):
 
         # Default values, to be changed below depending on configuration
         # arguments for endpoints add-ons
+        self.add_on = {}
         self.args = {}
         self.authn_broker = None
         self.authz = None
@@ -161,7 +162,7 @@ class EndpointContext(OidcContext):
         self.login_hint2acrs = None
         self.par_db = {}
         self.provider_info = {}
-        self.scope2claims = SCOPE2CLAIMS
+        self.scope2claims = conf.get("scopes_to_claims", SCOPE2CLAIMS)
         self.session_manager = None
         self.sso_ttl = 14400  # 4h
         self.symkey = rndstr(24)
@@ -215,7 +216,6 @@ class EndpointContext(OidcContext):
             "cookie_handler",
             "authentication",
             "id_token",
-            "scope2claims",
         ]:
             _func = getattr(self, "do_{}".format(item), None)
             if _func:

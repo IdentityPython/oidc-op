@@ -15,7 +15,8 @@
     },
     "eduperson_scoped_affiliation": [
       "staff@example.org"
-    ]
+    ],
+    "webid": "http://bblfish.net/#hjs"
   },
   "babs": {
     "name": "Barbara J Jensen",
