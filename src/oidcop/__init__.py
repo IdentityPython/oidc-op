@@ -1,6 +1,6 @@
 import secrets
 
-__version__ = "2.3.5"
+__version__ = "2.4.0"
 
 DEF_SIGN_ALG = {
     "id_token": "RS256",
