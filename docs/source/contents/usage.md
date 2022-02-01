@@ -52,8 +52,9 @@ We can even test the single logout
 Refresh token
 -------------
 
-Here an example about how to refresh a token.
-It is important to consider that only scope=offline_access will get a usable refresh token.
+To obtain a refresh token, you have to use `response_type=code`, add `offline_access` to `scope` and also use `prompt=consent`, otherwise there will be an error (based on [OpenID Connect specification](https://openid.net/specs/openid-connect-core-1_0.html#rfc.section.11)).
+
+To refresh a token:
 
 
     import requests
@@ -73,7 +74,7 @@ It is important to consider that only scope=offline_access will get a usable ref
         'https://127.0.0.1:8000/oidcop/token', verify=False, data=data, headers=headers
     )
 
-oidc-op will return a json response like this::
+oidc-op will return a json response like this:
 
     {
      'access_token': 'eyJhbGc ... CIOH_09tT_YVa_gyTqg',

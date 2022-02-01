@@ -27,6 +27,7 @@ It also comes with the following `add_on` modules.
 
 * Custom scopes, that extends `[OIDC standard ScopeClaims] <https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims>`_
 * `Proof Key for Code Exchange by OAuth Public Clients (PKCE) <https://tools.ietf.org/html/rfc7636>`_
+* `OAuth2 PAR <https://datatracker.ietf.org/doc/html/rfc9126>`_ 
 * `OAuth2 RAR <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-rar>`_
 * `OAuth2 DPoP <https://tools.ietf.org/id/draft-fett-oauth-dpop-04.html>`_
 

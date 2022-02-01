@@ -111,6 +111,7 @@ def test_capabilities_default():
         "code id_token token",
     }
     assert server.endpoint_context.provider_info["request_uri_parameter_supported"] is True
+    assert server.endpoint_context.jwks_uri == 'https://127.0.0.1:80/static/jwks.json'
 
 
 def test_capabilities_subset1():

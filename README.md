@@ -29,6 +29,7 @@ It also comes with the following `add_on` modules.
 
 * Custom scopes, that extends [OIDC standard ScopeClaims](https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims)
 * [Proof Key for Code Exchange by OAuth Public Clients (PKCE)](https://tools.ietf.org/html/rfc7636)
+* [OAuth2 PAR](https://datatracker.ietf.org/doc/html/rfc9126)
 * [OAuth2 RAR](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-rar)
 * [OAuth2 DPoP](https://tools.ietf.org/id/draft-fett-oauth-dpop-04.html)
 * [OAuth 2.0 Authorization Server Issuer Identification](https://datatracker.ietf.org/doc/draft-ietf-oauth-iss-auth-resp)
@@ -36,6 +37,9 @@ It also comes with the following `add_on` modules.
 The entire project code is open sourced and therefore licensed under the [Apache 2.0](https://en.wikipedia.org/wiki/Apache_License)
 
 For any futher information please read the [Official Documentation](https://oidcop.readthedocs.io/en/latest/).
+
+# Certifications
+[![OIDC Certification](https://openid.net/wordpress-content/uploads/2016/04/oid-l-certification-mark-l-rgb-150dpi-90mm-300x157.png)](https://www.certification.openid.net/plan-detail.html?public=true&plan=7p3iPQmff6Ohv)
 
 
 # Contribute
