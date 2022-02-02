@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlparse
 
 from cryptojwt.jwk.ec import ECKey
 from cryptojwt.jwk.ec import new_ec_key
@@ -6,6 +7,7 @@ from cryptojwt.jws.jws import factory
 from cryptojwt.key_jar import init_key_jar
 from oidcmsg.oauth2 import AccessTokenRequest
 from oidcmsg.oauth2 import AuthorizationRequest
+from oidcmsg.oauth2 import AuthorizationResponse
 from oidcmsg.time_util import utc_time_sans_frac
 
 from oidcop.authn_event import create_authn_event
@@ -155,15 +157,10 @@ class TestEndpoint(object):
         _context = self.endpoint.server_get("endpoint_context")
         assert _context.add_on["extra_args"] == {'authorization': {'iss': 'issuer'}}
 
-        _pr_resp = self.endpoint.parse_request(AUTH_REQ.to_dict())
-        _resp = self.endpoint.process_request(_pr_resp)
-        assert set(_resp.keys()) == {
-            "response_args",
-            "fragment_enc",
-            "return_uri",
-            "cookie",
-            "session_id",
-        }
-
-        assert 'iss' in _resp["response_args"]
-        assert _resp["response_args"]["iss"] == _context.issuer
+        _pr_resp = self.endpoint.parse_request(AUTH_REQ)
+        _args = self.endpoint.process_request(_pr_resp)
+        _resp = self.endpoint.do_response(request=AUTH_REQ, **_args)
+        parse_res = urlparse(_resp["response"])
+        _payload = AuthorizationResponse().from_urlencoded(parse_res.query)
+        assert 'iss' in _payload
+        assert _payload["iss"] == _context.issuer
