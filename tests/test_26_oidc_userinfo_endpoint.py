@@ -12,6 +12,7 @@ from oidcop.authn_event import create_authn_event
 from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
 from oidcop.exception import ImproperlyConfigured
+from oidcop.exception import BearerTokenAuthenticationError
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -513,11 +514,8 @@ class TestEndpoint(object):
 
         monkeypatch.setattr("oidcop.token.utc_time_sans_frac", mock)
 
-        _req = self.endpoint.parse_request({}, http_info=http_info)
-
-        assert _req.to_dict() == {
-            "error": "invalid_token", "error_description": "Expired token"
-        }
+        with pytest.raises(BearerTokenAuthenticationError):
+            self.endpoint.parse_request({}, http_info=http_info)
 
     def test_userinfo_claims(self):
         _acr = "https://refeds.org/profile/mfa"
