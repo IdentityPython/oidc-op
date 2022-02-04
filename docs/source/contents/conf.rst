@@ -178,6 +178,7 @@ An example::
         - implicit
         - urn:ietf:params:oauth:grant-type:jwt-bearer
         - refresh_token
+        - urn:ietf:params:oauth:grant-type:token-exchange
       claim_types_supported:
         - normal
         - aggregated
@@ -486,7 +487,8 @@ An example::
                         "supports_minting": ["access_token", "refresh_token"]
                     }
                 },
-                "expires_in": 43200
+                "expires_in": 43200,
+                "audience": ['https://www.example.com']
             }
         }
       },
@@ -661,6 +663,127 @@ the following::
         }
     }
 
+==============
+Token exchange
+==============
+There are two possible ways to configure Token Exchange in OIDC-OP, globally and per-client.
+For the first case the configuration is passed in the Token Exchange handler throught the
+`urn:ietf:params:oauth:grant-type:token-exchange` dictionary in token's `grant_types_supported`.
+
+If present, the token exchange configuration may contain a `policy` dictionary 
+that defines the behaviour for each subject token type. Each subject token type
+is mapped to a dictionary with the keys `callable` (mandatory), which must be a 
+python callable or a string that represents the path to a python callable, and 
+`kwargs` (optional), which must be a dict of key-value arguments that will be 
+passed to the callable.
+
+The key `""` represents a fallback policy that will be used if the subject token 
+type can't be found. If a subject token type is defined in the `policy` but is 
+not in the `subject_token_types_supported` list then it is ignored.
+
+```
+"grant_types_supported":{
+  "urn:ietf:params:oauth:grant-type:token-exchange": {
+    "class": "oidcop.oauth2.token.TokenExchangeHelper",
+    "kwargs": {
+      "subject_token_types_supported": [
+        "urn:ietf:params:oauth:token-type:access_token",
+        "urn:ietf:params:oauth:token-type:refresh_token",
+        "urn:ietf:params:oauth:token-type:id_token"
+      ],
+      "requested_token_types_supported": [
+        "urn:ietf:params:oauth:token-type:access_token",
+        "urn:ietf:params:oauth:token-type:refresh_token",
+        "urn:ietf:params:oauth:token-type:id_token"
+      ],
+      "policy": {
+        "urn:ietf:params:oauth:token-type:access_token": {
+          "callable": "/path/to/callable",
+          "kwargs": {
+            "audience": ["https://example.com"],
+            "scopes": ["openid"]
+          }
+        },
+        "urn:ietf:params:oauth:token-type:refresh_token": {
+          "callable": "/path/to/callable",
+          "kwargs": {
+            "resource": ["https://example.com"],
+            "scopes": ["openid"]
+          }
+        },
+        "": {
+          "callable": "/path/to/callable",
+          "kwargs": {
+            "scopes": ["openid"]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+For the per-client configuration a similar configuration scheme should be present in the client's
+metadata under the `token_exchange` key.
+
+For example:
+
+```
+"token_exchange":{
+  "urn:ietf:params:oauth:grant-type:token-exchange": {
+    "class": "oidcop.oidc.token.TokenExchangeHelper",
+    "kwargs": {
+      "subject_token_types_supported": [
+        "urn:ietf:params:oauth:token-type:access_token",
+        "urn:ietf:params:oauth:token-type:refresh_token",
+        "urn:ietf:params:oauth:token-type:id_token"
+      ],
+      "requested_token_types_supported": [
+        "urn:ietf:params:oauth:token-type:access_token",
+        "urn:ietf:params:oauth:token-type:refresh_token",
+        "urn:ietf:params:oauth:token-type:id_token"
+      ],
+      "policy": {
+        "urn:ietf:params:oauth:token-type:access_token": {
+          "callable": "/path/to/callable",
+          "kwargs": {
+            "audience": ["https://example.com"],
+            "scopes": ["openid"]
+          }
+        },
+        "urn:ietf:params:oauth:token-type:refresh_token": {
+          "callable": "/path/to/callable",
+          "kwargs": {
+            "resource": ["https://example.com"],
+            "scopes": ["openid"]
+          }
+        },
+        "": {
+          "callable": "/path/to/callable",
+          "kwargs": {
+            "scopes": ["openid"]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+The policy callable accepts a specific argument list and must return the altered token exchange
+request or raise an exception.
+
+For example:
+
+```
+def custom_token_exchange_policy(request, context, subject_token, **kwargs):
+    if some_condition in request:
+      return TokenErrorResponse(
+            error="invalid_request", error_description="Some error occured"
+        )
+
+    return request
+```
 
 =======
 Clients

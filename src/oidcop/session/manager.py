@@ -1,26 +1,29 @@
 import hashlib
 import logging
 import os
+import uuid
 from typing import List
 from typing import Optional
-import uuid
 
 from oidcmsg.oauth2 import AuthorizationRequest
+from oidcmsg.oauth2 import TokenExchangeRequest
 
 from oidcop import rndstr
 from oidcop.authn_event import AuthnEvent
 from oidcop.exception import ConfigurationError
+from oidcop.session.database import NoSuchClientSession
 from oidcop.token import handler
 from oidcop.util import Crypt
-from oidcop.session.database import NoSuchClientSession
+
+from ..token import UnknownToken
+from ..token import WrongTokenClass
+from ..token.handler import TokenHandler
 from .database import Database
+from .grant import ExchangeGrant
 from .grant import Grant
 from .grant import SessionToken
 from .info import ClientSessionInfo
 from .info import UserSessionInfo
-from ..token import UnknownToken
-from ..token import WrongTokenClass
-from ..token.handler import TokenHandler
 
 logger = logging.getLogger(__name__)
 
@@ -198,6 +201,37 @@ class SessionManager(Database):
 
         return self.encrypted_session_id(user_id, client_id, grant.id)
 
+    def create_exchange_grant(
+        self,
+        exchange_request: TokenExchangeRequest,
+        original_session_id: str,
+        user_id: str,
+        client_id: Optional[str] = "",
+        sub_type: Optional[str] = "public",
+        token_usage_rules: Optional[dict] = None,
+        scopes: Optional[list] = None,
+    ) -> str:
+        """
+
+        :param scopes: Scopes
+        :param exchange_req:
+        :param user_id:
+        :param client_id:
+        :param sub_type:
+        :return:
+        """
+
+        grant = ExchangeGrant(
+            scope=scopes, original_session_id=original_session_id, exchange_request=exchange_request,
+            sub=self.sub_func[sub_type](
+                user_id, salt=self.salt, sector_identifier=""
+            ),
+            usage_rules=token_usage_rules,
+        )
+        self.set([user_id, client_id, grant.id], grant)
+
+        return self.encrypted_session_id(user_id, client_id, grant.id)
+
     def create_session(
         self,
         authn_event: AuthnEvent,
@@ -240,6 +274,55 @@ class SessionManager(Database):
         return self.create_grant(
             auth_req=auth_req,
             authn_event=authn_event,
+            user_id=user_id,
+            client_id=client_id,
+            sub_type=sub_type,
+            token_usage_rules=token_usage_rules,
+            scopes=scopes,
+        )
+
+    def create_exchange_session(
+        self,
+        exchange_request: TokenExchangeRequest,
+        original_session_id: str,
+        user_id: str,
+        client_id: Optional[str] = "",
+        sub_type: Optional[str] = "public",
+        token_usage_rules: Optional[dict] = None,
+        scopes: Optional[list] = None,
+    ) -> str:
+        """
+        Create part of a user session. The parts added are user- and client
+        information and a grant.
+
+        :param scopes:
+        :param authn_event: Authentication Event information
+        :param auth_req: Authorization Request
+        :param client_id: Client ID
+        :param user_id: User ID
+        :param sub_type: What kind of subject will be assigned
+        :param token_usage_rules: Rules for how tokens can be used
+        :return: Session key
+        """
+
+        try:
+            _usi = self.get([user_id])
+        except KeyError:
+            _usi = UserSessionInfo(user_id=user_id)
+            self.set([user_id], _usi)
+
+        if not client_id:
+            client_id = exchange_request["client_id"]
+
+        try:
+            self.get([user_id, client_id])
+        except (NoSuchClientSession, ValueError):
+            client_info = ClientSessionInfo(client_id=client_id)
+            self.set([user_id, client_id], client_info)
+
+        return self.create_exchange_grant(
+            exchange_request=exchange_request,
+            original_session_id=original_session_id,
             user_id=user_id,
             client_id=client_id,
             sub_type=sub_type,

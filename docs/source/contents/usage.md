@@ -126,3 +126,44 @@ oidc-op will return a json response like this::
         "oLyRj7sJJ3XvAYjeDCe8rQ"
       ]
     }
+
+Token exchange
+-------------
+
+Here an example about how to exchange an access token for a new access token.
+
+    import requests
+
+    CLIENT_ID=""
+    CLIENT_SECRET=""
+    SUBJECT_TOKEN=""
+    REQUESTED_TOKEN_TYPE="urn:ietf:params:oauth:token-type:access_token"
+
+    data = {
+        "grant_type" : "urn:ietf:params:oauth:grant-type:token-exchange",
+        "requested_token_type" : f"{REQUESTED_TOKEN_TYPE}",
+        "client_id" : f"{CLIENT_ID}",
+        "client_secret" : f"{CLIENT_SECRET}",
+        "subject_token" : f"{SUBJECT_TOKEN}"
+    }
+    headers = {'Content-Type': "application/x-www-form-urlencoded" }
+    response = requests.post(
+        'https://example.com/OIDC/token', verify=False, data=data, headers=headers
+    )
+
+oidc-op will return a json response like this::
+
+    {
+        "access_token": "eyJhbGciOiJFUzI1NiIsI...Bo6aQcOKEN-1U88jjKxLb-9Q",
+        "scope": "openid email",
+        "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "expires_in": 86400
+    }
+
+In order to request a refresh token the value of `requested_token_type` should be set to
+`urn:ietf:params:oauth:token-type:refresh_token`.
+
+The [RFC-8693](https://datatracker.ietf.org/doc/html/rfc8693) describes the `audience` parameter that 
+defines the authorized targets of a token exchange request.
+If `subject_token = urn:ietf:params:oauth:token-type:refresh_token` then `audience` should not be
+included in the token exchange request. 

@@ -2,10 +2,15 @@ import logging
 from typing import Optional
 from typing import Union
 
+from cryptojwt.exception import JWKESTException
 from cryptojwt.jwe.exception import JWEException
+from oidcmsg.exception import MissingRequiredAttribute
+from oidcmsg.exception import MissingRequiredValue
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AccessTokenResponse
 from oidcmsg.oauth2 import ResponseMessage
+from oidcmsg.oauth2 import TokenExchangeRequest
+from oidcmsg.oauth2 import TokenExchangeResponse
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
 from oidcmsg.time_util import utc_time_sans_frac
@@ -13,7 +18,11 @@ from oidcmsg.time_util import utc_time_sans_frac
 from oidcop import sanitize
 from oidcop.constant import DEFAULT_TOKEN_LIFETIME
 from oidcop.endpoint import Endpoint
+from oidcop.exception import ImproperlyConfigured
 from oidcop.exception import ProcessError
+from oidcop.exception import ToOld
+from oidcop.exception import UnAuthorizedClientScope
+from oidcop.oauth2.authorization import check_unknown_scopes_policy
 from oidcop.session.grant import AuthorizationCode
 from oidcop.session.grant import Grant
 from oidcop.session.grant import RefreshToken
@@ -68,7 +77,7 @@ class TokenEndpointHelper(object):
             token_args = meth(_context, client_id, token_args)
 
         if token_args:
-            _args = {"token_args": token_args}
+            _args = token_args
         else:
             _args = {}
 
@@ -248,7 +257,6 @@ class RefreshTokenHelper(TokenEndpointHelper):
         _grant = _session_info["grant"]
 
         token_type = "Bearer"
-
         # Is DPOP supported
         if "dpop_signing_alg_values_supported" in _context.provider_info:
             _dpop_jkt = req.get("dpop_jkt")
@@ -358,6 +366,270 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         return request
 
+
+class TokenExchangeHelper(TokenEndpointHelper):
+    """Implements Token Exchange a.k.a. RFC8693"""
+
+    token_types_mapping = {
+        "urn:ietf:params:oauth:token-type:access_token": "access_token",
+        "urn:ietf:params:oauth:token-type:refresh_token": "refresh_token",
+    }
+
+    def __init__(self, endpoint, config=None):
+        TokenEndpointHelper.__init__(self, endpoint=endpoint, config=config)
+        if config is None:
+            self.config = {
+                "subject_token_types_supported": [
+                    "urn:ietf:params:oauth:token-type:access_token",
+                    "urn:ietf:params:oauth:token-type:refresh_token",
+                ],
+                "requested_token_types_supported": [
+                    "urn:ietf:params:oauth:token-type:access_token",
+                    "urn:ietf:params:oauth:token-type:refresh_token",
+                ],
+                "policy": {"": {"callable": default_token_exchange_policy}},
+            }
+        else:
+            self.config = config
+
+    def post_parse_request(self, request, client_id="", **kwargs):
+        request = TokenExchangeRequest(**request.to_dict())
+
+        _context = self.endpoint.server_get("endpoint_context")
+        if "token_exchange" in _context.cdb[request["client_id"]]:
+            config = _context.cdb[request["client_id"]]["token_exchange"]
+        else:
+            config = self.config
+
+        try:
+            keyjar = _context.keyjar
+        except AttributeError:
+            keyjar = ""
+
+        try:
+            request.verify(keyjar=keyjar, opponent_id=client_id)
+        except (
+            MissingRequiredAttribute,
+            ValueError,
+            MissingRequiredValue,
+            JWKESTException,
+        ) as err:
+            return self.endpoint.error_cls(error="invalid_request", error_description="%s" % err)
+
+        _mngr = _context.session_manager
+        try:
+            _session_info = _mngr.get_session_info_by_token(request["subject_token"], grant=True)
+        except (KeyError, UnknownToken):
+            logger.error("Subject token invalid.")
+            return self.error_cls(
+                error="invalid_request", error_description="Subject token invalid"
+            )
+
+        token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
+        if token.is_active() is False:
+            return self.error_cls(
+                error="invalid_request", error_description="Subject token inactive"
+            )
+
+        resp = self._enforce_policy(request, token, config)
+
+        return resp
+
+    def _enforce_policy(self, request, token, config):
+        _context = self.endpoint.server_get("endpoint_context")
+        subject_token_types_supported = config.get(
+            "subject_token_types_supported", self.token_types_mapping.keys()
+        )
+        subject_token_type = request["subject_token_type"]
+        if subject_token_type not in subject_token_types_supported:
+            return TokenErrorResponse(
+                error="invalid_request",
+                error_description="Unsupported subject token type",
+            )
+        if self.token_types_mapping[subject_token_type] != token.token_class:
+            return TokenErrorResponse(
+                error="invalid_request",
+                error_description="Wrong token type",
+            )
+
+        if (
+            "requested_token_type" in request
+            and request["requested_token_type"] not in config["requested_token_types_supported"]
+        ):
+            return TokenErrorResponse(
+                error="invalid_request",
+                error_description="Unsupported requested token type",
+            )
+
+        request_info = dict(scope=request.get("scope", []))
+        try:
+            check_unknown_scopes_policy(request_info, request["client_id"], _context)
+        except UnAuthorizedClientScope:
+            return self.error_cls(
+                error="invalid_grant",
+                error_description="Unauthorized scope requested",
+            )
+
+        if subject_token_type not in config["policy"]:
+            if "" not in config["policy"]:
+                raise ImproperlyConfigured(
+                    "subject_token_type {subject_token_type} missing from "
+                    "policy and no default is defined"
+                )
+            subject_token_type = ""
+
+        policy = config["policy"][subject_token_type]
+        callable = policy["callable"]
+        kwargs = policy.get("kwargs", {})
+
+        if isinstance(callable, str):
+            try:
+                fn = importer(callable)
+            except Exception:
+                raise ImproperlyConfigured(f"Error importing {callable} policy callable")
+        else:
+            fn = callable
+
+        try:
+            return fn(request, context=_context, subject_token=token, **kwargs)
+        except Exception as e:
+            logger.error(f"Error while executing the {fn} policy callable: {e}")
+            return self.error_cls(error="server_error", error_description="Internal server error")
+
+    def token_exchange_response(self, token):
+        response_args = {}
+        response_args["access_token"] = token.value
+        response_args["scope"] = token.scope
+        response_args["issued_token_type"] = token.token_class
+        if token.expires_at:
+            response_args["expires_in"] = token.expires_at - utc_time_sans_frac()
+        if hasattr(token, "token_type"):
+            response_args["token_type"] = token.token_type
+        else:
+            response_args["token_type"] = "N_A"
+
+        return TokenExchangeResponse(**response_args)
+
+    def process_request(self, request, **kwargs):
+        _context = self.endpoint.server_get("endpoint_context")
+        _mngr = _context.session_manager
+        try:
+            _session_info = _mngr.get_session_info_by_token(request["subject_token"], grant=True)
+        except ToOld:
+            logger.error("Subject token has expired.")
+            return self.error_cls(
+                error="invalid_request", error_description="Subject token has expired"
+            )
+        except (KeyError, UnknownToken):
+            logger.error("Subject token invalid.")
+            return self.error_cls(
+                error="invalid_request", error_description="Subject token invalid"
+            )
+
+        token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
+        _requested_token_type = request.get(
+            "requested_token_type", "urn:ietf:params:oauth:token-type:access_token"
+        )
+
+        _token_class = self.token_types_mapping[_requested_token_type]
+
+        sid = _session_info["session_id"]
+
+        _token_type = "Bearer"
+        # Is DPOP supported
+        if "dpop_signing_alg_values_supported" in _context.provider_info:
+            if request.get("dpop_jkt"):
+                _token_type = "DPoP"
+
+        if request["client_id"] != _session_info["client_id"]:
+            _token_usage_rules = _context.authz.usage_rules(request["client_id"])
+
+            sid = _mngr.create_exchange_session(
+                exchange_request=request,
+                original_session_id=sid,
+                user_id=_session_info["user_id"],
+                client_id=request["client_id"],
+                token_usage_rules=_token_usage_rules,
+            )
+
+            try:
+                _session_info = _mngr.get_session_info(session_id=sid, grant=True)
+            except Exception:
+                logger.error("Error retrieving token exchange session information")
+                return self.error_cls(
+                    error="server_error", error_description="Internal server error"
+                )
+
+        resources = request.get("resource")
+        if resources and request.get("audience"):
+            resources = list(set(resources + request.get("audience")))
+        else:
+            resources = request.get("audience")
+
+        try:
+            new_token = self._mint_token(
+                token_class=_token_class,
+                grant=_session_info["grant"],
+                session_id=sid,
+                client_id=request["client_id"],
+                based_on=token,
+                scope=request.get("scope"),
+                token_args={
+                    "resources": resources,
+                },
+                token_type=_token_type,
+            )
+        except MintingNotAllowed:
+            logger.error(f"Minting not allowed for {_token_class}")
+            return self.error_cls(
+                error="invalid_grant",
+                error_description="Token Exchange not allowed with that token",
+            )
+
+        return self.token_exchange_response(token=new_token)
+
+
+def default_token_exchange_policy(request, context, subject_token, **kwargs):
+    if "resource" in request:
+        resource = kwargs.get("resource", [])
+        if not set(request["resource"]).issubset(set(resource)):
+            return TokenErrorResponse(error="invalid_target", error_description="Unknown resource")
+
+    if "audience" in request:
+        if request["subject_token_type"] == "urn:ietf:params:oauth:token-type:refresh_token":
+            return TokenErrorResponse(
+                error="invalid_target", error_description="Refresh token has single owner"
+            )
+        audience = kwargs.get("audience", [])
+        if audience and not set(request["audience"]).issubset(set(audience)):
+            return TokenErrorResponse(error="invalid_target", error_description="Unknown audience")
+
+    if "actor_token" in request or "actor_token_type" in request:
+        return TokenErrorResponse(
+            error="invalid_request", error_description="Actor token not supported"
+        )
+
+    if (
+        "requested_token_type" in request
+        and request["requested_token_type"] == "urn:ietf:params:oauth:token-type:refresh_token"
+    ):
+        if "offline_access" not in subject_token.scope:
+            return TokenErrorResponse(
+                error="invalid_request",
+                error_description=f"Exchange {request['subject_token_type']} to refresh token forbbiden",
+            )
+
+    if "scope" in request:
+        scopes = list(set(request.get("scope")).intersection(kwargs.get("scope")))
+        if scopes:
+            request["scope"] = scopes
+        else:
+            return TokenErrorResponse(
+                error="invalid_request",
+                error_description="No supported scope requested",
+            )
+
+    return request
 
 class Token(Endpoint):
     request_cls = Message

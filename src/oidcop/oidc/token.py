@@ -1,22 +1,36 @@
 import logging
 from typing import Optional
 from typing import Union
+from urllib.parse import urlparse
 
+from cryptojwt.exception import JWKESTException
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg import oidc
+from oidcmsg.exception import MissingRequiredAttribute
+from oidcmsg.exception import MissingRequiredValue
 from oidcmsg.message import Message
+from oidcmsg.oauth2 import ResponseMessage
+from oidcmsg.oauth2 import TokenExchangeRequest
+from oidcmsg.oauth2 import TokenExchangeResponse
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
 
 from oidcop import oauth2
 from oidcop import sanitize
+from oidcop.authn_event import create_authn_event
+from oidcop.exception import ToOld
+from oidcop.exception import UnAuthorizedClientScope
+from oidcop.oauth2.authorization import check_unknown_scopes_policy
 from oidcop.oauth2.token import TokenEndpointHelper
+from oidcop.oauth2.token import TokenExchangeHelper as OAuth2TokenExchangeHelper
 from oidcop.session.grant import AuthorizationCode
 from oidcop.session.grant import RefreshToken
+from oidcop.session.token import AccessToken
 from oidcop.session.token import MintingNotAllowed
 from oidcop.token.exception import UnknownToken
+from oidcop.util import importer
 
 logger = logging.getLogger(__name__)
 
@@ -209,6 +223,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token_value = req["refresh_token"]
         _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+        grant = _session_info["grant"]
+        audience = grant.authorization_request.get("audience", {})
         if _session_info["client_id"] != req["client_id"]:
             logger.debug("{} owner of token".format(_session_info["client_id"]))
             logger.warning("{} using token it was not given".format(req["client_id"]))
@@ -353,6 +369,14 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return request
 
 
+class TokenExchangeHelper(OAuth2TokenExchangeHelper):
+
+    token_types_mapping = {
+        "urn:ietf:params:oauth:token-type:access_token": "access_token",
+        "urn:ietf:params:oauth:token-type:refresh_token": "refresh_token",
+        "urn:ietf:params:oauth:token-type:id_token": "id_token",
+    }
+
 class Token(oauth2.token.Token):
     request_cls = Message
     response_cls = oidc.AccessTokenResponse
@@ -367,4 +391,5 @@ class Token(oauth2.token.Token):
     helper_by_grant_type = {
         "authorization_code": AccessTokenHelper,
         "refresh_token": RefreshTokenHelper,
+        "urn:ietf:params:oauth:grant-type:token-exchange": TokenExchangeHelper,
     }

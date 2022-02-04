@@ -323,6 +323,7 @@ class TestEndpoint(object):
 
         session_id = self._create_session(_auth_req)
         grant = self.session_manager[session_id]
+        grant.scope = _auth_req["scope"]
         access_token = self._mint_token("access_token", grant, session_id)
 
         self.endpoint.kwargs["add_claims_by_scope"] = True
@@ -367,6 +368,7 @@ class TestEndpoint(object):
 
         session_id = self._create_session(_auth_req)
         grant = self.session_manager[session_id]
+        grant.scope = _auth_req["scope"]
         access_token = self._mint_token("access_token", grant, session_id)
 
         self.endpoint.kwargs["add_claims_by_scope"] = True
