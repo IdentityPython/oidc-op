@@ -175,7 +175,6 @@ class Endpoint(object):
             req = self.request_cls()
 
         # Verify that the client is allowed to do this
-        _client_id = ""
         auth_info = self.client_authentication(req, http_info, endpoint=self, **kwargs)
 
         if "client_id" in auth_info:
@@ -206,14 +205,6 @@ class Endpoint(object):
             request=req, client_id=_client_id, http_info=http_info, **kwargs
         )
 
-    def get_client_id_from_token(
-        self,
-        endpoint_context: EndpointContext,
-        token: str,
-        request: Optional[Union[Message, dict]] = None,
-    ):
-        return ""
-
     def client_authentication(self, request: Message, http_info: Optional[dict] = None, **kwargs):
         """
         Do client authentication
@@ -230,7 +221,7 @@ class Endpoint(object):
             endpoint_context=self.server_get("endpoint_context"),
             request=request,
             http_info=http_info,
-            get_client_id_from_token=self.get_client_id_from_token,
+            get_client_id_from_token=getattr(self, "get_client_id_from_token", None),
             **kwargs
         )
 

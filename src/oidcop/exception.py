@@ -58,15 +58,23 @@ class RedirectURIError(OidcEndpointError):
     pass
 
 
-class UnknownClient(OidcEndpointError):
+class ClientAuthenticationError(OidcEndpointError):
     pass
 
 
-class InvalidClient(OidcEndpointError):
+class UnknownClient(ClientAuthenticationError):
     pass
 
 
-class UnAuthorizedClient(OidcEndpointError):
+class InvalidClient(ClientAuthenticationError):
+    pass
+
+
+class UnAuthorizedClient(ClientAuthenticationError):
+    pass
+
+
+class BearerTokenAuthenticationError(OidcEndpointError):
     pass
 
 

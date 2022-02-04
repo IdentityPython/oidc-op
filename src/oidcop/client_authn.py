@@ -19,6 +19,7 @@ from oidcmsg.oidc import verified_claim_name
 from oidcop import JWT_BEARER
 from oidcop import sanitize
 from oidcop.endpoint_context import EndpointContext
+from oidcop.exception import BearerTokenAuthenticationError
 from oidcop.exception import InvalidClient
 from oidcop.exception import MultipleUsage
 from oidcop.exception import NotForMe
@@ -406,15 +407,15 @@ def verify_client(
     elif not client_id and get_client_id_from_token:
         if not _token:
             logger.warning("No token")
-            raise ValueError("No token")
+            raise BearerTokenAuthenticationError("No token")
 
         try:
             # get_client_id_from_token is a callback... Do not abuse for code readability.
             auth_info["client_id"] = get_client_id_from_token(endpoint_context, _token, request)
         except ToOld:
-            raise ValueError("Expired token")
+            raise BearerTokenAuthenticationError("Expired token")
         except KeyError:
-            raise ValueError("Unknown token")
+            raise BearerTokenAuthenticationError("Unknown token")
 
     return auth_info
 

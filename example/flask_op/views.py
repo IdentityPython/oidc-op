@@ -18,8 +18,8 @@ from oidcmsg.oidc import AuthorizationRequest
 import werkzeug
 
 from oidcop.exception import FailedAuthentication
-from oidcop.exception import InvalidClient
-from oidcop.exception import UnknownClient
+from oidcop.exception import ClientAuthenticationError
+from oidcop.exception import TokenAuthenticationError
 from oidcop.oidc.token import Token
 
 # logger = logging.getLogger(__name__)
@@ -224,12 +224,18 @@ def service_endpoint(endpoint):
     if request.method == 'GET':
         try:
             req_args = endpoint.parse_request(request.args.to_dict(), http_info=http_info)
-        except (InvalidClient, UnknownClient) as err:
+        except ClientAuthenticationError as err:
             _log.error(err)
             return make_response(json.dumps({
                 'error': 'unauthorized_client',
                 'error_description': str(err)
-            }), 400)
+            }), 401)
+        except TokenAuthenticationError as err:
+            _log.error(err)
+            return make_response(json.dumps({
+                'error': 'invalid_token',
+                'error_description': str(err)
+            }), 401)
         except Exception as err:
             _log.error(err)
             return make_response(json.dumps({
