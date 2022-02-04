@@ -91,7 +91,6 @@ class Endpoint(object):
     response_placement = "body"
     client_authn_method = ""
     default_capabilities = None
-    get_client_id_from_token = None
 
     def __init__(self, server_get: Callable, **kwargs):
         self.server_get = server_get
@@ -222,7 +221,7 @@ class Endpoint(object):
             endpoint_context=self.server_get("endpoint_context"),
             request=request,
             http_info=http_info,
-            get_client_id_from_token=self.get_client_id_from_token,
+            get_client_id_from_token=getattr(self, "get_client_id_from_token", None),
             **kwargs
         )
 
