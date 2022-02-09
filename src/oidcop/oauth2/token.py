@@ -384,17 +384,18 @@ class Token(Endpoint):
             ]
         self.allow_refresh = False
         self.new_refresh_token = new_refresh_token
-        self.configure_grant_types(kwargs.get("grant_types_supported"))
+        self.configure_grant_types(kwargs.get("grant_types_helpers"))
+        self.grant_types_supported = kwargs.get("grant_types_supported", list(self.helper.keys()))
         self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
 
-    def configure_grant_types(self, grant_types_supported):
-        if grant_types_supported is None:
+    def configure_grant_types(self, grant_types_helpers):
+        if grant_types_helpers is None:
             self.helper = {k: v(self) for k, v in self.helper_by_grant_type.items()}
             return
 
         self.helper = {}
         # TODO: do we want to allow any grant_type?
-        for grant_type, grant_type_options in grant_types_supported.items():
+        for grant_type, grant_type_options in grant_types_helpers.items():
             _conf = grant_type_options.get("kwargs", {})
             if _conf is False:
                 continue
@@ -426,7 +427,10 @@ class Token(Endpoint):
         grant_type = request["grant_type"]
         _helper = self.helper.get(grant_type)
         client = kwargs["endpoint_context"].cdb[client_id]
-        if "grant_types_supported" in client and grant_type not in client["grant_types_supported"]:
+        grant_types_supported = client.get(
+            "grant_types_supported", self.grant_types_supported
+        )
+        if grant_type not in grant_types_supported:
             return self.error_cls(
                 error="invalid_request",
                 error_description=f"Unsupported grant_type: {grant_type}",
