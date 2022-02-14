@@ -18,7 +18,7 @@ from oidcop.authz import AuthzHandling
 from oidcop.client_authn import verify_client
 from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
-from oidcop.exception import UnAuthorizedClient
+from oidcop.exception import InvalidToken
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -334,7 +334,7 @@ class TestEndpoint(_TestEndpoint):
         _resp = self.token_endpoint.process_request(request=_req)
 
         # 2nd time used
-        with pytest.raises(UnAuthorizedClient):
+        with pytest.raises(InvalidToken):
             self.token_endpoint.parse_request(_token_request)
 
     def test_do_refresh_access_token(self):

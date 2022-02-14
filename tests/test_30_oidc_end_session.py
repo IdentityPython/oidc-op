@@ -288,8 +288,7 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(_code)
         cookie = self._create_cookie(_session_info["session_id"])
         http_info = {"cookie": [cookie]}
-        _req_args = self.session_endpoint.parse_request({"state": "1234567"}, http_info=http_info)
-        resp = self.session_endpoint.process_request(_req_args, http_info=http_info)
+        resp = self.session_endpoint.process_request({"state": "foo"}, http_info=http_info)
 
         # returns a signed JWT to be put in a verification web page shown to
         # the user

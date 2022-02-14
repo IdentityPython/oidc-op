@@ -565,7 +565,8 @@ class TestEndpoint(object):
         code = self._mint_code(grant, session_id)
         access_token = self._mint_token("access_token", grant, session_id, code)
 
-        _req = self.endpoint.parse_request({"access_token": access_token.value})
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        _req = self.endpoint.parse_request({}, http_info=http_info)
         args = self.endpoint.process_request(_req)
         assert args
         res = self.endpoint.do_response(request=_req, **args)

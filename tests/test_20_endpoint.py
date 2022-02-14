@@ -17,7 +17,7 @@ KEYDEFS = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
-REQ = Message(foo="bar", hej="hopp")
+REQ = Message(foo="bar", hej="hopp", client_id="client_id")
 
 EXAMPLE_MSG = {
     "name": "Jane Doe",
@@ -65,6 +65,7 @@ class TestEndpoint(object):
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
+        server.endpoint_context.cdb["client_id"] = {}
         self.endpoint_context = server.endpoint_context
         self.endpoint = server.server_get("endpoint", "")
 

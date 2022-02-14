@@ -9,9 +9,9 @@ from oidcmsg.message import SINGLE_REQUIRED_JSON
 from oidcmsg.message import SINGLE_REQUIRED_STRING
 from oidcmsg.message import Message
 
-from oidcop.client_authn import AuthnFailure
 from oidcop.client_authn import ClientAuthnMethod
 from oidcop.client_authn import basic_authn
+from oidcop.exception import ClientAuthenticationError
 
 
 class DPoPProof(Message):
@@ -167,4 +167,4 @@ class DPoPClientAuth(ClientAuthnMethod):
         if _context.cdb[client_info["id"]]["client_secret"] == client_info["secret"]:
             return {"client_id": client_info["id"]}
         else:
-            raise AuthnFailure()
+            raise ClientAuthenticationError()
