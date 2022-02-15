@@ -432,11 +432,13 @@ def verify_client(
         except Exception as err:
             logger.info("Verifying auth using {} failed: {}".format(_method.tag, err))
 
+    client_id = auth_info.get("client_id")
+    if client_id is None:
+        raise ClientAuthenticationError("Failed to verify client")
+
     if also_known_as:
-        client_id = also_known_as[auth_info.get("client_id")]
+        client_id = also_known_as[client_id]
         auth_info["client_id"] = client_id
-    else:
-        client_id = auth_info.get("client_id")
 
     if client_id not in endpoint_context.cdb:
         raise UnknownClient("Unknown Client ID")
@@ -448,7 +450,7 @@ def verify_client(
         raise InvalidClient("Not valid client")
 
     # Validate that the used method is allowed for this client/endpoint
-    client_allowed_methods = _cinfo.get(f"{endpoint.endpoint_name}_client_authn_method")
+    client_allowed_methods = _cinfo.get(f"{endpoint.endpoint_name}_client_authn_method", _cinfo.get("client_authn_method"))
     if client_allowed_methods is not None and _method.tag not in client_allowed_methods:
         logger.info(
             f"Allowed methods for client: {client_id} at endpoint: {endpoint.name} are: "

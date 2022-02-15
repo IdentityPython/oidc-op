@@ -426,6 +426,46 @@ class TestVerify:
         self.server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.endpoint_context = self.server.server_get("endpoint_context")
 
+    def test_verify_per_client_per_endpoint(self):
+        self.server.endpoint_context.cdb[client_id]["client_authn_method"] = ["none"]
+
+        request = {"client_id": client_id}
+        res = verify_client(
+            self.endpoint_context, request, endpoint=self.server.server_get("endpoint", "token"),
+        )
+        assert res == {"method": "none", "client_id": client_id}
+
+    def test_verify_per_client_per_endpoint(self):
+        self.server.endpoint_context.cdb[client_id]["registration_endpoint_client_authn_method"] = ["none"]
+        self.server.endpoint_context.cdb[client_id]["token_endpoint_client_authn_method"] = ["client_secret_post"]
+
+        request = {"client_id": client_id}
+        res = verify_client(
+            self.endpoint_context, request, endpoint=self.server.server_get("endpoint", "registration"),
+        )
+        assert res == {"method": "none", "client_id": client_id}
+
+        with pytest.raises(ClientAuthenticationError) as e:
+            verify_client(
+                self.endpoint_context, request, endpoint=self.server.server_get("endpoint", "token"),
+            )
+        assert e.value.args[0] == "Failed to verify client"
+
+        request = {"client_id": client_id, "client_secret": client_secret}
+        res = verify_client(
+            self.endpoint_context, request, endpoint=self.server.server_get("endpoint", "token"),
+        )
+        assert set(res.keys()) == {"method", "client_id"}
+        assert res["method"] == "client_secret_post"
+
+    def test_verify_client_client_secret_post(self):
+        request = {"client_id": client_id, "client_secret": client_secret}
+        res = verify_client(
+            self.endpoint_context, request, endpoint=self.server.server_get("endpoint", "token"),
+        )
+        assert set(res.keys()) == {"method", "client_id"}
+        assert res["method"] == "client_secret_post"
+
     def test_verify_client_jws_authn_method(self):
         client_keyjar = KeyJar()
         client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
