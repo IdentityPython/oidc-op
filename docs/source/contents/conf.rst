@@ -831,6 +831,24 @@ The usage rules for each token type. E.g.::
         }
     }
 
+
+-------------------
+client_authn_method
+-------------------
+
+A list with the client authentication methods that are allowed for this client.
+
+This can be overriden per endpoint by adding the prefix `{endpoint_name}_`.
+E.g to define `client_authn_method` for a client only for the introspection
+endpoint we need to add to the client metadata::
+
+    {
+      "introspection_endpoint_client_authn_method": ["client_secret_basic", "client_secret_post"]
+    }
+
+NOTE: The client authentication methods defined per client MUST be a subset of the
+endpoint's authentication methods, else they are ignored.
+
 --------------
 pkce_essential
 --------------
