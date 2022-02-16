@@ -332,9 +332,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
         _mngr = _context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(request["refresh_token"], grant=True)
-        except KeyError:
-            logger.error("Access Code invalid")
-            return self.error_cls(error="invalid_grant")
+        except (KeyError, UnknownToken):
+            logger.error("Refresh token invalid")
+            return self.error_cls(error="invalid_grant", error_description="Invalid refresh token")
 
         grant = _session_info["grant"]
         token = grant.get_token(request["refresh_token"])
