@@ -162,6 +162,7 @@ class EndpointContext(OidcContext):
         self.login_hint2acrs = None
         self.par_db = {}
         self.provider_info = {}
+        self.remove_token = None
         self.scope2claims = conf.get("scopes_to_claims", SCOPE2CLAIMS)
         self.session_manager = None
         self.sso_ttl = 14400  # 4h
@@ -338,3 +339,18 @@ class EndpointContext(OidcContext):
             )
 
         return _provider_info
+
+    def set_remember_token(self):
+        ses_par = self.conf.get("session_params") or {}
+
+        self.session_manager.remove_inactive_token = ses_par.get("remove_inactive_token", False)
+
+        _rm = ses_par.get("remember_token", {})
+        if "class" in _rm:
+            _kwargs = _rm.get("kwargs", {})
+            self.session_manager.remember_token = init_service(_rm["class"], **_kwargs)
+        elif "function" in _rm:
+            if isinstance(_rm["function"], str):
+                self.session_manager.remember_token = importer(_rm["function"])
+            else:
+                self.session_manager.remember_token = _rm["function"]

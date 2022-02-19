@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 from uuid import uuid1
 
@@ -144,6 +145,19 @@ class SessionToken(Item):
             return False
         else:
             return token_class in _supports_minting
+
+    def __str__(self):
+        _info = {
+            "token_class": self.token_class,
+            "value": self.value,
+            "based_on": self.based_on,
+            "id": self.id,
+            "scope": self.scope,
+            "claims": self.claims,
+            "resources": self.resources,
+            "name": self.name
+        }
+        return json.dumps(_info)
 
 
 class AccessToken(SessionToken):

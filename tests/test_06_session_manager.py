@@ -87,8 +87,8 @@ class TestSessionManager:
                 "token_endpoint": {"path": "{}/token", "class": Token, "kwargs": {}},
             },
             "session_params": {
-              "password": "ses_key",
-              "salt": "ses_salt"
+                "password": "ses_key",
+                "salt": "ses_salt"
             },
             "template_dir": "template",
             "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
@@ -619,7 +619,11 @@ class TestSessionManager:
 
         code = self._mint_token("authorization_code", grant, _session_id)
         token = self._mint_token("access_token", grant, _session_id, code)
-        self.session_manager._revoke_dependent(grant, token)
+
+        grant.remove_inactive_token = True
+        grant.revoke_token(value=token.value)
+        assert len(grant.issued_token) == 1
+        assert grant.issued_token[0].token_class == "authorization_code"
 
     def test_grants(self):
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
