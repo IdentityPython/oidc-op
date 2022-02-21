@@ -8,6 +8,7 @@ from oidcmsg.impexp import ImpExp
 from oidcop import authz
 from oidcop.configure import ASConfiguration
 from oidcop.configure import OPConfiguration
+from oidcop.client_authn import client_auth_setup
 from oidcop.endpoint import Endpoint
 from oidcop.endpoint_context import EndpointContext
 from oidcop.endpoint_context import init_service
@@ -93,6 +94,7 @@ class Server(ImpExp):
         # Must be done after userinfo
         self.do_login_hint_lookup()
 
+        self.do_client_authn_methods()
         for endpoint_name, _ in self.endpoint.items():
             self.endpoint[endpoint_name].server_get = self.server_get
 
@@ -166,3 +168,6 @@ class Server(ImpExp):
 
             self.endpoint_context.login_hint_lookup = init_service(_conf)
             self.endpoint_context.login_hint_lookup.userinfo = _userinfo
+
+    def do_client_authn_methods(self):
+        self.endpoint_context.client_authn_method = client_auth_setup(self.server_get, self.conf.get("client_authn_method"))

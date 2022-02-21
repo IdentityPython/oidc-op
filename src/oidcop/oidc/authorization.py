@@ -77,7 +77,7 @@ class Authorization(authorization.Authorization):
     name = "authorization"
     default_capabilities = {
         "claims_parameter_supported": True,
-        "client_authn_method": ["request_param", "none"],
+        "client_authn_method": ["request_param", "public"],
         "request_parameter_supported": True,
         "request_uri_parameter_supported": True,
         "response_types_supported": [

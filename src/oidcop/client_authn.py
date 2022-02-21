@@ -27,6 +27,7 @@ from oidcop.exception import InvalidToken
 from oidcop.exception import ToOld
 from oidcop.exception import UnAuthorizedClient
 from oidcop.exception import UnknownClient
+from oidcop.util import importer
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +37,14 @@ __author__ = "roland hedberg"
 class ClientAuthnMethod(object):
     tag = None
 
-    @classmethod
+    def __init__(self, server_get):
+        """
+        :param server_get: A method that can be used to get general server information.
+        """
+        self.server_get = server_get
+
     def _verify(
-        cls, endpoint_context, request=None, authorization_token=None, endpoint=None, **kwargs
+        self, endpoint_context, request=None, authorization_token=None, endpoint=None, **kwargs
     ):
         """
         Verify authentication information in a request
@@ -47,10 +53,8 @@ class ClientAuthnMethod(object):
         """
         raise NotImplementedError()
 
-    @classmethod
     def verify(
-        cls,
-        endpoint_context,
+        self,
         request=None,
         authorization_token=None,
         endpoint=None,
@@ -62,19 +66,18 @@ class ClientAuthnMethod(object):
         :param kwargs:
         :return:
         """
-        res = cls._verify(
-            endpoint_context,
+        res = self._verify(
+            self.server_get("endpoint_context"),
             request=request,
             authorization_token=authorization_token,
             endpoint=endpoint,
             get_client_id_from_token=get_client_id_from_token,
             **kwargs,
         )
-        res["method"] = cls.tag
+        res["method"] = self.tag
         return res
 
-    @classmethod
-    def is_usable(cls, endpoint_context, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None):
         """
         Verify that this authentication method is applicable.
 
@@ -101,21 +104,36 @@ def basic_authn(authorization_token):
 
 class NoneAuthn(ClientAuthnMethod):
     """
-    Used for public clients, that don't require any form of authentication other
-    than their client_id
+    Used for testing purposes
     """
 
     tag = "none"
 
-    @classmethod
-    def is_usable(cls, endpoint_context, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None):
+        return request is not None
+
+    def _verify(
+        self, endpoint_context, request=None, authorization_token=None, endpoint=None, **kwargs
+    ):
+        return {"client_id": request.get("client_id")}
+
+
+class PublicAuthn(ClientAuthnMethod):
+    """
+    Used for public clients, that don't require any form of authentication other
+    than their client_id
+    """
+
+    tag = "public"
+
+    def is_usable(self, request=None, authorization_token=None):
         return request and "client_id" in request
 
-    @classmethod
     def _verify(
-        cls, endpoint_context, request=None, authorization_token=None, endpoint=None, **kwargs
+        self, endpoint_context, request=None, authorization_token=None, endpoint=None, **kwargs
     ):
         return {"client_id": request["client_id"]}
+
 
 
 class ClientSecretBasic(ClientAuthnMethod):
@@ -127,15 +145,13 @@ class ClientSecretBasic(ClientAuthnMethod):
 
     tag = "client_secret_basic"
 
-    @classmethod
-    def is_usable(cls, endpoint_context, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None):
         if authorization_token is not None and authorization_token.startswith("Basic "):
             return True
         return False
 
-    @classmethod
     def _verify(
-        cls, endpoint_context, request=None, authorization_token=None, endpoint=None, **kwargs
+        self, endpoint_context, request=None, authorization_token=None, endpoint=None, **kwargs
     ):
         client_info = basic_authn(authorization_token)
 
@@ -155,17 +171,15 @@ class ClientSecretPost(ClientSecretBasic):
 
     tag = "client_secret_post"
 
-    @classmethod
-    def is_usable(cls, endpoint_context, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None):
         if request is None:
             return False
         if "client_id" in request and "client_secret" in request:
             return True
         return False
 
-    @classmethod
     def _verify(
-        cls, endpoint_context, request=None, authorization_token=None, endpoint=None, **kwargs
+        self, endpoint_context, request=None, authorization_token=None, endpoint=None, **kwargs
     ):
         if endpoint_context.cdb[request["client_id"]]["client_secret"] == request["client_secret"]:
             return {"client_id": request["client_id"]}
@@ -178,15 +192,13 @@ class BearerHeader(ClientSecretBasic):
 
     tag = "bearer_header"
 
-    @classmethod
-    def is_usable(cls, endpoint_context, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None):
         if authorization_token is not None and authorization_token.startswith("Bearer "):
             return True
         return False
 
-    @classmethod
     def _verify(
-        cls,
+        self,
         endpoint_context,
         request=None,
         authorization_token=None,
@@ -211,15 +223,13 @@ class BearerBody(ClientSecretPost):
 
     tag = "bearer_body"
 
-    @classmethod
-    def is_usable(cls, endpoint_context, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None):
         if request is not None and "access_token" in request:
             return True
         return False
 
-    @classmethod
     def _verify(
-        cls, endpoint_context, request=None, authorization_token=None, endpoint=None, **kwargs
+        self, endpoint_context, request=None, authorization_token=None, endpoint=None, **kwargs
     ):
         _token = request.get("access_token")
         if _token is None:
@@ -233,16 +243,14 @@ class BearerBody(ClientSecretPost):
 
 
 class JWSAuthnMethod(ClientAuthnMethod):
-    @classmethod
-    def is_usable(cls, endpoint_context, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None):
         if request is None:
             return False
         if "client_assertion" in request:
             return True
         return False
 
-    @classmethod
-    def _verify(cls, endpoint_context, request=None, endpoint=None, key_type=None, **kwargs):
+    def _verify(self, endpoint_context, request=None, endpoint=None, key_type=None, **kwargs):
         _jwt = JWT(endpoint_context.keyjar, msg_cls=JsonWebToken)
         try:
             ca_jwt = _jwt.unpack(request["client_assertion"])
@@ -303,9 +311,8 @@ class ClientSecretJWT(JWSAuthnMethod):
 
     tag = "client_secret_jwt"
 
-    @classmethod
-    def _verify(cls, endpoint_context, request=None, **kwargs):
-        res = JWSAuthnMethod.verify(
+    def _verify(self, endpoint_context, request=None, **kwargs):
+        res = super()._verify(
             endpoint_context, request=request, key_type="client_secret", **kwargs
         )
         # Verify that a HS alg was used
@@ -319,9 +326,8 @@ class PrivateKeyJWT(JWSAuthnMethod):
 
     tag = "private_key_jwt"
 
-    @classmethod
-    def _verify(cls, endpoint_context, request=None, **kwargs):
-        res = JWSAuthnMethod.verify(
+    def _verify(self, endpoint_context, request=None, **kwargs):
+        res = super()._verify(
             endpoint_context, request=request, key_type="private_key", **kwargs
         )
         # Verify that an RS or ES alg was used ?
@@ -331,13 +337,11 @@ class PrivateKeyJWT(JWSAuthnMethod):
 class RequestParam(ClientAuthnMethod):
     tag = "request_param"
 
-    @classmethod
-    def is_usable(cls, endpoint_context, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None):
         if request and "request" in request:
             return True
 
-    @classmethod
-    def _verify(cls, endpoint_context, request=None, **kwargs):
+    def _verify(self, endpoint_context, request=None, **kwargs):
         _jwt = JWT(endpoint_context.keyjar, msg_cls=JsonWebToken)
         try:
             _jwt = _jwt.unpack(request["request"])
@@ -360,8 +364,7 @@ class RequestParam(ClientAuthnMethod):
         return {"client_id": client_id, "jwt": _jwt}
 
 
-# We use OrderedDict in order to ensure that the `none` method is used last
-CLIENT_AUTHN_METHOD = OrderedDict(
+CLIENT_AUTHN_METHOD = dict(
     client_secret_basic=ClientSecretBasic,
     client_secret_post=ClientSecretPost,
     bearer_header=BearerHeader,
@@ -369,6 +372,7 @@ CLIENT_AUTHN_METHOD = OrderedDict(
     client_secret_jwt=ClientSecretJWT,
     private_key_jwt=PrivateKeyJWT,
     request_param=RequestParam,
+    public=PublicAuthn,
     none=NoneAuthn,
 )
 
@@ -409,18 +413,18 @@ def verify_client(
         authorization_token = None
 
     auth_info = {}
+    methods = endpoint_context.client_authn_method
     allowed_methods = getattr(endpoint, "client_authn_method")
     if not allowed_methods:
-        allowed_methods = list(CLIENT_AUTHN_METHOD.keys())
+        allowed_methods = list(methods.keys())
 
-    for _method in (CLIENT_AUTHN_METHOD[meth] for meth in allowed_methods):
+    for _method in (methods[meth] for meth in allowed_methods):
         if not _method.is_usable(
-            endpoint_context, request=request, authorization_token=authorization_token
+            request=request, authorization_token=authorization_token
         ):
             continue
         try:
             auth_info = _method.verify(
-                endpoint_context,
                 request=request,
                 authorization_token=authorization_token,
                 endpoint=endpoint,
@@ -431,6 +435,9 @@ def verify_client(
             raise
         except Exception as err:
             logger.info("Verifying auth using {} failed: {}".format(_method.tag, err))
+
+    if auth_info.get("method") == "none":
+        return auth_info
 
     client_id = auth_info.get("client_id")
     if client_id is None:
@@ -471,3 +478,16 @@ def verify_client(
             endpoint_context.cdb[client_id]["auth_method"] = {_request_type: auth_info["method"]}
 
     return auth_info
+
+
+def client_auth_setup(server_get, auth_set=None):
+    if auth_set is None:
+        auth_set = {}
+    auth_set = {**CLIENT_AUTHN_METHOD, **auth_set}
+    res = {}
+
+    for name, cls in auth_set.items():
+        if isinstance(cls, str):
+            cls = importer(cls)
+        res[name] = cls(server_get)
+    return res
