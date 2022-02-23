@@ -1,6 +1,7 @@
 import os
 from urllib.parse import urlparse
 
+from cryptojwt.jws.jws import factory
 from cryptojwt.key_jar import init_key_jar
 from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oauth2 import AuthorizationResponse
@@ -75,10 +76,10 @@ class TestEndpoint(object):
             "httpc_params": {"verify": False, "timeout": 1},
             "capabilities": CAPABILITIES,
             "add_on": {
-                "extra_args": {
-                    "function": "oidcop.oauth2.add_on.extra_args.add_support",
+                "jarm": {
+                    "function": "oidcop.oauth2.add_on.jarm.add_support",
                     "kwargs": {
-                        "authorization": {"iss": "issuer"}
+                        "signed_response_alg": "ES256"
                     }
                 },
             },
@@ -147,12 +148,34 @@ class TestEndpoint(object):
 
     def test_process_request(self):
         _context = self.endpoint.server_get("endpoint_context")
-        assert _context.add_on["extra_args"] == {'authorization': {'iss': 'issuer'}}
+        assert _context.add_on["jarm"] == {"signed_response_alg": "ES256"}
 
-        _pr_resp = self.endpoint.parse_request(AUTH_REQ)
+        _request = AUTH_REQ.copy()
+        _request["response_mode"] = "query.jwt"
+        _pr_resp = self.endpoint.parse_request(_request)
         _args = self.endpoint.process_request(_pr_resp)
-        _resp = self.endpoint.do_response(request=AUTH_REQ, **_args)
+        _resp = self.endpoint.do_response(request=_request, **_args)
         parse_res = urlparse(_resp["response"])
         _payload = AuthorizationResponse().from_urlencoded(parse_res.query)
-        assert 'iss' in _payload
-        assert _payload["iss"] == _context.issuer
+        assert 'response' in _payload
+        _jws = factory(_payload["response"])
+        assert _jws
+        _jarm = _jws.jwt.payload()
+        assert _jarm['iss'] == ISSUER
+        assert _jarm["aud"] == ["client_1"]
+
+
+    def test_process_request_2(self):
+        _request = AUTH_REQ.copy()
+        _request["response_mode"] = "jwt"
+        _pr_resp = self.endpoint.parse_request(_request)
+        _args = self.endpoint.process_request(_pr_resp)
+        _resp = self.endpoint.do_response(request=_request, **_args)
+        parse_res = urlparse(_resp["response"])
+        _payload = AuthorizationResponse().from_urlencoded(parse_res.query)
+        assert 'response' in _payload
+        _jws = factory(_payload["response"])
+        assert _jws
+        _jarm = _jws.jwt.payload()
+        assert _jarm['iss'] == ISSUER
+        assert _jarm["aud"] == ["client_1"]

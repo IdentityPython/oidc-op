@@ -15,7 +15,6 @@ from oidcop import sanitize
 from oidcop.client_authn import client_auth_setup
 from oidcop.client_authn import verify_client
 from oidcop.construct import construct_endpoint_info
-from oidcop.endpoint_context import EndpointContext
 from oidcop.exception import UnAuthorizedClient
 from oidcop.util import OAUTH2_NOCACHE_HEADERS
 
@@ -134,7 +133,7 @@ class Endpoint(object):
         return self.error_cls(error=_error, error_description="%s" % exception)
 
     def parse_request(
-        self, request: Union[Message, dict, str], http_info: Optional[dict] = None, **kwargs
+            self, request: Union[Message, dict, str], http_info: Optional[dict] = None, **kwargs
     ):
         """
 
@@ -189,7 +188,6 @@ class Endpoint(object):
         try:
             req.verify(keyjar=keyjar, opponent_id=_client_id)
         except (MissingRequiredAttribute, ValueError, MissingRequiredValue) as err:
-            return self.process_verify_error(err)
             _error = "invalid_request"
             if isinstance(err, ValueError) and self.request_cls == RegistrationRequest:
                 if len(err.args) > 1:
@@ -233,7 +231,7 @@ class Endpoint(object):
         return authn_info
 
     def do_post_parse_request(
-        self, request: Message, client_id: Optional[str] = "", **kwargs
+            self, request: Message, client_id: Optional[str] = "", **kwargs
     ) -> Message:
         _context = self.server_get("endpoint_context")
         for meth in self.post_parse_request:
@@ -243,7 +241,7 @@ class Endpoint(object):
         return request
 
     def do_pre_construct(
-        self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
+            self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
     ) -> dict:
         _context = self.server_get("endpoint_context")
         for meth in self.pre_construct:
@@ -252,10 +250,10 @@ class Endpoint(object):
         return response_args
 
     def do_post_construct(
-        self,
-        response_args: Union[Message, dict],
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Union[Message, dict],
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ) -> dict:
         _context = self.server_get("endpoint_context")
         for meth in self.post_construct:
@@ -264,10 +262,10 @@ class Endpoint(object):
         return response_args
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs
     ):
         """
 
@@ -278,10 +276,10 @@ class Endpoint(object):
         return {}
 
     def construct(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ):
         """
         Construct the response
@@ -299,19 +297,19 @@ class Endpoint(object):
         return self.do_post_construct(response, request, **kwargs)
 
     def response_info(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ) -> dict:
         return self.construct(response_args, request, **kwargs)
 
     def do_response(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        error: Optional[str] = "",
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            error: Optional[str] = "",
+            **kwargs
     ) -> dict:
         """
         :param response_args: Information to use when constructing the response
