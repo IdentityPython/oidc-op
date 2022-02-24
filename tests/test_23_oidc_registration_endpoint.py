@@ -45,6 +45,7 @@ RESPONSE_TYPES_SUPPORTED = [
 ]
 
 MSG = {
+    "client_id": "client_id",
     "application_type": "web",
     "redirect_uris": [
         "https://client.example.org/callback",
@@ -152,6 +153,7 @@ class TestEndpoint(object):
             "template_dir": "template",
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+        server.endpoint_context.cdb["client_id"] = {}
         self.endpoint = server.server_get("endpoint", "registration")
 
     def test_parse(self):

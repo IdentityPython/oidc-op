@@ -12,7 +12,6 @@ from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import RegistrationRequest
 
 from oidcop import sanitize
-from oidcop.client_authn import client_auth_setup
 from oidcop.client_authn import verify_client
 from oidcop.construct import construct_endpoint_info
 from oidcop.endpoint_context import EndpointContext
@@ -115,13 +114,11 @@ class Endpoint(object):
         _methods = kwargs.get("client_authn_method")
         self.client_authn_method = []
         if _methods:
-            self.client_authn_method = client_auth_setup(_methods, server_get)
+            self.client_authn_method = _methods
         elif _methods is not None:  # [] or '' or something not None but regarded as nothing.
-            self.client_authn_method = [None]  # Ignore default value
+            self.client_authn_method = ["none"]  # Ignore default value
         elif self.default_capabilities:
-            _methods = self.default_capabilities.get("client_authn_method")
-            if _methods:
-                self.client_authn_method = client_auth_setup(_methods, server_get)
+            self.client_authn_method = self.default_capabilities.get("client_authn_method")
         self.endpoint_info = construct_endpoint_info(self.default_capabilities, **kwargs)
 
         # This is for matching against aud in JWTs

@@ -119,6 +119,30 @@ code_challenge_method
 The allowed code_challenge methods. The supported code challenge methods are:
 ``plain, S256, S384, S512``
 
+-------------------
+client_authn_method
+-------------------
+
+A dictionary with the allowed client authentication methods. The keys are the methods'
+names and and the values must be either a class or a path to a python class that will
+be imported and used to validate the client. The class should inherit from
+`oidcop.client_authn.ClientAuthnMethod` and it must implement the methods
+`is_usable` and `_verify`. You can then define which of these methods are allowed per
+endpoint by defining a list with the names of the methods allowed in the endpoint's
+capabilities. This can be overriden per client by defining `client_authn_method`
+in the client's metadata.
+
+Defaults to:
+ - none: `oidcop.client_authn.NoneAuthn`, no client authentication. Never use this in production
+ - public: `oidcop.client_authn.PublicAuthn`, used for public clients, requires only a valid`client_id` in the request
+ - client_secret_basic: `oidcop.client_authn.ClientSecretBasic`, see https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1
+ - client_secret_post: `oidcop.client_authn.ClientSecretPost`, see https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1
+ - bearer_header: `oidcop.client_authn.BearerHeader`, see https://datatracker.ietf.org/doc/html/rfc6750#section-2.1
+ - bearer_body: `oidcop.client_authn.BearerBody`, see https://datatracker.ietf.org/doc/html/rfc6750#section-2.2
+ - client_secret_jwt: `oidcop.client_authn.ClientSecretJWT`, see https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+ - private_key_jwt: `oidcop.client_authn.PrivateKeyJWT`, see https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+ - request_param: `oidcop.client_authn.RequestParam`, see https://openid.net/specs/openid-connect-core-1_0.html#JWTRequests
+
 --------------
 authentication
 --------------
@@ -830,6 +854,24 @@ The usage rules for each token type. E.g.::
             },
         }
     }
+
+
+-------------------
+client_authn_method
+-------------------
+
+A list with the client authentication methods that are allowed for this client.
+
+This can be overriden per endpoint by adding the prefix `{endpoint_name}_`.
+E.g to define `client_authn_method` for a client only for the introspection
+endpoint we need to add to the client metadata::
+
+    {
+      "introspection_endpoint_client_authn_method": ["client_secret_basic", "client_secret_post"]
+    }
+
+NOTE: The client authentication methods defined per client MUST be a subset of the
+endpoint's authentication methods, else they are ignored.
 
 --------------
 pkce_essential

@@ -20,6 +20,14 @@ class Introspection(Endpoint):
     response_format = "json"
     endpoint_name = "introspection_endpoint"
     name = "introspection"
+    default_capabilities = {
+        "client_authn_method": [
+            "client_secret_basic",
+            "client_secret_post",
+            "client_secret_jwt",
+            "private_key_jwt",
+        ]
+    }
 
     def __init__(self, server_get, **kwargs):
         Endpoint.__init__(self, server_get, **kwargs)

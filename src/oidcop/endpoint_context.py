@@ -116,6 +116,7 @@ class EndpointContext(OidcContext):
         "symkey": "",
         "token_args_methods": [],
         # "userinfo": UserInfo,
+        "client_authn_method": {},
     }
 
     def __init__(
@@ -169,6 +170,7 @@ class EndpointContext(OidcContext):
         self.template_handler = None
         self.token_args_methods = []
         self.userinfo = None
+        self.client_authn_method = {}
 
         for param in [
             "issuer",

@@ -70,6 +70,10 @@ class InvalidClient(ClientAuthenticationError):
     pass
 
 
+class InvalidToken(ClientAuthenticationError):
+    pass
+
+
 class UnAuthorizedClient(ClientAuthenticationError):
     pass
 

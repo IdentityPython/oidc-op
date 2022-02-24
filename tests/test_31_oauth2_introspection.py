@@ -18,7 +18,7 @@ from oidcmsg.time_util import utc_time_sans_frac
 from oidcop.authn_event import create_authn_event
 from oidcop.authz import AuthzHandling
 from oidcop.client_authn import verify_client
-from oidcop.exception import UnAuthorizedClient
+from oidcop.exception import ClientAuthenticationError
 from oidcop.oauth2.authorization import Authorization
 from oidcop.oauth2.introspection import Introspection
 from oidcop.oidc.token import Token
@@ -240,7 +240,7 @@ class TestEndpoint:
 
     def test_parse_no_authn(self):
         access_token = self._get_access_token(AUTH_REQ)
-        with pytest.raises(UnAuthorizedClient):
+        with pytest.raises(ClientAuthenticationError):
             self.introspection_endpoint.parse_request({"token": access_token.value})
 
     def test_parse_with_client_auth_in_req(self):
@@ -271,7 +271,7 @@ class TestEndpoint:
         _basic_authz = "Basic {}".format(_basic_token)
         http_info = {"headers": {"authorization": _basic_authz}}
 
-        with pytest.raises(UnAuthorizedClient):
+        with pytest.raises(ClientAuthenticationError):
             self.introspection_endpoint.parse_request(
                 {"token": access_token.value}, http_info=http_info
             )

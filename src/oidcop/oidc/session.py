@@ -25,7 +25,6 @@ from oidcmsg.oidc.session import BACK_CHANNEL_LOGOUT_EVENT
 from oidcmsg.oidc.session import EndSessionRequest
 
 from oidcop import rndstr
-from oidcop.client_authn import UnknownOrNoAuthnMethod
 from oidcop.endpoint import Endpoint
 from oidcop.endpoint_context import add_path
 from oidcop.oauth2.authorization import verify_uri
@@ -361,18 +360,14 @@ class Session(Endpoint):
             request = {}
 
         # Verify that the client is allowed to do this
-        try:
-            auth_info = self.client_authentication(request, http_info, **kwargs)
-        except UnknownOrNoAuthnMethod:
+        auth_info = self.client_authentication(request, http_info, **kwargs)
+        if not auth_info:
             pass
+        elif isinstance(auth_info, ResponseMessage):
+            return auth_info
         else:
-            if not auth_info:
-                pass
-            elif isinstance(auth_info, ResponseMessage):
-                return auth_info
-            else:
-                request["client_id"] = auth_info["client_id"]
-                request["access_token"] = auth_info["token"]
+            request["client_id"] = auth_info["client_id"]
+            request["access_token"] = auth_info["token"]
 
         if isinstance(request, dict):
             _context = self.server_get("endpoint_context")

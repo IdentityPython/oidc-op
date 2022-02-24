@@ -6,9 +6,9 @@ from cryptojwt import KeyJar
 from oidcmsg.impexp import ImpExp
 
 from oidcop import authz
-from oidcop.client_authn import client_auth_setup
 from oidcop.configure import ASConfiguration
 from oidcop.configure import OPConfiguration
+from oidcop.client_authn import client_auth_setup
 from oidcop.endpoint import Endpoint
 from oidcop.endpoint_context import EndpointContext
 from oidcop.endpoint_context import init_service
@@ -94,23 +94,9 @@ class Server(ImpExp):
         # Must be done after userinfo
         self.do_login_hint_lookup()
 
-        for endpoint_name, endpoint_conf in self.endpoint.items():
-            _endpoint = self.endpoint[endpoint_name]
-            _methods = _endpoint.kwargs.get("client_authn_method")
-
-            self.client_authn_method = []
-            if _methods:
-                _endpoint.client_authn_method = client_auth_setup(_methods, self.server_get)
-            elif _methods is not None:  # [] or '' or something not None but regarded as nothing.
-                _endpoint.client_authn_method = [None]  # Ignore default value
-            elif _endpoint.default_capabilities:
-                _methods = _endpoint.default_capabilities.get("client_authn_method")
-                if _methods:
-                    _endpoint.client_authn_method = client_auth_setup(
-                        auth_set=_methods, server_get=self.server_get
-                    )
-
-            _endpoint.server_get = self.server_get
+        self.do_client_authn_methods()
+        for endpoint_name, _ in self.endpoint.items():
+            self.endpoint[endpoint_name].server_get = self.server_get
 
         _token_endp = self.endpoint.get("token")
         if _token_endp:
@@ -182,3 +168,6 @@ class Server(ImpExp):
 
             self.endpoint_context.login_hint_lookup = init_service(_conf)
             self.endpoint_context.login_hint_lookup.userinfo = _userinfo
+
+    def do_client_authn_methods(self):
+        self.endpoint_context.client_authn_method = client_auth_setup(self.server_get, self.conf.get("client_authn_method"))

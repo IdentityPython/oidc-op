@@ -48,6 +48,7 @@ CAPABILITIES = {
 }
 
 msg = {
+    "client_id": "client_1",
     "application_type": "web",
     "redirect_uris": [
         "https://client.example.org/callback",
@@ -117,6 +118,7 @@ class TestEndpoint(object):
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.registration_endpoint = server.server_get("endpoint", "registration")
         self.registration_api_endpoint = server.server_get("endpoint", "registration_read")
+        server.endpoint_context.cdb["client_1"] = {}
 
     def test_do_response(self):
         _req = self.registration_endpoint.parse_request(CLI_REQ.to_json())
