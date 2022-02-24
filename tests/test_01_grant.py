@@ -1,18 +1,19 @@
-import pytest
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oidc import AuthorizationRequest
+import pytest
 
-from . import full_path
 from oidcop.authn_event import create_authn_event
 from oidcop.server import Server
-from oidcop.session.grant import TOKEN_MAP
 from oidcop.session.grant import Grant
+from oidcop.session.grant import TOKEN_MAP
 from oidcop.session.grant import find_token
 from oidcop.session.grant import get_usage_rules
+from oidcop.session.grant import remember_token
 from oidcop.session.token import AuthorizationCode
 from oidcop.session.token import SessionToken
 from oidcop.token import DefaultToken
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from . import full_path
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -20,7 +21,6 @@ KEYDEFS = [
 ]
 
 KEYJAR = build_keyjar(KEYDEFS)
-
 
 conf = {
     "issuer": "https://example.com/",
@@ -32,7 +32,7 @@ conf = {
             "class": "oidcop.oidc.authorization.Authorization",
             "kwargs": {},
         },
-        "token_endpoint": {"path": "token", "class": "oidcop.oidc.token.Token", "kwargs": {},},
+        "token_endpoint": {"path": "token", "class": "oidcop.oidc.token.Token", "kwargs": {}, },
     },
     "authentication": {
         "anon": {
@@ -46,6 +46,12 @@ conf = {
         "class": "oidcop.user_info.UserInfo",
         "kwargs": {"db_file": full_path("users.json")},
     },
+    "session_params": {
+        "remove_inactive_token": True,
+        "remember_token": {
+            "function": remember_token,
+        }
+    }
 }
 
 USER_ID = "diana"
@@ -179,9 +185,7 @@ class TestGrant:
         )
 
         grant.revoke_token()
-        assert code.revoked is True
-        assert access_token.revoked is True
-        assert refresh_token.revoked is True
+        assert grant.issued_token == []
 
     def test_get_token(self):
         session_id = self._create_session(AREQ)
@@ -514,3 +518,70 @@ class TestGrant:
         )
 
         assert access_token.scope == refresh_token.scope
+
+    def test_grant_remove_based_on_code(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+        code = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_class="authorization_code",
+            token_handler=TOKEN_HANDLER["authorization_code"],
+        )
+
+        access_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_class="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code,
+        )
+
+        refresh_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_class="refresh_token",
+            token_handler=TOKEN_HANDLER["refresh_token"],
+            based_on=code,
+        )
+
+        grant.revoke_token(based_on=code.value)
+        assert len(grant.issued_token) == 1
+
+    def test_grant_remove_one_by_one(self):
+        session_id = self._create_session(AREQ)
+        session_info = self.endpoint_context.session_manager.get_session_info(
+            session_id=session_id, grant=True
+        )
+        grant = session_info["grant"]
+        code = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_class="authorization_code",
+            token_handler=TOKEN_HANDLER["authorization_code"],
+        )
+
+        access_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_class="access_token",
+            token_handler=TOKEN_HANDLER["access_token"],
+            based_on=code,
+        )
+
+        refresh_token = grant.mint_token(
+            session_id,
+            endpoint_context=self.endpoint_context,
+            token_class="refresh_token",
+            token_handler=TOKEN_HANDLER["refresh_token"],
+            based_on=code,
+        )
+
+        grant.revoke_token(value=refresh_token.value)
+        assert len(grant.issued_token) == 2
+
+        grant.revoke_token(value=access_token.value)
+        assert len(grant.issued_token) == 1

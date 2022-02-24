@@ -39,6 +39,7 @@ class Introspection(Endpoint):
             return None
 
         if not token.is_active():
+            #
             return None
 
         scope = token.scope

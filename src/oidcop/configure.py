@@ -126,6 +126,8 @@ class EntityConfiguration(Base):
         conf = copy.deepcopy(conf)
         Base.__init__(self, conf, base_path, file_attributes, dir_attributes=dir_attributes)
 
+        self.key_conf = conf.get('key_conf')
+
         for key in self.parameter.keys():
             _val = conf.get(key)
             if not _val:
@@ -150,9 +152,10 @@ class EntityConfiguration(Base):
             if key == "template_dir":
                 _val = os.path.abspath(_val)
             if key == "keys":
-                key = "key_conf"
-
-            setattr(self, key, _val)
+                if not self.key_conf:
+                    setattr(self, "key_conf", _val)
+            else:
+                setattr(self, key, _val)
 
 
 class OPConfiguration(EntityConfiguration):

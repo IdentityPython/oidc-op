@@ -93,6 +93,7 @@ class Server(ImpExp):
         self.endpoint_context.do_userinfo()
         # Must be done after userinfo
         self.do_login_hint_lookup()
+        self.endpoint_context.set_remember_token()
 
         self.do_client_authn_methods()
         for endpoint_name, _ in self.endpoint.items():
