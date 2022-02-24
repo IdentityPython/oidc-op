@@ -434,6 +434,15 @@ class TestEndpoint(_TestEndpoint):
         msg = self.token_endpoint.do_response(request=_req, **_resp)
         assert isinstance(msg, dict)
 
+    def test_invalid_refresh(self):
+        _request = REFRESH_TOKEN_REQ.copy()
+        _request["refresh_token"] = "invalid"
+
+        _req = self.token_endpoint.parse_request(_request.to_json())
+
+        assert isinstance(_req, TokenErrorResponse)
+        assert _req.to_dict() == {"error": "invalid_grant", "error_description": "Invalid refresh token"}
+
     def test_refresh_scopes(self):
         areq = AUTH_REQ.copy()
         areq["scope"] = ["openid", "offline_access", "profile"]
