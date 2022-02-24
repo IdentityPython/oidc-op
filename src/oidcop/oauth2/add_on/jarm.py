@@ -81,4 +81,12 @@ def add_support(endpoint, **kwargs):
 
     _auth_endp = endpoint["authorization"]
     _auth_endp.post_construct.append(post_construct)
-    _auth_endp.server_get("endpoint_context").add_on["jarm"] = kwargs
+    _endpoint_context = _auth_endp.server_get("endpoint_context")
+    _endpoint_context.add_on["jarm"] = kwargs
+
+    for key, attr in {'signed_response_alg': 'authorization_signed_response_alg',
+                     'encrypted_response_alg': 'authorization_encrypted_response_alg',
+                     'encrypted_response_enc': 'authorization_encrypted_response_enc'}.items():
+        _val = kwargs.get(key)
+        if _val:
+            _endpoint_context.provider_info[attr] = _val

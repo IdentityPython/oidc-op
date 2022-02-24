@@ -1,3 +1,4 @@
+import json
 import os
 from urllib.parse import urlparse
 
@@ -11,6 +12,7 @@ from oidcop import user_info
 from oidcop.client_authn import verify_client
 from oidcop.configure import OPConfiguration
 from oidcop.oauth2.authorization import Authorization
+from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
 from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
@@ -111,15 +113,21 @@ class TestEndpoint(object):
                 },
             },
             "endpoint": {
+                "provider_config": {
+                    "path": ".well-known/openid-configuration",
+                    "class": ProviderConfiguration,
+                    "kwargs": {},
+                },
                 "authorization": {
-                    "path": "{}/authorization",
+                    "path": "authorization",
                     "class": Authorization,
                     "kwargs": {},
                 },
                 "token": {
-                    "path": "{}/token",
+                    "path": "token",
                     "class": Token,
-                    "kwargs": {}},
+                    "kwargs": {}
+                },
             },
             "client_authn": verify_client,
             "authentication": {
@@ -135,8 +143,8 @@ class TestEndpoint(object):
                 "kwargs": {"db_file": "users.json"},
             },
         }
-        server = Server(OPConfiguration(conf, base_path=BASEDIR), keyjar=KEYJAR)
-        self.endpoint_context = server.endpoint_context
+        self.server = Server(OPConfiguration(conf, base_path=BASEDIR), keyjar=KEYJAR)
+        self.endpoint_context = self.server.endpoint_context
         self.endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
@@ -144,7 +152,7 @@ class TestEndpoint(object):
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
         }
-        self.endpoint = server.server_get("endpoint", "authorization")
+        self.endpoint = self.server.server_get("endpoint", "authorization")
 
     def test_process_request(self):
         _context = self.endpoint.server_get("endpoint_context")
@@ -179,3 +187,12 @@ class TestEndpoint(object):
         _jarm = _jws.jwt.payload()
         assert _jarm['iss'] == ISSUER
         assert _jarm["aud"] == ["client_1"]
+
+    def test_provider_info(self):
+        _provider_endpoint = self.server.server_get("endpoint", "provider_config")
+        args = _provider_endpoint.process_request()
+        msg = _provider_endpoint.do_response(args["response_args"])
+        assert isinstance(msg, dict)
+        _msg = json.loads(msg["response"])
+        assert "authorization_signed_response_alg" in _msg
+
