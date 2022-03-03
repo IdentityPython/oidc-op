@@ -2,7 +2,7 @@ import json
 
 from fastapi import HTTPException
 from fastapi import status
-from oic.oic import AuthorizationRequest
+from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oauth2 import ResponseMessage
 
 
