@@ -24,6 +24,7 @@ Idpy OIDC-op implements the following standards:
 * [OpenID Connect Back-Channel Logout 1.0](https://openid.net/specs/openid-connect-backchannel-1_0.html)
 * [OpenID Connect Front-Channel Logout 1.0](https://openid.net/specs/openid-connect-frontchannel-1_0.html)
 * [OAuth2 Token introspection](https://tools.ietf.org/html/rfc7662)
+* [Resource Indicators for OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc8707)
 
 It also comes with the following `add_on` modules.
 
