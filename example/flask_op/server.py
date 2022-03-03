@@ -68,7 +68,7 @@ def main(config_file, args):
     context = create_context(dir_path, web_conf)
 
     if args.display:
-        print(json.dumps(app.endpoint_context.provider_info, indent=4, sort_keys=True))
+        print(json.dumps(app.server.endpoint_context.provider_info, indent=4, sort_keys=True))
         exit(0)
 
     kwargs = {}
