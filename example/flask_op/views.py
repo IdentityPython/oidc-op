@@ -19,7 +19,7 @@ import werkzeug
 
 from oidcop.exception import FailedAuthentication
 from oidcop.exception import ClientAuthenticationError
-from oidcop.exception import TokenAuthenticationError
+from oidcop.exception import BearerTokenAuthenticationError
 from oidcop.oidc.token import Token
 
 # logger = logging.getLogger(__name__)
@@ -230,7 +230,7 @@ def service_endpoint(endpoint):
                 'error': 'unauthorized_client',
                 'error_description': str(err)
             }), 401)
-        except TokenAuthenticationError as err:
+        except BearerTokenAuthenticationError as err:
             _log.error(err)
             return make_response(json.dumps({
                 'error': 'invalid_token',
