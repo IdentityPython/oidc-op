@@ -1,17 +1,16 @@
 from typing import Optional
 
-from cryptojwt import JWS
 from cryptojwt import as_unicode
+from cryptojwt import JWS
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
+from oidcmsg.message import Message
 from oidcmsg.message import SINGLE_REQUIRED_INT
 from oidcmsg.message import SINGLE_REQUIRED_JSON
 from oidcmsg.message import SINGLE_REQUIRED_STRING
-from oidcmsg.message import Message
-
-from oidcop.client_authn import ClientAuthnMethod
-from oidcop.client_authn import basic_authn
-from oidcop.exception import ClientAuthenticationError
+from oidcmsg.server.client_authn import basic_authn
+from oidcmsg.server.client_authn import ClientAuthnMethod
+from oidcmsg.server.exception import ClientAuthenticationError
 
 
 class DPoPProof(Message):

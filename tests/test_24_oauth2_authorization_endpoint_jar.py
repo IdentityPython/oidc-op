@@ -3,7 +3,6 @@ import json
 import os
 from http.cookies import SimpleCookie
 
-from oidcop.configure import ASConfiguration
 import pytest
 import responses
 import yaml
@@ -12,12 +11,13 @@ from cryptojwt import KeyJar
 from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oauth2 import JWTSecuredAuthorizationRequest
+from oidcmsg.server.configure import ASConfiguration
+from oidcmsg.server.user_info import UserInfo
 from oidcmsg.time_util import in_a_while
 
 from oidcop.cookie_handler import CookieHandler
 from oidcop.oauth2.authorization import Authorization
 from oidcop.server import Server
-from oidcop.user_info import UserInfo
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]}
@@ -142,7 +142,7 @@ class TestEndpoint(object):
             "authentication": {
                 "anon": {
                     "acr": "http://www.swamid.se/policy/assurance/al1",
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },

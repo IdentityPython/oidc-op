@@ -2,7 +2,6 @@ import base64
 import hashlib
 import logging
 import os
-import time
 from typing import List
 from typing import Optional
 from typing import Union
@@ -17,9 +16,8 @@ from cryptojwt.jws.hmac import HMACSigner
 from cryptojwt.jwt import utc_time_sans_frac
 from cryptojwt.key_jar import init_key_jar
 from oidcmsg.time_util import epoch_in_a_while
-
-from oidcop.util import lv_pack
-from oidcop.util import lv_unpack
+from oidcmsg.server.util import lv_pack
+from oidcmsg.server.util import lv_unpack
 
 __author__ = "Roland Hedberg"
 

@@ -8,19 +8,18 @@ from oidcmsg.oauth2 import AccessTokenResponse
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
+from oidcmsg.server.constant import DEFAULT_TOKEN_LIFETIME
+from oidcmsg.server.endpoint import Endpoint
+from oidcmsg.server.exception import ProcessError
+from oidcmsg.server.session.grant import AuthorizationCode
+from oidcmsg.server.session.grant import Grant
+from oidcmsg.server.session.grant import RefreshToken
+from oidcmsg.server.session.token import MintingNotAllowed
+from oidcmsg.server.session.token import SessionToken
+from oidcmsg.server.token.exception import UnknownToken
 from oidcmsg.time_util import utc_time_sans_frac
-
-from oidcop import sanitize
-from oidcop.constant import DEFAULT_TOKEN_LIFETIME
-from oidcop.endpoint import Endpoint
-from oidcop.exception import ProcessError
-from oidcop.session.grant import AuthorizationCode
-from oidcop.session.grant import Grant
-from oidcop.session.grant import RefreshToken
-from oidcop.session.token import MintingNotAllowed
-from oidcop.session.token import SessionToken
-from oidcop.token.exception import UnknownToken
-from oidcop.util import importer
+from oidcmsg.util import importer
+from oidcmsg.util import sanitize
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ class TokenEndpointHelper(object):
         self.error_cls = self.endpoint.error_cls
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """Context specific parsing of the request.
         This is done after general request parsing and before processing
@@ -45,15 +44,15 @@ class TokenEndpointHelper(object):
         raise NotImplementedError
 
     def _mint_token(
-        self,
-        token_class: str,
-        grant: Grant,
-        session_id: str,
-        client_id: str,
-        based_on: Optional[SessionToken] = None,
-        scope: Optional[list] = None,
-        token_args: Optional[dict] = None,
-        token_type: Optional[str] = "",
+            self,
+            token_class: str,
+            grant: Grant,
+            session_id: str,
+            client_id: str,
+            based_on: Optional[SessionToken] = None,
+            scope: Optional[list] = None,
+            token_args: Optional[dict] = None,
+            token_type: Optional[str] = "",
     ) -> SessionToken:
         _context = self.endpoint.server_get("endpoint_context")
         _mngr = _context.session_manager
@@ -167,9 +166,9 @@ class AccessTokenHelper(TokenEndpointHelper):
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
         if (
-            issue_refresh
-            and "refresh_token" in _supports_minting
-            and "refresh_token" in grant_types_supported
+                issue_refresh
+                and "refresh_token" in _supports_minting
+                and "refresh_token" in grant_types_supported
         ):
             try:
                 refresh_token = self._mint_token(
@@ -192,7 +191,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to get their access tokens
@@ -296,9 +295,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
         token.register_usage()
 
         if (
-            "client_id" in req
-            and req["client_id"] in _context.cdb
-            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+                "client_id" in req
+                and req["client_id"] in _context.cdb
+                and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
         ):
             revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
         else:
@@ -310,7 +309,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to refresh their access tokens
@@ -422,7 +421,7 @@ class Token(Endpoint):
                 raise ProcessError(f"Failed to initialize class {grant_class}: {e}")
 
     def _post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         grant_type = request["grant_type"]
         _helper = self.helper.get(grant_type)

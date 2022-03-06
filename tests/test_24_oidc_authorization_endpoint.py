@@ -4,6 +4,9 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
+import pytest
+import responses
+import yaml
 from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jws.jws import factory
@@ -17,44 +20,40 @@ from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import verified_claim_name
 from oidcmsg.oidc import verify_id_token
-import pytest
-import responses
-import yaml
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.authz import AuthzHandling
+from oidcmsg.server.configure import OPConfiguration
+from oidcmsg.server.endpoint_context import init_service
+from oidcmsg.server.endpoint_context import init_user_info
+from oidcmsg.server.exception import NoSuchAuthentication
+from oidcmsg.server.exception import RedirectURIError
+from oidcmsg.server.exception import ServiceError
+from oidcmsg.server.exception import ToOld
+from oidcmsg.server.exception import UnknownClient
+from oidcmsg.server.login_hint import LoginHint2Acrs
+from oidcmsg.server.user_authn.authn_context import init_method
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.server.user_authn.authn_context import UNSPECIFIED
+from oidcmsg.server.user_authn.user import NoAuthn
+from oidcmsg.server.user_authn.user import UserAuthnMethod
+from oidcmsg.server.user_authn.user import UserPassJinja2
+from oidcmsg.server.user_info import UserInfo
+from oidcmsg.server.util import JSONDictDB
 
-from oidcop.authn_event import create_authn_event
-from oidcop.authz import AuthzHandling
-from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
-from oidcop.endpoint_context import init_service
-from oidcop.endpoint_context import init_user_info
-from oidcop.exception import NoSuchAuthentication
-from oidcop.exception import RedirectURIError
-from oidcop.exception import ServiceError
-from oidcop.exception import ToOld
-from oidcop.exception import UnknownClient
-from oidcop.login_hint import LoginHint2Acrs
 from oidcop.oauth2.authorization import authn_args_gather
 from oidcop.oauth2.authorization import get_uri
 from oidcop.oauth2.authorization import inputs
 from oidcop.oauth2.authorization import join_query
 from oidcop.oauth2.authorization import verify_uri
 from oidcop.oidc import userinfo
-from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.authorization import acr_claims
+from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.authorization import re_authenticate
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.session.grant import Grant
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_authn.authn_context import UNSPECIFIED
-from oidcop.user_authn.authn_context import init_method
-from oidcop.user_authn.user import NoAuthn
-from oidcop.user_authn.user import UserAuthnMethod
-from oidcop.user_authn.user import UserPassJinja2
-from oidcop.user_info import UserInfo
-from oidcop.util import JSONDictDB
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -155,7 +154,7 @@ class TestEndpoint(object):
                 "jwks_file": "private/token_jwks.json",
                 "code": {"kwargs": {"lifetime": 600}},
                 "token": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {
                         "lifetime": 3600,
                         "add_claims_by_scope": True,
@@ -163,11 +162,11 @@ class TestEndpoint(object):
                     },
                 },
                 "refresh": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
-                    "class": "oidcop.token.id_token.IDToken",
+                    "class": "oidcmsg.server.token.id_token.IDToken",
                     "kwargs": {
                         "base_claims": {
                             "email": {"essential": True},
@@ -221,7 +220,7 @@ class TestEndpoint(object):
             "authentication": {
                 "anon": {
                     "acr": "http://www.swamid.se/policy/assurance/al1",
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },
@@ -1035,7 +1034,7 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.server_get("endpoint_context")
         # userinfo
         _userinfo = init_user_info(
-            {"class": "oidcop.user_info.UserInfo",
+            {"class": "oidcmsg.server.user_info.UserInfo",
              "kwargs": {"db_file": full_path("users.json")}, },
             "",
         )
@@ -1062,7 +1061,7 @@ class TestACR(object):
                 "jwks_file": "private/token_jwks.json",
                 "code": {"kwargs": {"lifetime": 600}},
                 "token": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {
                         "lifetime": 3600,
                         "add_claims_by_scope": True,
@@ -1070,11 +1069,11 @@ class TestACR(object):
                     },
                 },
                 "refresh": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
-                    "class": "oidcop.token.id_token.IDToken",
+                    "class": "oidcmsg.server.token.id_token.IDToken",
                     "kwargs": {
                         "base_claims": {
                             "email": {"essential": True},
@@ -1129,12 +1128,12 @@ class TestACR(object):
             "authentication": {
                 "anon": {
                     "acr": "http://www.swamid.se/policy/assurance/al1",
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 },
                 "mfa": {
                     "acr": "https://refeds.org/profile/mfa",
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },

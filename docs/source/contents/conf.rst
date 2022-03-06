@@ -20,13 +20,13 @@ Configuration parameters used by session manager::
       "salt": "salt involved in session sub hash ",
       "sub_func": {
         "public": {
-          "class": "oidcop.session.manager.PublicID",
+          "class": "oidcmsg.server.session.manager.PublicID",
           "kwargs": {
             "salt": "sdfsdfdsf"
           }
         },
         "pairwise": {
-          "class": "oidcop.session.manager.PairWiseID",
+          "class": "oidcmsg.server.session.manager.PairWiseID",
           "kwargs": {
             "salt": "sdfsdfsdf"
           }
@@ -152,7 +152,7 @@ An example::
     "authentication": {
         "user": {
           "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
-          "class": "oidcop.user_authn.user.UserPassJinja2",
+          "class": "oidcmsg.server.user_authn.user.UserPassJinja2",
           "kwargs": {
             "verify_endpoint": "verify/user",
             "template": "user_pass.jinja2",
@@ -497,7 +497,7 @@ Add the below to your configuration and you'll see things changing.
 An example::
 
       "authz": {
-        "class": "oidcop.authz.AuthzHandling",
+        "class": "oidcmsg.server.authz.AuthzHandling",
         "kwargs": {
             "grant_config": {
                 "usage_rules": {
@@ -586,7 +586,7 @@ An example::
           }
         },
         "token": {
-          "class": "oidcop.token.jwt_token.JWTToken",
+          "class": "oidcmsg.server.token.jwt_token.JWTToken",
           "kwargs": {
               "lifetime": 3600,
               "add_claims": [
@@ -605,7 +605,7 @@ An example::
             }
         }
         "id_token": {
-            "class": "oidcop.token.id_token.IDToken",
+            "class": "oidcmsg.server.token.id_token.IDToken",
             "kwargs": {
                 "base_claims": {
                     "email": None,
@@ -621,7 +621,7 @@ jwks_defs can be replaced eventually by `jwks_file`::
 You can even select wich algorithms to support in id_token, eg::
 
     "id_token": {
-        "class": "oidcop.token.id_token.IDToken",
+        "class": "oidcmsg.server.token.id_token.IDToken",
         "kwargs": {
             "id_token_signing_alg_values_supported": [
                     "RS256",
@@ -659,7 +659,7 @@ userinfo
 An example::
 
     "userinfo": {
-        "class": "oidcop.user_info.UserInfo",
+        "class": "oidcmsg.server.user_info.UserInfo",
         "kwargs": {
           "db_file": "users.json"
         }

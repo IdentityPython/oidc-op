@@ -7,8 +7,7 @@ from oidcmsg.oauth2 import AuthorizationErrorResponse
 from oidcmsg.oauth2 import RefreshAccessTokenRequest
 from oidcmsg.oauth2 import TokenExchangeRequest
 from oidcmsg.oidc import TokenErrorResponse
-
-from oidcop.endpoint import Endpoint
+from oidcmsg.server.endpoint import Endpoint
 
 LOGGER = logging.getLogger(__name__)
 
@@ -54,8 +53,8 @@ def post_authn_parse(request, client_id, endpoint_context, **kwargs):
         request["code_challenge_method"] = "plain"
 
     if "code_challenge" in request and (
-        request["code_challenge_method"]
-        not in endpoint_context.args["pkce"]["code_challenge_methods"]
+            request["code_challenge_method"]
+            not in endpoint_context.args["pkce"]["code_challenge_methods"]
     ):
         return AuthorizationErrorResponse(
             error="invalid_request",
@@ -92,8 +91,8 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
     :return:
     """
     if isinstance(
-        request,
-        (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest),
+            request,
+            (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest),
     ):
         return request
 
@@ -116,9 +115,9 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
         _method = _authn_req["code_challenge_method"]
 
         if not verify_code_challenge(
-            request["code_verifier"],
-            _authn_req["code_challenge"],
-            _method,
+                request["code_verifier"],
+                _authn_req["code_challenge"],
+                _method,
         ):
             return TokenErrorResponse(error="invalid_grant", error_description="PKCE check failed")
 

@@ -7,9 +7,9 @@ from urllib.parse import unquote
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
-from cryptojwt import BadSyntax
 from cryptojwt import as_unicode
 from cryptojwt import b64d
+from cryptojwt import BadSyntax
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.utils import as_bytes
@@ -21,25 +21,25 @@ from oidcmsg.message import Message
 from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import verified_claim_name
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.endpoint import Endpoint
+from oidcmsg.server.endpoint_context import EndpointContext
+from oidcmsg.server.exception import InvalidRequest
+from oidcmsg.server.exception import NoSuchAuthentication
+from oidcmsg.server.exception import RedirectURIError
+from oidcmsg.server.exception import ServiceError
+from oidcmsg.server.exception import TamperAllert
+from oidcmsg.server.exception import ToOld
+from oidcmsg.server.exception import UnAuthorizedClientScope
+from oidcmsg.server.exception import UnknownClient
+from oidcmsg.server.session import Revoked
+from oidcmsg.server.token.exception import UnknownToken
+from oidcmsg.server.user_authn.authn_context import pick_auth
 from oidcmsg.time_util import utc_time_sans_frac
+from oidcmsg.util import rndstr
+from oidcmsg.util import split_uri
 
-from oidcop import rndstr
-from oidcop.authn_event import create_authn_event
 from oidcop.cookie_handler import compute_session_state
-from oidcop.endpoint import Endpoint
-from oidcop.endpoint_context import EndpointContext
-from oidcop.exception import InvalidRequest
-from oidcop.exception import NoSuchAuthentication
-from oidcop.exception import RedirectURIError
-from oidcop.exception import ServiceError
-from oidcop.exception import TamperAllert
-from oidcop.exception import ToOld
-from oidcop.exception import UnAuthorizedClientScope
-from oidcop.exception import UnknownClient
-from oidcop.session import Revoked
-from oidcop.token.exception import UnknownToken
-from oidcop.user_authn.authn_context import pick_auth
-from oidcop.util import split_uri
 
 logger = logging.getLogger(__name__)
 
@@ -90,10 +90,10 @@ def max_age(request):
 
 
 def verify_uri(
-    endpoint_context: EndpointContext,
-    request: Union[dict, Message],
-    uri_type: str,
-    client_id: Optional[str] = None,
+        endpoint_context: EndpointContext,
+        request: Union[dict, Message],
+        uri_type: str,
+        client_id: Optional[str] = None,
 ):
     """
     A redirect URI
@@ -220,10 +220,10 @@ def get_uri(endpoint_context, request, uri_type):
 
 
 def authn_args_gather(
-    request: Union[AuthorizationRequest, dict],
-    authn_class_ref: str,
-    cinfo: dict,
-    **kwargs,
+        request: Union[AuthorizationRequest, dict],
+        authn_class_ref: str,
+        cinfo: dict,
+        **kwargs,
 ):
     """
     Gather information to be used by the authentication method
@@ -528,13 +528,13 @@ class Authorization(Endpoint):
         return json.loads(as_unicode(_id))
 
     def setup_auth(
-        self,
-        request: Optional[Union[Message, dict]],
-        redirect_uri: str,
-        cinfo: dict,
-        cookie: List[dict] = None,
-        acr: str = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]],
+            redirect_uri: str,
+            cinfo: dict,
+            cookie: List[dict] = None,
+            acr: str = None,
+            **kwargs,
     ) -> dict:
         """
 
@@ -657,12 +657,12 @@ class Authorization(Endpoint):
         return ""
 
     def response_mode(
-        self,
-        request: Union[dict, AuthorizationRequest],
-        response_args: Optional[Union[dict, AuthorizationResponse]] = None,
-        return_uri: Optional[str] = "",
-        fragment_enc: Optional[bool] = None,
-        **kwargs,
+            self,
+            request: Union[dict, AuthorizationRequest],
+            response_args: Optional[Union[dict, AuthorizationResponse]] = None,
+            return_uri: Optional[str] = "",
+            fragment_enc: Optional[bool] = None,
+            **kwargs,
     ) -> dict:
         resp_mode = request["response_mode"]
         if resp_mode == "form_post":
@@ -961,10 +961,10 @@ class Authorization(Endpoint):
         return kwargs
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ):
         """The AuthorizationRequest endpoint
 

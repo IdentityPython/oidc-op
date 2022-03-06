@@ -10,25 +10,25 @@ from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
+from oidcmsg.server import JWT_BEARER
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.authz import AuthzHandling
+from oidcmsg.server.client_authn import verify_client
+from oidcmsg.server.configure import OPConfiguration
+from oidcmsg.server.exception import InvalidToken
+from oidcmsg.server.session import MintingNotAllowed
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.server.user_info import UserInfo
+from oidcmsg.server.util import lv_pack
 from oidcmsg.time_util import utc_time_sans_frac
 
-from oidcop import JWT_BEARER
-from oidcop.authn_event import create_authn_event
-from oidcop.authz import AuthzHandling
-from oidcop.client_authn import verify_client
-from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
-from oidcop.exception import InvalidToken
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.session import MintingNotAllowed
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_info import UserInfo
-from oidcop.util import lv_pack
 from tests.test_24_oauth2_token_endpoint import TestEndpoint as _TestEndpoint
 
 KEYDEFS = [
@@ -107,7 +107,7 @@ def conf():
             "jwks_file": "private/token_jwks.json",
             "code": {"kwargs": {"lifetime": 600}},
             "token": {
-                "class": "oidcop.token.jwt_token.JWTToken",
+                "class": "oidcmsg.server.token.jwt_token.JWTToken",
                 "kwargs": {
                     "lifetime": 3600,
                     "add_claims_by_scope": True,
@@ -115,10 +115,10 @@ def conf():
                 },
             },
             "refresh": {
-                "class": "oidcop.token.jwt_token.JWTToken",
+                "class": "oidcmsg.server.token.jwt_token.JWTToken",
                 "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"]},
             },
-            "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
+            "id_token": {"class": "oidcmsg.server.token.id_token.IDToken", "kwargs": {}},
         },
         "cookie_handler": {
             "class": CookieHandler,
@@ -153,7 +153,7 @@ def conf():
         "authentication": {
             "anon": {
                 "acr": INTERNETPROTOCOLPASSWORD,
-                "class": "oidcop.user_authn.user.NoAuthn",
+                "class": "oidcmsg.server.user_authn.user.NoAuthn",
                 "kwargs": {"user": "diana"},
             }
         },
@@ -441,7 +441,8 @@ class TestEndpoint(_TestEndpoint):
         _req = self.token_endpoint.parse_request(_request.to_json())
 
         assert isinstance(_req, TokenErrorResponse)
-        assert _req.to_dict() == {"error": "invalid_grant", "error_description": "Invalid refresh token"}
+        assert _req.to_dict() == {"error": "invalid_grant",
+                                  "error_description": "Invalid refresh token"}
 
     def test_refresh_scopes(self):
         areq = AUTH_REQ.copy()
@@ -645,7 +646,7 @@ class TestEndpoint(_TestEndpoint):
         )
 
         assert "email" not in idtoken
-        assert  _resp["response_args"]["scope"] == ["openid", "offline_access"]
+        assert _resp["response_args"]["scope"] == ["openid", "offline_access"]
 
     def test_refresh_no_openid_scope(self):
         areq = AUTH_REQ.copy()
@@ -968,11 +969,12 @@ class TestEndpoint(_TestEndpoint):
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
-        _resp = self.token_endpoint.process_request(request=_req,)
+        _resp = self.token_endpoint.process_request(request=_req, )
         assert isinstance(_resp, TokenErrorResponse)
         assert _resp.to_dict() == {
             "error": "invalid_grant", "error_description": "Wrong client"
         }
+
 
 class TestOldTokens(object):
     @pytest.fixture(autouse=True)

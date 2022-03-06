@@ -8,20 +8,20 @@ from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
+from oidcmsg.server import JWT_BEARER
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.authz import AuthzHandling
+from oidcmsg.server.client_authn import verify_client
+from oidcmsg.server.configure import ASConfiguration
+from oidcmsg.server.exception import InvalidToken
+from oidcmsg.server.session import MintingNotAllowed
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.server.user_info import UserInfo
 from oidcmsg.time_util import utc_time_sans_frac
 
-from oidcop import JWT_BEARER
-from oidcop.authn_event import create_authn_event
-from oidcop.authz import AuthzHandling
-from oidcop.client_authn import verify_client
-from oidcop.configure import ASConfiguration
-from oidcop.exception import InvalidToken
 from oidcop.oauth2.authorization import Authorization
 from oidcop.oauth2.token import Token
 from oidcop.server import Server
-from oidcop.session import MintingNotAllowed
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_info import UserInfo
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -81,7 +81,7 @@ def conf():
     return {
         "issuer": "https://example.com/",
         "httpc_params": {
-        "verify": False
+            "verify": False
         },
         "capabilities": CAPABILITIES,
         "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
@@ -89,7 +89,7 @@ def conf():
             "jwks_file": "private/token_jwks.json",
             "code": {"kwargs": {"lifetime": 600}},
             "token": {
-                "class": "oidcop.token.jwt_token.JWTToken",
+                "class": "oidcmsg.server.token.jwt_token.JWTToken",
                 "kwargs": {
                     "lifetime": 3600,
                     "add_claims_by_scope": True,
@@ -97,12 +97,12 @@ def conf():
                 },
             },
             "refresh": {
-                "class": "oidcop.token.jwt_token.JWTToken",
-                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                "class": "oidcmsg.server.token.jwt_token.JWTToken",
+                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
             },
         },
         "endpoint": {
-            "authorization": {"path": "authorization", "class": Authorization, "kwargs": {},},
+            "authorization": {"path": "authorization", "class": Authorization, "kwargs": {}, },
             "token": {
                 "path": "token",
                 "class": Token,
@@ -119,14 +119,14 @@ def conf():
         "authentication": {
             "anon": {
                 "acr": INTERNETPROTOCOLPASSWORD,
-                "class": "oidcop.user_authn.user.NoAuthn",
+                "class": "oidcmsg.server.user_authn.user.NoAuthn",
                 "kwargs": {"user": "diana"},
             }
         },
         "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
         "client_authn": verify_client,
         "template_dir": "template",
-        "claims_interface": {"class": "oidcop.session.claims.OAuth2ClaimsInterface", "kwargs": {}},
+        "claims_interface": {"class": "oidcmsg.server.session.claims.OAuth2ClaimsInterface", "kwargs": {}},
         "authz": {
             "class": AuthzHandling,
             "kwargs": {

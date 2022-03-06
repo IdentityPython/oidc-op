@@ -1,15 +1,16 @@
-from copy import copy
-from copy import deepcopy
 import io
 import json
 import os
+from copy import copy
+from copy import deepcopy
 
-from cryptojwt.key_jar import build_keyjar
-from oidcmsg.storage.abfile import AbstractFileSystem
 import yaml
+from cryptojwt.key_jar import build_keyjar
+from oidcmsg.server.configure import OPConfiguration
+from oidcmsg.server.login_hint import LoginHintLookup
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.storage.abfile import AbstractFileSystem
 
-from oidcop.configure import OPConfiguration
-import oidcop.login_hint
 from oidcop.oidc.add_on.pkce import add_pkce_support
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -18,7 +19,6 @@ from oidcop.oidc.session import Session
 from oidcop.oidc.token import Token
 from oidcop.oidc.userinfo import UserInfo
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -58,14 +58,14 @@ CONF = {
     "authentication": {
         "anon": {
             "acr": INTERNETPROTOCOLPASSWORD,
-            "class": "oidcop.user_authn.user.NoAuthn",
+            "class": "oidcmsg.server.user_authn.user.NoAuthn",
             "kwargs": {"user": "diana"},
         }
     },
-    "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
+    "claims_interface": {"class": "oidcmsg.server.session.claims.ClaimsInterface", "kwargs": {}},
     "add_on": {"pkce": {"function": add_pkce_support, "kwargs": {"essential": True}}},
     "template_dir": "template",
-    "login_hint_lookup": {"class": oidcop.login_hint.LoginHintLookup, "kwargs": {}},
+    "login_hint_lookup": {"class": LoginHintLookup, "kwargs": {}},
 }
 
 client_yaml = """

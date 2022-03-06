@@ -2,29 +2,27 @@ import base64
 import json
 import os
 
-from oidcop.configure import ASConfiguration
-
-from oidcop.configure import OPConfiguration
 import pytest
-from cryptojwt import JWT
 from cryptojwt import as_unicode
+from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.utils import as_bytes
 from oidcmsg.oauth2 import TokenIntrospectionRequest
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.authz import AuthzHandling
+from oidcmsg.server.client_authn import verify_client
+from oidcmsg.server.configure import ASConfiguration
+from oidcmsg.server.exception import ClientAuthenticationError
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.server.user_info import UserInfo
 from oidcmsg.time_util import utc_time_sans_frac
 
-from oidcop.authn_event import create_authn_event
-from oidcop.authz import AuthzHandling
-from oidcop.client_authn import verify_client
-from oidcop.exception import ClientAuthenticationError
 from oidcop.oauth2.authorization import Authorization
 from oidcop.oauth2.introspection import Introspection
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_info import UserInfo
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -102,7 +100,7 @@ class TestEndpoint:
                 "jwks_file": "private/token_jwks.json",
                 "code": {"kwargs": {"lifetime": 600}},
                 "token": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {
                         "lifetime": 3600,
                         "add_claims_by_scope": True,
@@ -110,11 +108,11 @@ class TestEndpoint:
                     },
                 },
                 "refresh": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
-                    "class": "oidcop.token.id_token.IDToken",
+                    "class": "oidcmsg.server.token.id_token.IDToken",
                 }
             },
             "endpoint": {
@@ -147,7 +145,7 @@ class TestEndpoint:
             "authentication": {
                 "anon": {
                     "acr": INTERNETPROTOCOLPASSWORD,
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },
@@ -164,7 +162,7 @@ class TestEndpoint:
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token",],
+                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -179,7 +177,7 @@ class TestEndpoint:
         }
         if jwt_token:
             conf["token_handler_args"]["token"] = {
-                "class": "oidcop.token.jwt_token.JWTToken",
+                "class": "oidcmsg.server.token.jwt_token.JWTToken",
                 "kwargs": {},
             }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -340,7 +338,7 @@ class TestEndpoint:
         # access_token = self._get_access_token(AUTH_REQ)
         _context = self.introspection_endpoint.server_get("endpoint_context")
         _req = self.introspection_endpoint.parse_request(
-            {"client_id": "client_1", "client_secret": _context.cdb["client_1"]["client_secret"],}
+            {"client_id": "client_1", "client_secret": _context.cdb["client_1"]["client_secret"], }
         )
         _resp = self.introspection_endpoint.process_request(_req)
         assert "error" in _resp

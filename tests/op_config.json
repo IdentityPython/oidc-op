@@ -24,7 +24,7 @@
     }
   },
   "authz": {
-    "class": "oidcop.authz.AuthzHandling",
+    "class": "oidcmsg.server.authz.AuthzHandling",
     "kwargs": {
       "grant_config": {
         "usage_rules": {
@@ -50,13 +50,13 @@
   },
   "authentication": {
     "user": {
-      "acr": "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
-      "class": "oidcop.user_authn.user.UserPassJinja2",
+      "acr": "oidcmsg.server.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
+      "class": "oidcmsg.server.user_authn.user.UserPassJinja2",
       "kwargs": {
         "verify_endpoint": "verify/user",
         "template": "user_pass.jinja2",
         "db": {
-          "class": "oidcop.util.JSONDictDB",
+          "class": "oidcmsg.server.util.JSONDictDB",
           "kwargs": {
             "filename": "passwd.json"
           }
@@ -220,7 +220,7 @@
     "verify": false
   },
   "id_token": {
-    "class": "oidcop.id_token.IDToken",
+    "class": "oidcmsg.server.token.id_token.IDToken",
     "kwargs": {
       "base_claims": {
         "email": {
@@ -255,16 +255,14 @@
     "uri_path": "static/jwks.json"
   },
   "login_hint_lookup": {
-    "class": "oidcop.login_hint.LoginHintLookup",
+    "class": "oidcmsg.server.login_hint.LoginHintLookup",
     "kwargs": {}
   },
   "login_hint2acrs": {
-    "class": "oidcop.login_hint.LoginHint2Acrs",
+    "class": "oidcmsg.server.login_hint.LoginHint2Acrs",
     "kwargs": {
       "scheme_map": {
-        "email": [
-          "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"
-        ]
+        "email": ["oidcmsg.server.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"]
       }
     }
   },
@@ -273,13 +271,13 @@
       "salt": "ses_salt",
       "sub_func": {
         "public": {
-          "class": "oidcop.session.manager.PublicID",
+          "class": "oidcmsg.server.session.manager.PublicID",
           "kwargs": {
             "salt": "mysalt"
           }
         },
         "pairwise": {
-          "class": "oidcop.session.manager.PairWiseID",
+          "class": "oidcmsg.server.session.manager.PairWiseID",
           "kwargs": {
             "salt": "mysalt"
           }
@@ -316,7 +314,7 @@
       }
     },
     "token": {
-      "class": "oidcop.token.jwt_token.JWTToken",
+      "class": "oidcmsg.server.token.jwt_token.JWTToken",
       "kwargs": {
         "lifetime": 3600,
         "add_claims": [
@@ -338,7 +336,7 @@
     }
   },
   "userinfo": {
-    "class": "oidcop.user_info.UserInfo",
+    "class": "oidcmsg.server.user_info.UserInfo",
     "kwargs": {
       "db_file": "users.json"
     }

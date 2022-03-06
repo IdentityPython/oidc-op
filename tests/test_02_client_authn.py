@@ -4,24 +4,23 @@ from unittest.mock import MagicMock
 import pytest
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import JWT
-from cryptojwt.key_jar import KeyJar
 from cryptojwt.key_jar import build_keyjar
+from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import as_unicode
+from oidcmsg.server import JWT_BEARER
+from oidcmsg.server.client_authn import basic_authn
+from oidcmsg.server.client_authn import BearerBody
+from oidcmsg.server.client_authn import BearerHeader
+from oidcmsg.server.client_authn import ClientSecretBasic
+from oidcmsg.server.client_authn import ClientSecretJWT
+from oidcmsg.server.client_authn import ClientSecretPost
+from oidcmsg.server.client_authn import JWSAuthnMethod
+from oidcmsg.server.client_authn import PrivateKeyJWT
+from oidcmsg.server.client_authn import verify_client
+from oidcmsg.server.exception import ClientAuthenticationError
+from oidcmsg.server.exception import InvalidToken
 
-from oidcop import JWT_BEARER
-from oidcop.client_authn import ClientAuthnMethod
-from oidcop.client_authn import BearerBody
-from oidcop.client_authn import BearerHeader
-from oidcop.client_authn import ClientSecretBasic
-from oidcop.client_authn import ClientSecretJWT
-from oidcop.client_authn import ClientSecretPost
-from oidcop.client_authn import JWSAuthnMethod
-from oidcop.client_authn import PrivateKeyJWT
-from oidcop.client_authn import basic_authn
-from oidcop.client_authn import verify_client
-from oidcop.exception import ClientAuthenticationError
-from oidcop.exception import InvalidToken
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
@@ -67,8 +66,9 @@ CONF = {
         },
     },
     "template_dir": "template",
-    "keys": {"private_path": "own/jwks.json", "key_defs": KEYDEFS, "uri_path": "static/jwks.json",},
-    "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
+    "keys": {"private_path": "own/jwks.json", "key_defs": KEYDEFS,
+             "uri_path": "static/jwks.json", },
+    "claims_interface": {"class": "oidcmsg.server.session.claims.ClaimsInterface", "kwargs": {}},
 }
 
 client_id = "client_id"
@@ -225,7 +225,8 @@ class TestPrivateKeyJWT:
 
         # This should NOT be OK because this is the second time the token appears
         with pytest.raises(InvalidToken):
-            self.method.verify(request=request, endpoint=self.server.server_get("endpoint", "token"))
+            self.method.verify(request=request,
+                               endpoint=self.server.server_get("endpoint", "token"))
 
     def test_private_key_jwt_auth_endpoint(self):
         # Own dynamic keys
@@ -265,7 +266,9 @@ class TestBearerHeader:
     def test_bearerheader(self):
         authorization_info = "Bearer 1234567890"
         get_client_id_from_token = lambda *_: "client_id"
-        assert self.method.verify(authorization_token=authorization_info, get_client_id_from_token=get_client_id_from_token) == {"token": "1234567890", "method": "bearer_header", "client_id": "client_id"}
+        assert self.method.verify(authorization_token=authorization_info,
+                                  get_client_id_from_token=get_client_id_from_token) == {
+                   "token": "1234567890", "method": "bearer_header", "client_id": "client_id"}
 
     def test_bearerheader_wrong_type(self):
         authorization_info = "Thrower 1234567890"
@@ -431,23 +434,28 @@ class TestVerify:
 
         request = {"client_id": client_id}
         res = verify_client(
-            self.endpoint_context, request, endpoint=self.server.server_get("endpoint", "registration"),
+            self.endpoint_context, request,
+            endpoint=self.server.server_get("endpoint", "registration"),
         )
         assert res == {"method": "public", "client_id": client_id}
 
     def test_verify_per_client_per_endpoint(self):
-        self.server.endpoint_context.cdb[client_id]["registration_endpoint_client_authn_method"] = ["public"]
-        self.server.endpoint_context.cdb[client_id]["token_endpoint_client_authn_method"] = ["client_secret_post"]
+        self.server.endpoint_context.cdb[client_id]["registration_endpoint_client_authn_method"] = [
+            "public"]
+        self.server.endpoint_context.cdb[client_id]["token_endpoint_client_authn_method"] = [
+            "client_secret_post"]
 
         request = {"client_id": client_id}
         res = verify_client(
-            self.endpoint_context, request, endpoint=self.server.server_get("endpoint", "registration"),
+            self.endpoint_context, request,
+            endpoint=self.server.server_get("endpoint", "registration"),
         )
         assert res == {"method": "public", "client_id": client_id}
 
         with pytest.raises(ClientAuthenticationError) as e:
             verify_client(
-                self.endpoint_context, request, endpoint=self.server.server_get("endpoint", "token"),
+                self.endpoint_context, request,
+                endpoint=self.server.server_get("endpoint", "token"),
             )
         assert e.value.args[0] == "Failed to verify client"
 
@@ -652,7 +660,6 @@ class TestVerify2:
 
 
 def test_client_auth_setup():
-
     class Mock:
         is_usable = MagicMock(return_value=True)
         verify = MagicMock(return_value={"method": "custom", "client_id": client_id})
@@ -665,7 +672,8 @@ def test_client_auth_setup():
     server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
 
     request = {"redirect_uris": ["https://example.com/cb"]}
-    res = verify_client(server.endpoint_context, request, endpoint=server.server_get("endpoint", "registration"))
+    res = verify_client(server.endpoint_context, request,
+                        endpoint=server.server_get("endpoint", "registration"))
 
     assert res == {"client_id": "client_id", "method": "custom"}
     mock.is_usable.assert_called_once()

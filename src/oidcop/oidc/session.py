@@ -23,10 +23,10 @@ from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import verified_claim_name
 from oidcmsg.oidc.session import BACK_CHANNEL_LOGOUT_EVENT
 from oidcmsg.oidc.session import EndSessionRequest
+from oidcmsg.server.endpoint import Endpoint
+from oidcmsg.server.endpoint_context import add_path
+from oidcmsg.util import rndstr
 
-from oidcop import rndstr
-from oidcop.endpoint import Endpoint
-from oidcop.endpoint_context import add_path
 from oidcop.oauth2.authorization import verify_uri
 
 logger = logging.getLogger(__name__)
@@ -243,10 +243,10 @@ class Session(Endpoint):
         return res
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ):
         """
         Perform user logout
@@ -381,8 +381,8 @@ class Session(Endpoint):
                 pass
             else:
                 if (
-                    _ith.jws_header["alg"]
-                    not in _context.provider_info["id_token_signing_alg_values_supported"]
+                        _ith.jws_header["alg"]
+                        not in _context.provider_info["id_token_signing_alg_values_supported"]
                 ):
                     raise JWSException("Unsupported signing algorithm")
 

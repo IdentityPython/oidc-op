@@ -1,8 +1,8 @@
 CONFIG = {
     "authentication": {
         "user": {
-            "acr": "oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
-            "class": "oidcop.user_authn.user.UserPassJinja2",
+            "acr": "oidcmsg.server.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
+            "class": "oidcmsg.server.user_authn.user.UserPassJinja2",
             "kwargs": {
                 "verify_endpoint": "verify/user",
                 "template": "user_pass.jinja2",
@@ -115,7 +115,7 @@ CONFIG = {
     "login_hint2acrs": {
         "class": "oidcop.login_hint.LoginHint2Acrs",
         "kwargs": {
-            "scheme_map": {"email": ["oidcop.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"]}
+            "scheme_map": {"email": ["oidcmsg.server.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"]}
         },
     },
     "token_handler_args": {
@@ -129,7 +129,7 @@ CONFIG = {
         },
         "code": {"kwargs": {"lifetime": 600}},
         "token": {
-            "class": "oidcop.token.jwt_token.JWTToken",
+            "class": "oidcmsg.server.token.jwt_token.JWTToken",
             "kwargs": {
                 "lifetime": 3600,
                 "add_claims": ["email", "email_verified", "phone_number", "phone_number_verified",],
@@ -139,5 +139,5 @@ CONFIG = {
         },
         "refresh": {"kwargs": {"lifetime": 86400}},
     },
-    "userinfo": {"class": "oidcop.user_info.UserInfo", "kwargs": {"filename": "users.json"},},
+    "userinfo": {"class": "oidcmsg.server.user_info.UserInfo", "kwargs": {"filename": "users.json"},},
 }

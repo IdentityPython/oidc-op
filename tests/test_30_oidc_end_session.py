@@ -4,30 +4,30 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
+import pytest
+import responses
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.exception import InvalidRequest
 from oidcmsg.message import Message
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import verified_claim_name
 from oidcmsg.oidc import verify_id_token
+from oidcmsg.server.configure import OPConfiguration
+from oidcmsg.server.exception import RedirectURIError
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.server.user_info import UserInfo
 from oidcmsg.time_util import utc_time_sans_frac
-import pytest
-import responses
 
-from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
-from oidcop.exception import RedirectURIError
 from oidcop.oauth2.authorization import join_query
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
-from oidcop.oidc.session import Session
 from oidcop.oidc.session import do_front_channel_logout_iframe
+from oidcop.oidc.session import Session
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_info import UserInfo
 
 ISS = "https://example.com/"
 
@@ -141,7 +141,7 @@ class TestEndpoint(object):
             "authentication": {
                 "anon": {
                     "acr": INTERNETPROTOCOLPASSWORD,
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },
@@ -155,7 +155,7 @@ class TestEndpoint(object):
                 },
                 "code": {"kwargs": {"lifetime": 600}},
                 "token": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {
                         "lifetime": 3600,
                         "add_claims_by_scope": True,
@@ -163,11 +163,11 @@ class TestEndpoint(object):
                     },
                 },
                 "refresh": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
-                    "class": "oidcop.token.id_token.IDToken",
+                    "class": "oidcmsg.server.token.id_token.IDToken",
                     "kwargs": {
                         "base_claims": {
                             "email": {"essential": True},

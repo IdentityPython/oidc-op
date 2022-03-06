@@ -3,10 +3,9 @@ import logging
 from typing import Optional
 
 from oidcmsg import oauth2
-
-from oidcop.endpoint import Endpoint
-from oidcop.token.exception import UnknownToken
-from oidcop.token.exception import WrongTokenClass
+from oidcmsg.server.endpoint import Endpoint
+from oidcmsg.server.token.exception import UnknownToken
+from oidcmsg.server.token.exception import WrongTokenClass
 
 LOGGER = logging.getLogger(__name__)
 

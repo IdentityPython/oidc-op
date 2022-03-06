@@ -5,23 +5,23 @@ import pytest
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.server import user_info
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.configure import OPConfiguration
+from oidcmsg.server.exception import BearerTokenAuthenticationError
+from oidcmsg.server.exception import ImproperlyConfigured
+from oidcmsg.server.scopes import SCOPE2CLAIMS
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.server.user_info import UserInfo
 from oidcmsg.time_util import utc_time_sans_frac
 
-from oidcop import user_info
-from oidcop.authn_event import create_authn_event
-from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
-from oidcop.exception import ImproperlyConfigured
-from oidcop.exception import BearerTokenAuthenticationError
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
-from oidcop.scopes import SCOPE2CLAIMS
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_info import UserInfo
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -138,12 +138,12 @@ class TestEndpoint(object):
             "authentication": {
                 "anon": {
                     "acr": INTERNETPROTOCOLPASSWORD,
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 },
                 "mfa": {
                     "acr": "https://refeds.org/profile/mfa",
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
 
@@ -360,7 +360,8 @@ class TestEndpoint(object):
                 "eduperson_scoped_affiliation",
             ],
         }
-        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = list(self.endpoint_context.cdb["client_1"]["scopes_to_claims"].keys()) + ["aba"]
+        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = list(
+            self.endpoint_context.cdb["client_1"]["scopes_to_claims"].keys()) + ["aba"]
 
         _auth_req = AUTH_REQ.copy()
         _auth_req["scope"] = ["openid", "research_and_scholarship_2", "aba"]
@@ -512,7 +513,7 @@ class TestEndpoint(object):
         def mock():
             return utc_time_sans_frac() + access_token.expires_at + 1
 
-        monkeypatch.setattr("oidcop.token.utc_time_sans_frac", mock)
+        monkeypatch.setattr("oidcmsg.server.token.utc_time_sans_frac", mock)
 
         with pytest.raises(BearerTokenAuthenticationError):
             self.endpoint.parse_request({}, http_info=http_info)

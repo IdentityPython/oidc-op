@@ -1,23 +1,21 @@
 import json
 import os
 
+import pytest
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oauth2 import TokenExchangeRequest
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
-import pytest
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.authz import AuthzHandling
+from oidcmsg.server.client_authn import verify_client
+from oidcmsg.server.configure import ASConfiguration
+from oidcmsg.server.session.grant import ExchangeGrant
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.server.user_info import UserInfo
 
-from oidcop.authn_event import create_authn_event
-from oidcop.authz import AuthzHandling
-from oidcop.client_authn import verify_client
-from oidcop.configure import ASConfiguration
 from oidcop.cookie_handler import CookieHandler
-from oidcop.oauth2.authorization import Authorization
-from oidcop.oauth2.token import Token
 from oidcop.server import Server
-from oidcop.session.grant import ExchangeGrant
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_info import UserInfo
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -119,7 +117,7 @@ class TestEndpoint(object):
             "authentication": {
                 "anon": {
                     "acr": INTERNETPROTOCOLPASSWORD,
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },
@@ -148,7 +146,7 @@ class TestEndpoint(object):
                 "jwks_file": "private/token_jwks.json",
                 "code": {"kwargs": {"lifetime": 600}},
                 "token": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {
                         "lifetime": 3600,
                         "add_claims_by_scope": True,
@@ -156,7 +154,7 @@ class TestEndpoint(object):
                     },
                 },
                 "refresh": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
             },

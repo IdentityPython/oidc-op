@@ -1,7 +1,6 @@
 import io
 import os
 
-from oidcop.configure import ASConfiguration
 import pytest
 import yaml
 from cryptojwt import JWT
@@ -9,6 +8,7 @@ from cryptojwt.jwt import remove_jwt_parameters
 from cryptojwt.key_jar import init_key_jar
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import AuthorizationRequest
+from oidcmsg.server.configure import ASConfiguration
 
 from oidcop.cookie_handler import CookieHandler
 from oidcop.oauth2.authorization import Authorization
@@ -86,7 +86,7 @@ class TestEndpoint(object):
                 },
                 "code": {"lifetime": 600},
                 "token": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {
                         "lifetime": 3600,
                         "add_claims": [
@@ -110,7 +110,7 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "registration", "class": Registration, "kwargs": {},},
+                "registration": {"path": "registration", "class": Registration, "kwargs": {}, },
                 "authorization": {
                     "path": "authorization",
                     "class": Authorization,
@@ -138,7 +138,7 @@ class TestEndpoint(object):
             "authentication": {
                 "anon": {
                     "acr": "http://www.swamid.se/policy/assurance/al1",
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },

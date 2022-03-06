@@ -5,13 +5,14 @@ from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import init_key_jar
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.server import user_info
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.authz import AuthzHandling
+from oidcmsg.server.client_authn import verify_client
+from oidcmsg.server.scopes import SCOPE2CLAIMS
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcmsg.time_util import utc_time_sans_frac
-from oidcop.scopes import SCOPE2CLAIMS
 
-from oidcop import user_info
-from oidcop.authn_event import create_authn_event
-from oidcop.authz import AuthzHandling
-from oidcop.client_authn import verify_client
 from oidcop.oauth2.introspection import Introspection
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
@@ -19,7 +20,6 @@ from oidcop.oidc.registration import Registration
 from oidcop.oidc.session import Session
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -107,7 +107,7 @@ class TestEndpoint(object):
                 "jwks_file": "private/token_jwks.json",
                 "code": {"lifetime": 600},
                 "token": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {
                         "lifetime": 3600,
                         "base_claims": {"eduperson_scoped_affiliation": None},
@@ -116,11 +116,11 @@ class TestEndpoint(object):
                     },
                 },
                 "refresh": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
-                    "class": "oidcop.token.id_token.IDToken",
+                    "class": "oidcmsg.server.token.id_token.IDToken",
                     "kwargs": {
                         "base_claims": {
                             "email": {"essential": True},
@@ -135,7 +135,7 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {},},
+                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {}, },
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
@@ -149,7 +149,7 @@ class TestEndpoint(object):
             "authentication": {
                 "anon": {
                     "acr": INTERNETPROTOCOLPASSWORD,
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },
@@ -164,7 +164,7 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token",],
+                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -176,7 +176,7 @@ class TestEndpoint(object):
                     }
                 },
             },
-            "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
+            "claims_interface": {"class": "oidcmsg.server.session.claims.ClaimsInterface", "kwargs": {}},
         }
         server = Server(conf, keyjar=KEYJAR)
         self.endpoint_context = server.endpoint_context
@@ -251,7 +251,8 @@ class TestEndpoint(object):
     @pytest.mark.parametrize("enable_claims_per_client", [True, False])
     def test_enable_claims_per_client(self, enable_claims_per_client):
         # Set up configuration
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["access_token"] = {"address": None}
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["access_token"] = {
+            "address": None}
         self.endpoint_context.session_manager.token_handler.handler["access_token"].kwargs[
             "enable_claims_per_client"
         ] = enable_claims_per_client
@@ -292,7 +293,7 @@ class TestEndpointWebID(object):
                 "jwks_file": "private/token_jwks.json",
                 "code": {"lifetime": 600},
                 "token": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {
                         "lifetime": 3600,
                         "base_claims": {"eduperson_scoped_affiliation": None},
@@ -301,11 +302,11 @@ class TestEndpointWebID(object):
                     },
                 },
                 "refresh": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
-                    "class": "oidcop.token.id_token.IDToken",
+                    "class": "oidcmsg.server.token.id_token.IDToken",
                     "kwargs": {
                         "base_claims": {
                             "email": {"essential": True},
@@ -334,7 +335,7 @@ class TestEndpointWebID(object):
             "authentication": {
                 "anon": {
                     "acr": INTERNETPROTOCOLPASSWORD,
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },
@@ -361,7 +362,7 @@ class TestEndpointWebID(object):
                     }
                 },
             },
-            "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
+            "claims_interface": {"class": "oidcmsg.server.session.claims.ClaimsInterface", "kwargs": {}},
             "scopes_to_claims": _scope2claims,
         }
         server = Server(conf, keyjar=KEYJAR)

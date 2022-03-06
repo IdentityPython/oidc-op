@@ -4,8 +4,10 @@ import os
 import pytest
 from cryptojwt.key_jar import build_keyjar
 from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.server.user_info import UserInfo
 
-from oidcop.authn_event import create_authn_event
 from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
@@ -14,8 +16,6 @@ from oidcop.oidc.registration import Registration
 from oidcop.oidc.session import Session
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_info import UserInfo
 
 ISS = "https://example.com/"
 
@@ -147,7 +147,7 @@ CONF = {
     "authentication": {
         "anon": {
             "acr": INTERNETPROTOCOLPASSWORD,
-            "class": "oidcop.user_authn.user.NoAuthn",
+            "class": "oidcmsg.server.user_authn.user.NoAuthn",
             "kwargs": {"user": "diana"},
         }
     },

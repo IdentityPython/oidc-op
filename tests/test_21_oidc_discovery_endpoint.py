@@ -1,12 +1,12 @@
 import json
 import os
 
-from oidcop.configure import OPConfiguration
 import pytest
+from oidcmsg.server.configure import OPConfiguration
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 
 from oidcop.oidc.discovery import Discovery
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -36,7 +36,7 @@ class TestEndpoint(object):
             "authentication": {
                 "anon": {
                     "acr": INTERNETPROTOCOLPASSWORD,
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },

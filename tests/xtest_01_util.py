@@ -3,7 +3,7 @@ from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
 from oidcop.oidc.userinfo import UserInfo
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -37,7 +37,7 @@ conf = {
     "authentication": {
         "anon": {
             "acr": INTERNETPROTOCOLPASSWORD,
-            "class": "oidcop.user_authn.user.NoAuthn",
+            "class": "oidcmsg.server.user_authn.user.NoAuthn",
             "kwargs": {"user": "diana"},
         }
     },

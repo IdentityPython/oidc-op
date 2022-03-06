@@ -1,8 +1,8 @@
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import RegistrationResponse
+from oidcmsg.server.endpoint import Endpoint
 
-from oidcop.endpoint import Endpoint
 from oidcop.oidc.registration import comb_uri
 
 
@@ -18,8 +18,8 @@ class RegistrationRead(Endpoint):
     def get_client_id_from_token(self, endpoint_context, token, request=None):
         if "client_id" in request:
             if (
-                request["client_id"]
-                == self.server_get("endpoint_context").registration_access_token[token]
+                    request["client_id"]
+                    == self.server_get("endpoint_context").registration_access_token[token]
             ):
                 return request["client_id"]
         return ""

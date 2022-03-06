@@ -2,8 +2,8 @@ import json
 import os
 
 import pytest
+from oidcmsg.server.configure import OPConfiguration
 
-from oidcop.configure import OPConfiguration
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.token import Token
 from oidcop.server import Server
@@ -55,7 +55,7 @@ class TestEndpoint(object):
         return {
             "issuer": "https://example.com/",
             "httpc_params": {
-              "verify": False
+                "verify": False
             },
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},

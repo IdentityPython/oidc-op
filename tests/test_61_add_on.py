@@ -1,26 +1,18 @@
 import os
 from urllib.parse import urlparse
 
-from cryptojwt.jwk.ec import ECKey
-from cryptojwt.jwk.ec import new_ec_key
-from cryptojwt.jws.jws import factory
+import pytest
 from cryptojwt.key_jar import init_key_jar
-from oidcmsg.oauth2 import AccessTokenRequest
 from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oauth2 import AuthorizationResponse
-from oidcmsg.time_util import utc_time_sans_frac
+from oidcmsg.server import user_info
+from oidcmsg.server.client_authn import verify_client
+from oidcmsg.server.configure import OPConfiguration
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 
-from oidcop.authn_event import create_authn_event
-import pytest
-
-from oidcop import user_info
-from oidcop.client_authn import verify_client
-from oidcop.configure import OPConfiguration
 from oidcop.oauth2.authorization import Authorization
 from oidcop.oidc.token import Token
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -95,7 +87,7 @@ class TestEndpoint(object):
                 "jwks_file": "private/token_jwks.json",
                 "code": {"lifetime": 600},
                 "token": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {
                         "lifetime": 3600,
                         "base_claims": {"eduperson_scoped_affiliation": None},
@@ -104,11 +96,11 @@ class TestEndpoint(object):
                     },
                 },
                 "refresh": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
-                    "class": "oidcop.token.id_token.IDToken",
+                    "class": "oidcmsg.server.token.id_token.IDToken",
                     "kwargs": {
                         "base_claims": {
                             "email": {"essential": True},
@@ -132,7 +124,7 @@ class TestEndpoint(object):
             "authentication": {
                 "anon": {
                     "acr": INTERNETPROTOCOLPASSWORD,
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },

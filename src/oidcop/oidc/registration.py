@@ -14,16 +14,15 @@ from oidcmsg.oauth2 import ResponseMessage
 from oidcmsg.oidc import ClientRegistrationErrorResponse
 from oidcmsg.oidc import RegistrationRequest
 from oidcmsg.oidc import RegistrationResponse
+from oidcmsg.server.endpoint import Endpoint
+from oidcmsg.server.exception import CapabilitiesMisMatch
+from oidcmsg.server.exception import InvalidRedirectURIError
+from oidcmsg.server.exception import InvalidSectorIdentifier
 from oidcmsg.time_util import utc_time_sans_frac
-
-from oidcop import rndstr
-from oidcop import sanitize
-from oidcop.endpoint import Endpoint
-from oidcop.exception import CapabilitiesMisMatch
-from oidcop.exception import InvalidRedirectURIError
-from oidcop.exception import InvalidSectorIdentifier
-from oidcop.util import importer
-from oidcop.util import split_uri
+from oidcmsg.util import importer
+from oidcmsg.util import rndstr
+from oidcmsg.util import sanitize
+from oidcmsg.util import split_uri
 
 PREFERENCE2PROVIDER = {
     # "require_signed_request_object": "request_object_algs_supported",

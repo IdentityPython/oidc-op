@@ -1,6 +1,6 @@
 import logging
 
-from oidcop.scopes import SCOPE2CLAIMS
+from oidcmsg.server.scopes import SCOPE2CLAIMS
 
 LOGGER = logging.getLogger(__name__)
 

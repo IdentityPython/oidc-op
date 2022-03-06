@@ -11,10 +11,9 @@ from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg import oidc
 from oidcmsg.message import Message
 from oidcmsg.oauth2 import ResponseMessage
-
-from oidcop.endpoint import Endpoint
-from oidcop.exception import ClientAuthenticationError
-from oidcop.util import OAUTH2_NOCACHE_HEADERS
+from oidcmsg.server.endpoint import Endpoint
+from oidcmsg.server.exception import ClientAuthenticationError
+from oidcmsg.server.util import OAUTH2_NOCACHE_HEADERS
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +49,11 @@ class UserInfo(Endpoint):
         return _info["client_id"]
 
     def do_response(
-        self,
-        response_args: Optional[Union[Message, dict]] = None,
-        request: Optional[Union[Message, dict]] = None,
-        client_id: Optional[str] = "",
-        **kwargs
+            self,
+            response_args: Optional[Union[Message, dict]] = None,
+            request: Optional[Union[Message, dict]] = None,
+            client_id: Optional[str] = "",
+            **kwargs
     ) -> dict:
 
         if "error" in kwargs and kwargs["error"]:

@@ -5,7 +5,6 @@ from http.cookies import SimpleCookie
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
-from oidcop.configure import ASConfiguration
 import pytest
 import yaml
 from cryptojwt import KeyJar
@@ -17,25 +16,26 @@ from oidcmsg.exception import URIError
 from oidcmsg.oauth2 import AuthorizationErrorResponse
 from oidcmsg.oauth2 import AuthorizationRequest
 from oidcmsg.oauth2 import AuthorizationResponse
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.authz import AuthzHandling
+from oidcmsg.server.configure import ASConfiguration
+from oidcmsg.server.exception import InvalidRequest
+from oidcmsg.server.exception import NoSuchAuthentication
+from oidcmsg.server.exception import RedirectURIError
+from oidcmsg.server.exception import ToOld
+from oidcmsg.server.exception import UnAuthorizedClientScope
+from oidcmsg.server.exception import UnknownClient
+from oidcmsg.server.user_info import UserInfo
 from oidcmsg.time_util import in_a_while
 
-from oidcop.authn_event import create_authn_event
-from oidcop.authz import AuthzHandling
 from oidcop.cookie_handler import CookieHandler
-from oidcop.exception import InvalidRequest
-from oidcop.exception import NoSuchAuthentication
-from oidcop.exception import RedirectURIError
-from oidcop.exception import ToOld
-from oidcop.exception import UnAuthorizedClientScope
-from oidcop.exception import UnknownClient
-from oidcop.oauth2.authorization import FORM_POST
 from oidcop.oauth2.authorization import Authorization
+from oidcop.oauth2.authorization import FORM_POST
 from oidcop.oauth2.authorization import get_uri
 from oidcop.oauth2.authorization import inputs
 from oidcop.oauth2.authorization import join_query
 from oidcop.oauth2.authorization import verify_uri
 from oidcop.server import Server
-from oidcop.user_info import UserInfo
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]}
@@ -156,7 +156,7 @@ class TestEndpoint(object):
                 },
                 "code": {"kwargs": {"lifetime": 600}},
                 "token": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {
                         "lifetime": 3600,
                         "add_claims_by_scope": True,
@@ -164,11 +164,11 @@ class TestEndpoint(object):
                     },
                 },
                 "refresh": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
-                    "class": "oidcop.token.id_token.IDToken",
+                    "class": "oidcmsg.server.token.id_token.IDToken",
                     "kwargs": {
                         "base_claims": {
                             "email": {"essential": True},
@@ -193,7 +193,7 @@ class TestEndpoint(object):
             "authentication": {
                 "anon": {
                     "acr": "http://www.swamid.se/policy/assurance/al1",
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },
@@ -216,12 +216,12 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token",],
+                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
                             "refresh_token": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token",],
+                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
                             },
                         },
                         "expires_in": 43200,

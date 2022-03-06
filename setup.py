@@ -47,7 +47,6 @@ with open('src/oidcop/__init__.py', 'r') as fd:
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
     README = readme.read()
 
-
 setup(
     name="oidcop",
     version=version,
@@ -59,10 +58,8 @@ setup(
     license="Apache 2.0",
     url='https://github.com/IdentityPython/oidc-op',
     package_dir={"": "src"},
-    packages=["oidcop", 'oidcop/oidc', 'oidcop/authz',
-              'oidcop/user_authn', 'oidcop/user_info',
-              'oidcop/oauth2', 'oidcop/oidc/add_on', 'oidcop/oauth2/add_on',
-              'oidcop/session', 'oidcop/token'],
+    packages=["oidcop", 'oidcop/oidc', 'oidcop/oauth2', 'oidcop/oidc/add_on',
+              'oidcop/oauth2/add_on'],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: Apache Software License",
@@ -72,7 +69,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        "oidcmsg==1.6.0",
+        "oidcmsg==2.0.0",
         "pyyaml",
         "jinja2>=2.11.3",
         "responses>=0.13.0"

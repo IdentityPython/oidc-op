@@ -4,9 +4,6 @@ import os
 import secrets
 import string
 
-from . import full_path
-from oidcop.configure import ASConfiguration
-
 import pytest
 import yaml
 from oidcmsg.message import Message
@@ -15,17 +12,16 @@ from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import TokenErrorResponse
+from oidcmsg.server.configure import ASConfiguration
+from oidcmsg.server.configure import OPConfiguration
 
-import oidcop.oauth2.introspection
-from oidcop.configure import ASConfiguration
-from oidcop.configure import OPConfiguration
 from oidcop.cookie_handler import CookieHandler
-from oidcop.endpoint import Endpoint
-from oidcop.oidc.add_on.pkce import CC_METHOD
 from oidcop.oidc.add_on.pkce import add_pkce_support
+from oidcop.oidc.add_on.pkce import CC_METHOD
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.token import Token
 from oidcop.server import Server
+from . import full_path
 
 BASECH = string.ascii_letters + string.digits + "-._~"
 
@@ -124,7 +120,7 @@ def conf():
         "capabilities": CAPABILITIES,
         "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
         "endpoint": {
-            "authorization": {"path": "{}/authorization", "class": Authorization, "kwargs": {},},
+            "authorization": {"path": "{}/authorization", "class": Authorization, "kwargs": {}, },
             "token": {
                 "path": "{}/token",
                 "class": Token,
@@ -141,7 +137,7 @@ def conf():
         "authentication": {
             "anon": {
                 "acr": "http://www.swamid.se/policy/assurance/al1",
-                "class": "oidcop.user_authn.user.NoAuthn",
+                "class": "oidcmsg.server.user_authn.user.NoAuthn",
                 "kwargs": {"user": "diana"},
             }
         },
@@ -164,7 +160,7 @@ def conf():
             },
         },
         "userinfo": {
-            "class": "oidcop.user_info.UserInfo",
+            "class": "oidcmsg.server.user_info.UserInfo",
             "kwargs": {"db_file": full_path("users.json")},
         },
     }

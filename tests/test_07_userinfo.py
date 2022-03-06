@@ -3,20 +3,18 @@ import os
 
 import pytest
 from oidcmsg.oidc import OpenIDRequest
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.configure import OPConfiguration
+from oidcmsg.server.scopes import SCOPE2CLAIMS
+from oidcmsg.server.session.claims import ClaimsInterface
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.server.user_info import UserInfo
 
-from oidcop.authn_event import create_authn_event
-from oidcop.configure import OPConfiguration
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
-from oidcop.scopes import SCOPE2CLAIMS
-from oidcop.scopes import convert_scopes2claims
 from oidcop.server import Server
-from oidcop.session.claims import STANDARD_CLAIMS
-from oidcop.session.claims import ClaimsInterface
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_info import UserInfo
 
 CLAIMS = {
     "userinfo": {
@@ -71,89 +69,6 @@ def full_path(local_file):
 
 USERINFO_DB = json.loads(open(full_path("users.json")).read())
 
-
-def test_default_scope2claims():
-    assert convert_scopes2claims(["openid"], STANDARD_CLAIMS) == {"sub": None}
-    assert set(convert_scopes2claims(["profile"], STANDARD_CLAIMS).keys()) == {
-        "name",
-        "given_name",
-        "family_name",
-        "middle_name",
-        "nickname",
-        "profile",
-        "picture",
-        "website",
-        "gender",
-        "birthdate",
-        "zoneinfo",
-        "locale",
-        "updated_at",
-        "preferred_username",
-    }
-    assert set(convert_scopes2claims(["email"], STANDARD_CLAIMS).keys()) == {
-        "email",
-        "email_verified",
-    }
-    assert set(convert_scopes2claims(["address"], STANDARD_CLAIMS).keys()) == {"address"}
-    assert set(convert_scopes2claims(["phone"], STANDARD_CLAIMS).keys()) == {
-        "phone_number",
-        "phone_number_verified",
-    }
-    assert convert_scopes2claims(["offline_access"], STANDARD_CLAIMS) == {}
-
-    assert convert_scopes2claims(["openid", "email", "phone"], STANDARD_CLAIMS) == {
-        "sub": None,
-        "email": None,
-        "email_verified": None,
-        "phone_number": None,
-        "phone_number_verified": None,
-    }
-
-
-def test_custom_scopes():
-    custom_scopes = {
-        "research_and_scholarship": [
-            "name",
-            "given_name",
-            "family_name",
-            "email",
-            "email_verified",
-            "sub",
-            "iss",
-            "eduperson_scoped_affiliation",
-        ]
-    }
-
-    _scopes = SCOPE2CLAIMS.copy()
-    _scopes.update(custom_scopes)
-    _available_claims = STANDARD_CLAIMS[:]
-    _available_claims.append("eduperson_scoped_affiliation")
-
-    assert set(
-        convert_scopes2claims(["email"], _available_claims, scope2claim_map=_scopes).keys()
-    ) == {"email", "email_verified",}
-    assert set(
-        convert_scopes2claims(["address"], _available_claims, scope2claim_map=_scopes).keys()
-    ) == {"address"}
-    assert set(
-        convert_scopes2claims(["phone"], _available_claims, scope2claim_map=_scopes).keys()
-    ) == {"phone_number", "phone_number_verified",}
-
-    assert set(
-        convert_scopes2claims(
-            ["research_and_scholarship"], _available_claims, scope2claim_map=_scopes
-        ).keys()
-    ) == {
-        "name",
-        "given_name",
-        "family_name",
-        "email",
-        "email_verified",
-        "sub",
-        "eduperson_scoped_affiliation",
-    }
-
-
 PROVIDER_INFO = {
     "claims_supported": [
         "auth_time",
@@ -188,7 +103,7 @@ class TestCollectUserInfo:
                 },
                 "code": {"kwargs": {"lifetime": 600}},
                 "token": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
                     "kwargs": {
                         "lifetime": 3600,
                         "add_claims_by_scope": True,
@@ -196,13 +111,13 @@ class TestCollectUserInfo:
                     },
                 },
                 "refresh": {
-                    "class": "oidcop.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+                    "class": "oidcmsg.server.token.jwt_token.JWTToken",
+                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
                 },
                 "id_token": {
-                    "class": "oidcop.token.id_token.IDToken",
+                    "class": "oidcmsg.server.token.id_token.IDToken",
                     "kwargs": {
-                        "base_claims": {"email": None, "email_verified": None,},
+                        "base_claims": {"email": None, "email_verified": None, },
                         "enable_claims_per_client": True,
                     },
                 },
@@ -213,13 +128,13 @@ class TestCollectUserInfo:
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {},},
+                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {}, },
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
                     "kwargs": {
                         "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
-                        "response_modes_supported": ["query", "fragment", "form_post",],
+                        "response_modes_supported": ["query", "fragment", "form_post", ],
                         "claims_parameter_supported": True,
                         "request_parameter_supported": True,
                         "request_uri_parameter_supported": True,
@@ -229,9 +144,9 @@ class TestCollectUserInfo:
                     "path": "userinfo",
                     "class": userinfo.UserInfo,
                     "kwargs": {
-                        "claim_types_supported": ["normal", "aggregated", "distributed",],
+                        "claim_types_supported": ["normal", "aggregated", "distributed", ],
                         "client_authn_method": ["bearer_header"],
-                        "base_claims": {"eduperson_scoped_affiliation": None, "email": None,},
+                        "base_claims": {"eduperson_scoped_affiliation": None, "email": None, },
                         "add_claims_by_scope": True,
                         "enable_claims_per_client": True,
                     },
@@ -245,7 +160,7 @@ class TestCollectUserInfo:
             "authentication": {
                 "anon": {
                     "acr": INTERNETPROTOCOLPASSWORD,
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },
@@ -376,7 +291,8 @@ class TestCollectUserInfo:
         _userinfo_endpoint.kwargs["enable_claims_per_client"] = True
         del _userinfo_endpoint.kwargs["base_claims"]
 
-        self.endpoint_context.cdb[_req["client_id"]]["add_claims"]["always"]["userinfo"] = {"phone_number": None}
+        self.endpoint_context.cdb[_req["client_id"]]["add_claims"]["always"]["userinfo"] = {
+            "phone_number": None}
 
         _userinfo_restriction = self.claims_interface.get_claims(
             session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"
@@ -394,7 +310,8 @@ class TestCollectUserInfoCustomScopes:
             "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_DB}},
             "password": "we didn't start the fire",
             "issuer": "https://example.com/op",
-            "claims_interface": {"class": "oidcop.session.claims.ClaimsInterface", "kwargs": {}},
+            "claims_interface": {"class": "oidcmsg.server.session.claims.ClaimsInterface",
+                                 "kwargs": {}},
             "endpoint": {
                 "provider_config": {
                     "path": "{}/.well-known/openid-configuration",
@@ -461,7 +378,7 @@ class TestCollectUserInfoCustomScopes:
             "authentication": {
                 "anon": {
                     "acr": INTERNETPROTOCOLPASSWORD,
-                    "class": "oidcop.user_authn.user.NoAuthn",
+                    "class": "oidcmsg.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
                 }
             },

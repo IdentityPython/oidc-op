@@ -2,9 +2,9 @@
 import json
 import os
 
-from oidcop.configure import OPConfiguration
 import pytest
 from oidcmsg.oidc import RegistrationRequest
+from oidcmsg.server.configure import OPConfiguration
 
 from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc.authorization import Authorization
@@ -98,7 +98,7 @@ class TestEndpoint(object):
                     "class": RegistrationRead,
                     "kwargs": {"client_authn_method": ["bearer_header"]},
                 },
-                "authorization": {"path": "authorization", "class": Authorization, "kwargs": {},},
+                "authorization": {"path": "authorization", "class": Authorization, "kwargs": {}, },
                 "token": {
                     "path": "token",
                     "class": Token,

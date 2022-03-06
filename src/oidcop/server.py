@@ -4,19 +4,18 @@ from typing import Union
 
 from cryptojwt import KeyJar
 from oidcmsg.impexp import ImpExp
-
-from oidcop import authz
-from oidcop.configure import ASConfiguration
-from oidcop.configure import OPConfiguration
-from oidcop.client_authn import client_auth_setup
-from oidcop.endpoint import Endpoint
-from oidcop.endpoint_context import EndpointContext
-from oidcop.endpoint_context import init_service
-from oidcop.endpoint_context import init_user_info
-from oidcop.session.manager import create_session_manager
-from oidcop.user_authn.authn_context import populate_authn_broker
-from oidcop.util import allow_refresh_token
-from oidcop.util import build_endpoints
+from oidcmsg.server import authz
+from oidcmsg.server.client_authn import client_auth_setup
+from oidcmsg.server.configure import ASConfiguration
+from oidcmsg.server.configure import OPConfiguration
+from oidcmsg.server.endpoint import Endpoint
+from oidcmsg.server.endpoint_context import EndpointContext
+from oidcmsg.server.endpoint_context import init_service
+from oidcmsg.server.endpoint_context import init_user_info
+from oidcmsg.server.session.manager import create_session_manager
+from oidcmsg.server.user_authn.authn_context import populate_authn_broker
+from oidcmsg.server.util import allow_refresh_token
+from oidcmsg.server.util import build_endpoints
 
 
 def do_endpoints(conf, server_get):
@@ -57,12 +56,12 @@ class Server(ImpExp):
     parameter = {"endpoint": [Endpoint], "endpoint_context": EndpointContext}
 
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration, ASConfiguration],
-        keyjar: Optional[KeyJar] = None,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
+            self,
+            conf: Union[dict, OPConfiguration, ASConfiguration],
+            keyjar: Optional[KeyJar] = None,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
     ):
         ImpExp.__init__(self)
         self.conf = conf
@@ -171,4 +170,6 @@ class Server(ImpExp):
             self.endpoint_context.login_hint_lookup.userinfo = _userinfo
 
     def do_client_authn_methods(self):
-        self.endpoint_context.client_authn_method = client_auth_setup(self.server_get, self.conf.get("client_authn_method"))
+        self.endpoint_context.client_authn_method = client_auth_setup(self.server_get,
+                                                                      self.conf.get(
+                                                                          "client_authn_method"))

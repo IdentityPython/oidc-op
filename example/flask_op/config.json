@@ -62,7 +62,7 @@
         }
       },
       "authz": {
-        "class": "oidcop.authz.AuthzHandling",
+        "class": "oidcmsg.server.authz.AuthzHandling",
         "kwargs": {
           "grant_config": {
             "usage_rules": {
@@ -89,7 +89,7 @@
       "authentication": {
         "user": {
           "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
-          "class": "oidcop.user_authn.user.UserPassJinja2",
+          "class": "oidcmsg.server.user_authn.user.UserPassJinja2",
           "kwargs": {
             "verify_endpoint": "/verify/user",
             "template": "user_pass.jinja2",
@@ -316,7 +316,7 @@
           }
         },
         "token": {
-          "class": "oidcop.token.jwt_token.JWTToken",
+          "class": "oidcmsg.server.token.jwt_token.JWTToken",
           "kwargs": {
             "lifetime": 3600,
             "add_claims": [
@@ -337,7 +337,7 @@
           }
         },
         "id_token": {
-          "class": "oidcop.token.id_token.IDToken",
+          "class": "oidcmsg.server.token.id_token.IDToken",
           "kwargs": {
             "base_claims": {
               "email": {
@@ -351,7 +351,7 @@
         }
       },
       "userinfo": {
-        "class": "oidcop.user_info.UserInfo",
+        "class": "oidcmsg.server.user_info.UserInfo",
         "kwargs": {
           "db_file": "users.json"
         }

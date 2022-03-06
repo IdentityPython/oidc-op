@@ -2,17 +2,17 @@ import io
 import json
 import os
 
-from . import full_path
-from oidcop.configure import OPConfiguration
 import pytest
 import yaml
 from cryptojwt import KeyJar
 from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.server.configure import OPConfiguration
+from oidcmsg.server.user_authn.authn_context import UNSPECIFIED
+from oidcmsg.server.user_authn.user import NoAuthn
 
 from oidcop.oidc.authorization import Authorization
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import UNSPECIFIED
-from oidcop.user_authn.user import NoAuthn
+from . import full_path
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]}
@@ -143,7 +143,7 @@ class TestUserAuthn(object):
             },
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "authentication": {
-                "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"},},
+                "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"}, },
             },
             "cookie_handler": {
                 "class": "oidcop.cookie_handler.CookieHandler",
@@ -158,7 +158,7 @@ class TestUserAuthn(object):
             },
             "template_dir": "template",
             "userinfo": {
-                "class": "oidcop.user_info.UserInfo",
+                "class": "oidcmsg.server.user_info.UserInfo",
                 "kwargs": {"db_file": full_path("users.json")},
             },
         }

@@ -6,20 +6,20 @@ import pytest
 from cryptojwt.jwt import utc_time_sans_frac
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
+from oidcmsg.server import user_info
+from oidcmsg.server.authn_event import create_authn_event
+from oidcmsg.server.authz import AuthzHandling
+from oidcmsg.server.configure import OPConfiguration
+from oidcmsg.server.scopes import SCOPE2CLAIMS
+from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from oidcmsg.server.user_info import UserInfo
 
-from oidcop import user_info
-from oidcop.authn_event import create_authn_event
-from oidcop.authz import AuthzHandling
-from oidcop.configure import OPConfiguration
 from oidcop.oidc import userinfo
 from oidcop.oidc.authorization import Authorization
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.registration import Registration
 from oidcop.oidc.token import Token
-from oidcop.scopes import SCOPE2CLAIMS
 from oidcop.server import Server
-from oidcop.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from oidcop.user_info import UserInfo
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -83,7 +83,7 @@ ENDPOINT_CONTEXT_CONFIG = {
         "jwks_file": "private/token_jwks.json",
         "code": {"kwargs": {"lifetime": 600}},
         "token": {
-            "class": "oidcop.token.jwt_token.JWTToken",
+            "class": "oidcmsg.server.token.jwt_token.JWTToken",
             "kwargs": {
                 "lifetime": 3600,
                 "add_claims_by_scope": True,
@@ -91,10 +91,10 @@ ENDPOINT_CONTEXT_CONFIG = {
             },
         },
         "refresh": {
-            "class": "oidcop.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"],},
+            "class": "oidcmsg.server.token.jwt_token.JWTToken",
+            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
         },
-        "id_token": {"class": "oidcop.token.id_token.IDToken", "kwargs": {}},
+        "id_token": {"class": "oidcmsg.server.token.id_token.IDToken", "kwargs": {}},
     },
     "endpoint": {
         "provider_config": {
@@ -102,8 +102,8 @@ ENDPOINT_CONTEXT_CONFIG = {
             "class": ProviderConfiguration,
             "kwargs": {},
         },
-        "registration": {"path": "registration", "class": Registration, "kwargs": {},},
-        "authorization": {"path": "authorization", "class": Authorization, "kwargs": {},},
+        "registration": {"path": "registration", "class": Registration, "kwargs": {}, },
+        "authorization": {"path": "authorization", "class": Authorization, "kwargs": {}, },
         "token": {
             "path": "token",
             "class": Token,
@@ -120,18 +120,18 @@ ENDPOINT_CONTEXT_CONFIG = {
             "path": "userinfo",
             "class": userinfo.UserInfo,
             "kwargs": {
-                "claim_types_supported": ["normal", "aggregated", "distributed",],
+                "claim_types_supported": ["normal", "aggregated", "distributed", ],
                 "client_authn_method": ["bearer_header"],
                 "add_claims_by_scope": True,
             },
         },
     },
-    "userinfo": {"class": user_info.UserInfo, "kwargs": {"db_file": full_path("users.json")},},
+    "userinfo": {"class": user_info.UserInfo, "kwargs": {"db_file": full_path("users.json")}, },
     # "client_authn": verify_client,
     "authentication": {
         "anon": {
             "acr": INTERNETPROTOCOLPASSWORD,
-            "class": "oidcop.user_authn.user.NoAuthn",
+            "class": "oidcmsg.server.user_authn.user.NoAuthn",
             "kwargs": {"user": "diana"},
         }
     },
@@ -154,11 +154,11 @@ ENDPOINT_CONTEXT_CONFIG = {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        "supports_minting": ["access_token", "refresh_token", "id_token",],
+                        "supports_minting": ["access_token", "refresh_token", "id_token", ],
                         "max_usage": 1,
                     },
                     "access_token": {},
-                    "refresh_token": {"supports_minting": ["access_token", "refresh_token"],},
+                    "refresh_token": {"supports_minting": ["access_token", "refresh_token"], },
                 },
                 "expires_in": 43200,
             }
@@ -265,28 +265,28 @@ class TestEndpoint(object):
         assert set(
             self.endpoint[1].server_get("endpoint_context").provider_info["claims_supported"]
         ) == {
-            "address",
-            "birthdate",
-            "email",
-            "email_verified",
-            "eduperson_scoped_affiliation",
-            "family_name",
-            "gender",
-            "given_name",
-            "locale",
-            "middle_name",
-            "name",
-            "nickname",
-            "phone_number",
-            "phone_number_verified",
-            "picture",
-            "preferred_username",
-            "profile",
-            "sub",
-            "updated_at",
-            "website",
-            "zoneinfo",
-        }
+                   "address",
+                   "birthdate",
+                   "email",
+                   "email_verified",
+                   "eduperson_scoped_affiliation",
+                   "family_name",
+                   "gender",
+                   "given_name",
+                   "locale",
+                   "middle_name",
+                   "name",
+                   "nickname",
+                   "phone_number",
+                   "phone_number_verified",
+                   "picture",
+                   "preferred_username",
+                   "profile",
+                   "sub",
+                   "updated_at",
+                   "website",
+                   "zoneinfo",
+               }
         assert set(
             self.endpoint[1].server_get("endpoint_context").provider_info["claims_supported"]
         ) == set(self.endpoint[2].server_get("endpoint_context").provider_info["claims_supported"])
@@ -404,9 +404,9 @@ class TestEndpoint(object):
 
         grant.claims = {
             "userinfo": self.endpoint[1]
-            .server_get("endpoint_context")
-            .claims_interface.get_claims(session_id, scopes=_auth_req["scope"],
-                                         claims_release_point="userinfo")
+                .server_get("endpoint_context")
+                .claims_interface.get_claims(session_id, scopes=_auth_req["scope"],
+                                             claims_release_point="userinfo")
         }
 
         self._dump_restore(1, 2)
@@ -444,7 +444,7 @@ class TestEndpoint(object):
         grant = (
             self.endpoint[1].server_get("endpoint_context").authz(
                 session_id, AUTH_REQ
-                )
+            )
         )
         sman = self.session_manager[1]
         session_dump = sman.dump()
