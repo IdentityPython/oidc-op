@@ -24,7 +24,7 @@ from oidcmsg.oidc import verified_claim_name
 from oidcmsg.oidc.session import BACK_CHANNEL_LOGOUT_EVENT
 from oidcmsg.oidc.session import EndSessionRequest
 from oidcmsg.server.endpoint import Endpoint
-from oidcmsg.server.endpoint_context import add_path
+from oidcmsg.util import add_path
 from oidcmsg.util import rndstr
 
 from oidcop.oauth2.authorization import verify_uri
