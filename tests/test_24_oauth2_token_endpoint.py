@@ -1,14 +1,13 @@
 import json
 import os
 
-import pytest
 from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
+from oidcmsg.defaults import JWT_BEARER
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
-from oidcmsg.server import JWT_BEARER
 from oidcmsg.server.authn_event import create_authn_event
 from oidcmsg.server.authz import AuthzHandling
 from oidcmsg.server.client_authn import verify_client
@@ -18,6 +17,7 @@ from oidcmsg.server.session import MintingNotAllowed
 from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcmsg.server.user_info import UserInfo
 from oidcmsg.time_util import utc_time_sans_frac
+import pytest
 
 from oidcop.oauth2.authorization import Authorization
 from oidcop.oauth2.token import Token
@@ -126,7 +126,8 @@ def conf():
         "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
         "client_authn": verify_client,
         "template_dir": "template",
-        "claims_interface": {"class": "oidcmsg.server.session.claims.OAuth2ClaimsInterface", "kwargs": {}},
+        "claims_interface": {"class": "oidcmsg.server.session.claims.OAuth2ClaimsInterface",
+                             "kwargs": {}},
         "authz": {
             "class": AuthzHandling,
             "kwargs": {

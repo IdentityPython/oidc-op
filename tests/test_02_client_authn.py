@@ -1,6 +1,7 @@
 import base64
 from unittest.mock import MagicMock
 
+from oidcmsg.defaults import JWT_BEARER
 import pytest
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import JWT
@@ -8,7 +9,6 @@ from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import as_unicode
-from oidcmsg.server import JWT_BEARER
 from oidcmsg.server.client_authn import basic_authn
 from oidcmsg.server.client_authn import BearerBody
 from oidcmsg.server.client_authn import BearerHeader

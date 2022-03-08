@@ -2,15 +2,14 @@ import base64
 import json
 import os
 
-import pytest
 from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
+from oidcmsg.defaults import JWT_BEARER
 from oidcmsg.oidc import AccessTokenRequest
 from oidcmsg.oidc import AuthorizationRequest
 from oidcmsg.oidc import AuthorizationResponse
 from oidcmsg.oidc import RefreshAccessTokenRequest
 from oidcmsg.oidc import TokenErrorResponse
-from oidcmsg.server import JWT_BEARER
 from oidcmsg.server.authn_event import create_authn_event
 from oidcmsg.server.authz import AuthzHandling
 from oidcmsg.server.client_authn import verify_client
@@ -21,6 +20,7 @@ from oidcmsg.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from oidcmsg.server.user_info import UserInfo
 from oidcmsg.server.util import lv_pack
 from oidcmsg.time_util import utc_time_sans_frac
+import pytest
 
 from oidcop.cookie_handler import CookieHandler
 from oidcop.oidc import userinfo
