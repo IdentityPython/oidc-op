@@ -37,7 +37,8 @@ def do_endpoints(conf, server_get):
 
 
 def get_capabilities(conf, endpoints):
-    _cap = conf.get("capabilities", {})
+    ignored_capabilities = ["client_authn_method"]
+    _cap = dict(conf.get("capabilities", {}))
     if _cap is None:
         _cap = {}
 
@@ -49,6 +50,10 @@ def get_capabilities(conf, endpoints):
             for key, val in endpoint_instance.endpoint_info.items():
                 if key not in _cap:
                     _cap[key] = val
+
+    for key in ignored_capabilities:
+        if key in _cap:
+            _cap.pop(key)
 
     return _cap
 

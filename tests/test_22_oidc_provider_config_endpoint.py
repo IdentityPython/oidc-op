@@ -6,6 +6,7 @@ import pytest
 from oidcop.configure import OPConfiguration
 from oidcop.oidc.provider_config import ProviderConfiguration
 from oidcop.oidc.token import Token
+from oidcop.oauth2.introspection import Introspection
 from oidcop.server import Server
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
@@ -65,7 +66,8 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "token": {"path": "token", "class": Token, "kwargs": {}},
+                "token": {"path": "token", "class": Token, "kwargs": {"client_authn_method": ["client_secret_basic"]}},
+                "introspection": {"path": "introspection", "class": Introspection, "kwargs": {"client_authn_method": ["client_secret_basic"]}},
             },
             "template_dir": "template",
         }
@@ -107,6 +109,7 @@ class TestEndpoint(object):
             "updated_at",
             "birthdate",
         }
+        assert "client_authn_method" not in _msg
         assert ("Content-type", "application/json; charset=utf-8") in msg["http_headers"]
 
     def test_scopes_supported(self, conf):
