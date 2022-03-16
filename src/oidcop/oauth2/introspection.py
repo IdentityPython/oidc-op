@@ -7,6 +7,7 @@ from oidcmsg import oauth2
 from oidcop.endpoint import Endpoint
 from oidcop.token.exception import UnknownToken
 from oidcop.token.exception import WrongTokenClass
+from oidcop.exception import ToOld
 
 LOGGER = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ class Introspection(Endpoint):
             _session_info = _context.session_manager.get_session_info_by_token(
                 request_token, grant=True
             )
-        except (UnknownToken, WrongTokenClass):
+        except (UnknownToken, WrongTokenClass, ToOld):
             return {"response_args": _resp}
 
         grant = _session_info["grant"]

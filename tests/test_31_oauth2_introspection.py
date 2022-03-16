@@ -444,9 +444,14 @@ class TestEndpoint:
         _resp = self.introspection_endpoint.process_request(_req)
         assert _resp["response_args"]["active"] is False
 
-    def test_expired_access_token(self):
+    def test_expired_access_token(self, monkeypatch):
         access_token = self._get_access_token(AUTH_REQ)
-        access_token.expires_at = utc_time_sans_frac() - 1000
+        lifetime = self.session_manager.token_handler.handler["access_token"].lifetime
+
+        def mock():
+            return utc_time_sans_frac() + lifetime + 1
+
+        monkeypatch.setattr("oidcop.token.utc_time_sans_frac", mock)
 
         _context = self.introspection_endpoint.server_get("endpoint_context")
 
