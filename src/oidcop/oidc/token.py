@@ -172,8 +172,8 @@ class AccessTokenHelper(TokenEndpointHelper):
         _mngr = self.endpoint.server_get("endpoint_context").session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(request["code"], grant=True)
-        except (KeyError, UnknownToken):
-            logger.error("Access Code invalid")
+        except (KeyError, UnknownToken) as err:
+            logger.error("Access Code invalid", exc_info=err)
             return self.error_cls(error="invalid_grant", error_description="Unknown code")
 
         grant = _session_info["grant"]
